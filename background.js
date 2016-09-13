@@ -126,7 +126,7 @@ chrome.storage.local.get(function(pref) {
 	else {
 		// not first run just load prefs
 		policy = pref.policy;
-		blackwhitelist = pref.bwlist;
+		blackwhitelist = pref.blackwhitelist;
 		// console.log("Loaded preferences", {policy: policy, blackwhitelist: blackwhitelist});
 	}
 	// console.log("Initialising...");
