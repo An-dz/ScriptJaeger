@@ -1,0 +1,68 @@
+body {
+	margin: 0;
+	width: 350px;
+	font-size: 11pt;
+	cursor: pointer;
+	background: #ccc;
+}
+.scopes, .policies, .script {
+	display: flex;
+}
+.scopes div, .policies div {
+	text-align: center;
+	flex: 1;
+	padding: 5px;
+}
+.scopes div:hover, .policies div:hover, .scopes span:hover, .policies span:hover, .script:hover {
+	background: rgba(255, 255, 255, .2);
+}
+.script {
+	padding: 5px;
+}
+.scripts p {
+	text-align: center;
+}
+.subdomain {
+	flex: 1;
+	opacity: .5;
+	text-align: right;
+}
+.domain {
+	flex: 1.5;
+	text-align: left;
+}
+.blocked .domain, .blocked .number {
+	opacity: .5;
+}
+/* Global selected */
+.global #global/*, .global .policies*/ {
+	background: #F00;
+}
+/* Domain selected */
+.domain #domain/*, .domain .policies*/ {
+	background: #f8a01b;
+}
+/* Site selected */
+.site #site/*, .site .policies*/ {
+	background: #0F0;
+}
+/* Page selected */
+.page #page/*, .page .policies*/ {
+	background: #00F;
+}
+/* Block All selected */
+.blockall #blockall/*, .blockall .scripts*/ {
+	background: #26272A;
+}
+/* Filtered selected */
+.filtered #filtered/*, .filtered .scripts*/ {
+	background: #73AB55;
+}
+/* Relaxed selected */
+.relaxed #relaxed/*, .relaxed .scripts*/ {
+	background: #2590F4;
+}
+/* Allow All selected */
+.allowall #allowall/*, .allowall .scripts*/ {
+	background: #D84A4A;
+}

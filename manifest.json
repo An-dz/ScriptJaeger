@@ -1,0 +1,44 @@
+{
+	"name": "ScriptJäger",
+	"version": "0.0",
+	"author": {
+		"name": "André Zanghelini (An_dz)",
+		"url": "https://github.com/An-dz"
+	},
+	"description": "Die Erweiterung für der Jägermeister! Control which scripts & frames to load per webpage.",
+	"homepage_url": "https://github.com/An-dz",
+
+	// "default_locale": "en",
+	"icons": {
+		"128": "images/jaegerhut128.png",
+		"48": "images/jaegerhut48.png",
+		"16": "images/jaegerhut16.png"
+	},
+	// "options_page": "options.html",
+
+	"background": {
+		"scripts": [
+			"background.js"
+		]
+	},
+
+	"browser_action": {
+		"default_icon": {
+			"19": "images/disabled19.png",
+			"38": "images/disabled38.png"
+		},
+		"default_title": "ScriptJäger",
+		"default_popup": "popup.html"
+	},
+
+	"permissions": [
+		"tabs",
+		"storage",
+		"webNavigation",
+		"webRequest",
+		"webRequestBlocking",
+		"<all_urls>"
+	],
+
+	"manifest_version": 2
+}
