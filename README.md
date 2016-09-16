@@ -31,5 +31,5 @@ To save & load preferences
 To know which kind of redirection it is to update the popup accordingly, preventing resetting of information on dynamically loaded pages like YouTube, Facebook & Twitter
 * webRequest & webRequestBlocking  
 To be able to intercept the scripts before requesting them and then block if necessary
-* <all_urls>  
+* \<all_urls>  
 To work in any page
