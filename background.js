@@ -163,7 +163,7 @@ var jaegerhut = ["allowall", "relaxed", "filtered", "blockall", "blockall", "blo
  * Based on https://github.com/Christoph142/Pin-Sites/
  */
 chrome.tabs.onReplaced.addListener(function (newId, oldId) {
-	// console.log(oldId, "replaced by", newId);
+	// console.log("@ Tab replace @", oldId, "replaced by", newId);
 	if (newId === oldId || typeof tabStorage[oldId] === "undefined") {
 		return;
 	}
@@ -181,7 +181,7 @@ chrome.tabs.onReplaced.addListener(function (newId, oldId) {
 chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
 	if (changeInfo.status === "loading") {
 		// console.log("##### Loading status fired #####");
-		// console.log("loading", tabId, changeInfo, tab)
+		// console.log("Loading...", tabId, changeInfo, tab)
 		addTab(tab);
 	}
 });
@@ -237,14 +237,14 @@ function addTab(tab) {
 		tabStorage[tab.id] = site;
 	}
 
-	// console.log("monitoring tab", tab.id, "with", tabStorage[tab.id]);
+	// console.log("Monitoring tab", tab.id, "with", tabStorage[tab.id]);
 }
 
 /*
  * Function to remove saved info about tab
  */
 function removeTab(tabid) {
-	// console.log("stopped monitoring tab", tabid, "with", tabStorage[tabid]);
+	// console.log("Stopped monitoring tab", tabid, "with", tabStorage[tabid]);
 	delete tabStorage[tabid];
 }
 
@@ -393,13 +393,13 @@ function scriptweeder(details) {
 		name: scriptsite.page + scriptsite.query,
 		blocked: block
 	}
-	// console.log(p);
+	// console.log("# Saving script info", p);
 
-	// console.log(script[scriptsite.domain])
+	// console.log("# Saving domain", script[scriptsite.domain])
 	if (script[scriptsite.domain] === undefined) {
 		script[scriptsite.domain] = {};
 	}
-	// console.log(script[scriptsite.domain][scriptsite.subdomain])
+	// console.log("# Saving subdomain", script[scriptsite.domain][scriptsite.subdomain])
 	if (script[scriptsite.domain][scriptsite.subdomain] === undefined) {
 		script[scriptsite.domain][scriptsite.subdomain] = [p];
 	}
@@ -422,7 +422,7 @@ function getBlockPolicy(site) {
 	if (site.private === true) {
 		applyPolicy = policy.private;
 	}
-	// console.log(site);
+	// console.log("Block policy site", site);
 
 	var domain = false;
 	var host = false;
