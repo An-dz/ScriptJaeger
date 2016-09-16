@@ -53,11 +53,18 @@ chrome.tabs.query({currentWindow: true, active: true}, function(tabs){
 
 		tabInfo = tab;
 
+		// node containing host info
 		var hostNode;
 		var input;
 		var domainNode;
 		var subdomainNode;
 		var number;
+		// node containing list of script for that host
+		var jsList;
+		var scriptNode;
+		var script;
+		var js;
+		var url;
 
 		// policy button reflects current policy
 		document.body.className = "domain " + scopeList[tab.policy];
@@ -75,13 +82,15 @@ chrome.tabs.query({currentWindow: true, active: true}, function(tabs){
 				input = document.createElement("input");
 				subdomainNode = document.createElement("span");
 				domainNode = document.createElement("span");
-				number = document.createElement("span");
+				number = document.createElement("label");
 
-				hostNode.setAttribute("class", "script blocked");
-				input.setAttribute("type", "checkbox");
-				subdomainNode.setAttribute("class", "subdomain");
-				domainNode.setAttribute("class", "domain");
-				number.setAttribute("class", "number");
+				hostNode.className = "script blocked";
+				subdomainNode.className = "subdomain";
+				domainNode.className = "domain";
+				number.className = "number";
+
+				input.type = "checkbox";
+				number.htmlFor = subdomain + domain;
 
 				subdomainNode.innerText = subdomain + ((subdomain.length > 0)? "." : "");
 				domainNode.innerText = domain;
@@ -93,24 +102,34 @@ chrome.tabs.query({currentWindow: true, active: true}, function(tabs){
 				hostNode.appendChild(number);
 				document.querySelector(".scripts").appendChild(hostNode);
 
-				for (var i = 0; i < tab.scripts[domain][subdomain].length; i++) {
-					var script = tab.scripts[domain][subdomain][i];
+				jsList = document.createElement("input");
+				jsList.type = "checkbox";
+				jsList.hidden = true;
+				jsList.id = subdomain + domain;
+				document.querySelector(".scripts").appendChild(jsList);
 
-					// console.log(script);
+				scriptNode = document.createElement("div");
+				scriptNode.className = "jslist";
+				document.querySelector(".scripts").appendChild(scriptNode);
+
+				for (var i = 0; i < tab.scripts[domain][subdomain].length; i++) {
+					script = tab.scripts[domain][subdomain][i];
+
+					// console.log("Script:", script);
 
 					if (!script.blocked) {
-						input.setAttribute("checked", "true");
-						hostNode.setAttribute("class", "script");
+						input.checked = true;
+						hostNode.className = "script";
 					}
 
-					// Temp
-					/*var scriptNode = document.createElement("div");
-					scriptNode.className = "script";
-					var name = document.createElement("span");
-					name.className = "subdomain";
-					name.innerText = script.name;
-					scriptNode.appendChild(name);
-					document.querySelector(".scripts").appendChild(scriptNode);*/
+					js = document.createElement("a");
+					js.className = "js";
+					js.innerText = script.name.substring(script.name.lastIndexOf("/") + 1);
+					url = script.protocol + subdomain + "." + domain + script.name + script.query;
+					js.title = url;
+					js.href = url;
+					scriptNode.appendChild(js);
+
 				}
 			}
 		}
@@ -142,7 +161,7 @@ document.addEventListener("DOMContentLoaded", function() {
 				// change all inputs to checked (allowed)
 				var inputs = document.querySelectorAll("input");
 				for (var i = inputs.length - 1; i >= 0; i--) {
-					inputs[i].setAttribute("checked", "true");
+					inputs[i].checked = true;
 				}
 			});
 		}
@@ -155,7 +174,7 @@ document.addEventListener("DOMContentLoaded", function() {
 				// change all inputs to unchecked (blocked)
 				var inputs = document.querySelectorAll("input");
 				for (var i = inputs.length - 1; i >= 0; i--) {
-					inputs[i].removeAttribute("checked");
+					inputs[i].checked = false;
 				}
 			});
 		}
@@ -169,10 +188,10 @@ document.addEventListener("DOMContentLoaded", function() {
 				var hosts = document.querySelectorAll(".script");
 				for (var i = hosts.length - 1; i >= 0; i--) {
 					if (hosts[i].querySelector(".domain").innerText === tabInfo.domain) {
-						hosts[i].firstChild.setAttribute("checked", "true");
+						hosts[i].firstChild.checked = true;
 					}
 					else {
-						hosts[i].firstChild.removeAttribute("checked");
+						hosts[i].firstChild.checked = false;
 					}
 				}
 			});
@@ -188,10 +207,10 @@ document.addEventListener("DOMContentLoaded", function() {
 					var jsDomain = hosts[i].querySelector(".domain").innerText;
 					var jsSubDomain = hosts[i].querySelector(".subdomain").innerText;
 					if (jsDomain === tabInfo.domain || isCommonHelpers({domain: jsDomain, subdomain: jsSubDomain}) || isRelated(jsDomain, tabInfo.domain)) {
-						hosts[i].firstChild.setAttribute("checked", "true");
+						hosts[i].firstChild.checked = true;
 					}
 					else {
-						hosts[i].firstChild.removeAttribute("checked");
+						hosts[i].firstChild.checked = false;
 					}
 				}
 			});

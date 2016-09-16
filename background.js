@@ -390,7 +390,9 @@ function scriptweeder(details) {
 	// obtain info about all loaded scripts
 	var script = tabStorage[tabid].scripts;
 	var p = {
-		name: scriptsite.page + scriptsite.query,
+		name: scriptsite.page,
+		query: scriptsite.query,
+		protocol: scriptsite.protocol,
 		blocked: block
 	}
 	// console.log("# Saving script info", p);
@@ -490,19 +492,22 @@ function getBlockPolicy(site) {
  * Extract the important parts of the url and returns an object with them
  *
  * Object children:
- * domain = contains the domain name
+ * protocol = contains the protocol http or https
  * subdomain = contains the subdomain name
+ * domain = contains the domain name
  * page = contains the directory & file name
  * query = contains query information
  */
 function extractUrl(url) {
+	var site = {protocol: "http://"};
+
 	// strip the protocol because all requests are http or https
-	var site = {};
 	var strip = 7;
 	// check if it's https
 	// the advantage of this method is that it's fast, since strings are arrays
 	if (url.charCodeAt(4) === 115) {
 		strip = 8;
+		site.protocol = "https://";
 	}
 	url = url.slice(strip);
 

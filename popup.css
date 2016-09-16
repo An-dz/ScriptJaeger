@@ -13,11 +13,13 @@ body {
 	flex: 1;
 	padding: 5px;
 }
-.scopes div:hover, .policies div:hover, .scopes span:hover, .policies span:hover, .script:hover {
+.scopes div:hover, .policies div:hover, .scopes span:hover, .policies span:hover, .script:hover, .js:hover {
 	background: rgba(255, 255, 255, .2);
 }
-.script {
-	padding: 5px;
+input {
+	cursor: pointer;
+	margin: 0 5px;
+	height: 30px;
 }
 .scripts p {
 	text-align: center;
@@ -25,13 +27,40 @@ body {
 .subdomain {
 	flex: 1;
 	opacity: .5;
+	padding: 5px 0;
 	text-align: right;
 }
-.domain {
-	flex: 1.5;
+.domain:not(body) {
+	flex: 1.3;
+	padding: 5px 0;
 	text-align: left;
 }
-.blocked .domain, .blocked .number {
+.number {
+	cursor: pointer;
+	width: 18px;
+	padding: 5px;
+	text-align: right;
+}
+.jslist {
+	max-height: 0;
+	overflow-y: auto;
+	overflow-x: hidden;
+	transition: max-height 500ms ease-out;
+}
+input:checked + .jslist {
+	max-height: 200px;
+}
+.js {
+	color: blue;
+	text-decoration: none;
+	padding: 5px 10px 5px 20px;
+	display: block;
+	text-align: right;
+	text-overflow: ellipsis;
+	overflow: hidden;
+	white-space: nowrap;
+}
+.blocked .domain, .blocked .number, .blocked + .jslist {
 	opacity: .5;
 }
 /* Global selected */
