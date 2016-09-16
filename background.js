@@ -48,6 +48,15 @@ chrome.storage.local.get(function(pref) {
 					}]
 				}]
 			},{
+				name: "instagram.com",
+				rules: [{
+					domain: "akamaihd.net",
+					sites: [{
+						name: "instagramstatic-a",
+						rule: false
+					}]
+				}]
+			},{
 				name: "startpage.com",
 				rule: 0
 			}]
@@ -108,7 +117,7 @@ chrome.storage.local.get(function(pref) {
 					rule: false
 				}]
 			},{
-				name: "twimg.com",
+				name: "twimg.com", // Twitter
 				sites: [{
 					name: "widgets",
 					rule: true
