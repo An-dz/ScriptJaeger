@@ -14,7 +14,10 @@ var blackwhitelist = {};
  * page scripts and create the DOM nodes with this info
  */
 chrome.tabs.query({currentWindow: true, active: true}, function(tabs){
-	chrome.runtime.sendMessage({tabid: tabs[0].id}, function(tab, bwlist) {
+	chrome.runtime.sendMessage({
+		type: 0, // tab info request
+		tabid: tabs[0].id
+	}, function(tab) {
 		console.log("Tab info", tab);
 
 		// not an http(s) page
@@ -101,6 +104,37 @@ chrome.tabs.query({currentWindow: true, active: true}, function(tabs){
 				hostNode.appendChild(domainNode);
 				hostNode.appendChild(number);
 				document.querySelector(".scripts").appendChild(hostNode);
+
+				// save script exception
+				hostNode.addEventListener("click", function(e) {
+					var target = e.target;
+					console.log(target);
+					var char = target.tagName.charCodeAt(0);
+					// clicking the 'l'abel for checking individual scripts should not trigger
+					if (char === 73) {
+						return
+					}
+					// not clicking over checkmark should invert its state
+					else if (char === 83 || char === 68) {
+						// if hostname then move to parent node
+						if (char === 83) {
+							target = target.parentNode;
+						}
+						var input = target.querySelector("input");
+						input.checked = !input.checked;
+					}
+					// The background script deals with it because the popup process will die on close
+					chrome.runtime.sendMessage({
+						type: 1, // save script exception
+						tabid: tabs[0].id,
+						scope: document.body.className.charCodeAt(0),
+						script: {
+							domain: target.querySelector(".domain").innerText,
+							subdomain: target.querySelector(".subdomain").innerText.slice(0,-1),
+							rule: input.checked
+						}
+					});
+				}, false)
 
 				jsList = document.createElement("input");
 				jsList.type = "checkbox";

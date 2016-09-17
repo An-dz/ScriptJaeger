@@ -249,13 +249,6 @@ function removeTab(tabid) {
 }
 
 /*
- * When the popup asks for info we send what we have for that tab.
- */
-chrome.runtime.onMessage.addListener(function(msg, src, answer) {
-	answer(tabStorage[msg.tabid]);
-});
-
-/*
  * Chromium webRequest, we check before the request is made
  * We just need to check from http protocol and only scripts and frames
  */
@@ -695,4 +688,139 @@ function isRelated(js, tab) {
 		return true;
 	}
 	return false;
+}
+
+/*
+ * The popup might require info or things to be executed
+ * child 'type' will contain the type of the request
+ */
+chrome.runtime.onMessage.addListener(function(msg, src, answer) {
+	console.log("# Message Received #\n", msg);
+	// tab data request
+	if (msg.type === 0) {
+		answer(tabStorage[msg.tabid]);
+	}
+	// save preferences
+	else if (msg.type === 1) {
+		// global scope, save in blackwhitelist
+		if (msg.scope === 103) {
+			saveBlackWhitelist(blackwhitelist.domains, msg.script);
+			console.log("Saved blackwhitelist");
+			chrome.storage.local.set({blackwhitelist: blackwhitelist});
+			return;
+		}
+		var found = {
+			domain: false,
+			site: false,
+			page: false
+		};
+		// not global, save in specific policy
+		for (var host of policy.domains) {
+			if (host.name === tabStorage[msg.tabid].domain) {
+				found.domain = true;
+				// if domain level, stop here
+				if (msg.scope === 100) {
+					if (host.rules === undefined) {
+						host.rules = [];
+					}
+					saveBlackWhitelist(host.rules, msg.script);
+					break;
+				}
+				for (var site of host.sites) {
+					if (site.name === tabStorage[msg.tabid].subdomain) {
+						found.site = true;
+						// if site level, stop here
+						if (msg.scope === 115) {
+							if (site.rules === undefined) {
+								site.rules = [];
+							}
+							saveBlackWhitelist(site.rules, msg.script);
+							break
+						}
+						for (var page of site.pages) {
+							if (page.name === tabStorage[msg.tabid].page) {
+								found.page = true;
+								if (page.rules === undefined) {
+									page.rules = [];
+								}
+								saveBlackWhitelist(page.rules, msg.script);
+								break;
+							}
+						}
+						break;
+					}
+				}
+				break;
+			}
+		}
+		// if the rules have not been found, we create a new one
+		var level = false;
+		if (!found.domain) {
+			var host = {name: tabStorage[msg.tabid].domain};
+			policy.domains.push(host);
+			level = host;
+		}
+		if (msg.scope > 110 && !found.site) {
+			if (host.sites === undefined) {
+				host.sites = [];
+			}
+			var site = {name: tabStorage[msg.tabid].subdomain};
+			host.sites.push(site);
+			level = site;
+		}
+		if (msg.scope === 112 && !found.page) {
+			if (site.pages === undefined) {
+				site.pages = [];
+			}
+			var page = {name: tabStorage[msg.tabid].page};
+			site.pages.push(page);
+			level = page;
+		}
+		// only run if it was needed to be created
+		if (level) {
+			level.rules = [];
+			saveBlackWhitelist(level.rules, msg.script);
+		}
+		console.log("Saved Policy Exception");
+		chrome.storage.local.set({policy: policy});
+	}
+});
+
+/*
+ * Function that saves blackwhitelist objects in any place
+ * level: where to store
+ * data: data to store
+ */
+function saveBlackWhitelist(level, data) {
+	var found = false;
+	// check if domain and subdomain exists
+	for (var host of level) {
+		if (host.name === data.domain) {
+			for (var site of host.sites) {
+				if (site.name === data.subdomain) {
+					site.rule = data.rule;
+					found = true;
+					break;
+				}
+			}
+			if (!found) {
+				sites.push({
+					name: data.subdomain,
+					rule: data.rule
+				});
+				found = true;
+			}
+			break;
+		}
+	}
+	// domain does not exist, push everything
+	if (!found) {
+		level.push({
+			name: data.domain,
+			sites: [{
+				name: data.subdomain,
+				rule: data.rule
+			}]
+		});
+	}
 }
