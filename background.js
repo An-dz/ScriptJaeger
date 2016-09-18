@@ -41,7 +41,7 @@ chrome.storage.local.get(function(pref) {
 				name: "duolingo.com",
 				rule: 1,
 				rules: [{
-					domain: "cloudfront.net",
+					name: "cloudfront.net",
 					sites: [{
 						name: "d7mj4aqfscim2",
 						rule: false
@@ -50,7 +50,7 @@ chrome.storage.local.get(function(pref) {
 			},{
 				name: "instagram.com",
 				rules: [{
-					domain: "akamaihd.net",
+					name: "akamaihd.net",
 					sites: [{
 						name: "instagramstatic-a",
 						rule: false
@@ -325,12 +325,11 @@ function scriptweeder(details) {
 
 		// custom rules for the domain/site/page
 		if (tabsite.rules !== undefined) {
-			var rules = tabsite.rules;
-			for (var i = rules.length - 1; i >= 0; i--) {
-				if (scriptsite.domain === rules[i].domain) {
-					for (var j = rules[i].sites.length - 1; j >= 0; j--) {
-						if (scriptsite.subdomain === rules[i].sites[j].name) {
-							block = rules[i].sites[j].rule;
+			for (var domain of tabsite.rules) {
+				if (domain.name === scriptsite.domain) {
+					for (var subdomain of domain.sites) {
+						if (subdomain.name === scriptsite.subdomain) {
+							block = subdomain.rule;
 						}
 					}
 				}

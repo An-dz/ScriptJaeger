@@ -131,7 +131,9 @@ chrome.tabs.query({currentWindow: true, active: true}, function(tabs){
 						script: {
 							domain: target.querySelector(".domain").innerText,
 							subdomain: target.querySelector(".subdomain").innerText.slice(0,-1),
-							rule: input.checked
+							// @here: true means checked which means allow
+							// @blackwhitelist: true means block
+							rule: !input.checked
 						}
 					});
 				}, false)
