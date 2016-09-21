@@ -359,9 +359,9 @@ function scriptweeder(details) {
 
 	// set badge icon
 	if (block) {
-		tabStorage[tabid].numScripts++;
+		tabsite.numScripts++;
 		chrome.browserAction.setBadgeText({
-			text: tabStorage[tabid].numScripts.toString(),
+			text: tabsite.numScripts.toString(),
 			tabId: tabid
 		});
 	}
@@ -374,7 +374,7 @@ function scriptweeder(details) {
 	});*/
 
 	// obtain info about all loaded scripts
-	var script = tabStorage[tabid].scripts;
+	var script = tabsite.scripts;
 	var p = {
 		name: scriptsite.page,
 		query: scriptsite.query,
