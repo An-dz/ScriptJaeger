@@ -18,7 +18,7 @@ chrome.tabs.query({currentWindow: true, active: true}, function(tabs){
 		type: 0, // tab info request
 		tabid: tabs[0].id
 	}, function(tab) {
-		console.log("Tab info", tab);
+		// console.log("Tab info", tab);
 
 		// not an http(s) page
 		if (typeof tab === "string") {
@@ -106,11 +106,11 @@ chrome.tabs.query({currentWindow: true, active: true}, function(tabs){
 				// save script exception
 				hostNode.addEventListener("click", function(e) {
 					var target = e.target;
-					console.log(target);
 					var char = target.tagName.charCodeAt(0);
+					// console.log("Char code:", char);
 					// clicking the 'l'abel for checking individual scripts should not trigger
-					if (char === 73) {
-						return
+					if (char === 76) {
+						return;
 					}
 					// not clicking over checkmark should invert its state
 					else if (char === 83 || char === 68) {
