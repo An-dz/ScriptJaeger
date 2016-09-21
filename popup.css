@@ -64,34 +64,35 @@ input:checked + .jslist {
 	opacity: .5;
 }
 /* Global selected */
-.global #global/*, .global .policies*/ {
-	background: #F00;
+.global #global, .global .policies {
+	background: #cf56e1;
 }
 /* Domain selected */
-.domain #domain/*, .domain .policies*/ {
+.domain #domain, .domain .policies {
 	background: #f8a01b;
 }
 /* Site selected */
-.site #site/*, .site .policies*/ {
-	background: #0F0;
+.site #site, .site .policies {
+	background: #31f19d;
 }
 /* Page selected */
-.page #page/*, .page .policies*/ {
-	background: #00F;
+.page #page, .page .policies {
+	background: #ffee00;
 }
 /* Block All selected */
-.blockall #blockall/*, .blockall .scripts*/ {
-	background: #26272A;
+.blockall #blockall, .blockall .scripts {
+	background: #26272a;
+	color: #fff;
 }
 /* Filtered selected */
-.filtered #filtered/*, .filtered .scripts*/ {
-	background: #73AB55;
+.filtered #filtered, .filtered .scripts {
+	background: #73ab55;
 }
 /* Relaxed selected */
-.relaxed #relaxed/*, .relaxed .scripts*/ {
-	background: #2590F4;
+.relaxed #relaxed, .relaxed .scripts {
+	background: #559fe6;
 }
 /* Allow All selected */
-.allowall #allowall/*, .allowall .scripts*/ {
-	background: #D84A4A;
+.allowall #allowall, .allowall .scripts {
+	background: #d84a4a;
 }
