@@ -192,7 +192,7 @@ document.addEventListener("DOMContentLoaded", function() {
 				document.body.className = scope + " " + e.target.id;
 
 				// change all inputs to checked (allowed)
-				var inputs = document.querySelectorAll("input");
+				var inputs = document.querySelectorAll(".script input");
 				for (var i = inputs.length - 1; i >= 0; i--) {
 					inputs[i].checked = true;
 				}
@@ -205,7 +205,7 @@ document.addEventListener("DOMContentLoaded", function() {
 				document.body.className = scope + " " + e.target.id;
 
 				// change all inputs to unchecked (blocked)
-				var inputs = document.querySelectorAll("input");
+				var inputs = document.querySelectorAll(".script input");
 				for (var i = inputs.length - 1; i >= 0; i--) {
 					inputs[i].checked = false;
 				}
