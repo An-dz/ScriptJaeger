@@ -688,18 +688,23 @@ function isRelated(js, tab) {
  * child 'type' will contain the type of the request
  */
 chrome.runtime.onMessage.addListener(function(msg, src, answer) {
-	console.log("# Message Received #\n", msg);
+	// console.log("# Message Received #\n", msg);
 	// tab data request
 	if (msg.type === 0) {
 		answer(tabStorage[msg.tabid]);
 	}
-	// save preferences
+	// scope is decimal unicode for the first letter
+	// 103: global, 100: domain, 115: site, 112: page
+	// save individual scripts blackwhitelist preferences
 	else if (msg.type === 1) {
 		// global scope, save in blackwhitelist
 		if (msg.scope === 103) {
 			saveBlackWhitelist(blackwhitelist.domains, msg.script);
-			console.log("Saved blackwhitelist");
-			chrome.storage.local.set({blackwhitelist: blackwhitelist});
+			// console.log("blackwhitelist applied!")
+			if (!msg.private) {
+				// console.log("Saved blackwhitelist!");
+				chrome.storage.local.set({blackwhitelist: blackwhitelist});
+			}
 			return;
 		}
 		var found = {
@@ -774,8 +779,87 @@ chrome.runtime.onMessage.addListener(function(msg, src, answer) {
 			level.rules = [];
 			saveBlackWhitelist(level.rules, msg.script);
 		}
-		console.log("Saved Policy Exception");
-		chrome.storage.local.set({policy: policy});
+		// console.log("Applied exceptions!");
+		if (!msg.private) {
+			// console.log("Saved exceptions!");
+			chrome.storage.local.set({policy: policy});
+		}
+	}
+	// save scope preferences
+	else if (msg.type === 2) {
+		// save global
+		if (msg.domain === undefined) {
+			policy.rule = msg.policy;
+		}
+		else {
+			var found = {
+				domain: false,
+				site: false,
+				page: false
+			};
+			for (var domain of policy.domains) {
+				if (domain.name === msg.domain) {
+					found.domain = true;
+					// save domain
+					if (msg.subdomain === undefined) {
+						domain.rule = msg.policy;
+					} else {
+						for (var site of domain.sites) {
+							if (site.name === msg.subdomain) {
+								found.site = true;
+								// save subdomain
+								if (msg.page === undefined) {
+									site.rule = msg.policy;
+								} else {
+									for (var page of site.pages) {
+										// save page
+										if (page.name === msg.page) {
+											found.page = true;
+											page.rule = msg.policy;
+											break;
+										}
+									}
+								}
+								break;
+							}
+						}
+					}
+					break;
+				}
+			}
+			// if the rule has not been found, we create a new one
+			var level = false;
+			if (!found.domain) {
+				var host = {name: msg.domain};
+				policy.domains.push(host);
+				level = host;
+			}
+			if (!found.site && msg.subdomain !== undefined) {
+				if (host.sites === undefined) {
+					host.sites = [];
+				}
+				var site = {name: msg.subdomain};
+				host.sites.push(site);
+				level = site;
+			}
+			if (!found.page && msg.page !== undefined) {
+				if (site.pages === undefined) {
+					site.pages = [];
+				}
+				var page = {name: msg.page};
+				site.pages.push(page);
+				level = page;
+			}
+			// only run if it was needed to be created
+			if (level) {
+				level.rule = msg.policy;
+			}
+		}
+		// console.log("Applied new policy!");
+		if (!msg.private) {
+			// console.log("Saved new policy!");
+			chrome.storage.local.set({policy: policy});
+		}
 	}
 });
 

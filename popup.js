@@ -126,6 +126,7 @@ chrome.tabs.query({currentWindow: true, active: true}, function(tabs){
 						type: 1, // save script exception
 						tabid: tabs[0].id,
 						scope: document.body.className.charCodeAt(0),
+						private: tabInfo.private,
 						script: {
 							domain: target.querySelector(".domain").innerText,
 							subdomain: target.querySelector(".subdomain").innerText.slice(0,-1),
@@ -191,6 +192,8 @@ document.addEventListener("DOMContentLoaded", function() {
 				var scope = document.body.className.split(" ")[0];
 				document.body.className = scope + " " + e.target.id;
 
+				changePolicy(0, scope);
+
 				// change all inputs to checked (allowed)
 				var inputs = document.querySelectorAll(".script input");
 				for (var i = inputs.length - 1; i >= 0; i--) {
@@ -204,6 +207,8 @@ document.addEventListener("DOMContentLoaded", function() {
 				var scope = document.body.className.split(" ")[0];
 				document.body.className = scope + " " + e.target.id;
 
+				changePolicy(3, scope);
+
 				// change all inputs to unchecked (blocked)
 				var inputs = document.querySelectorAll(".script input");
 				for (var i = inputs.length - 1; i >= 0; i--) {
@@ -216,6 +221,8 @@ document.addEventListener("DOMContentLoaded", function() {
 			policies[i].addEventListener("click", function(e) {
 				var scope = document.body.className.split(" ")[0];
 				document.body.className = scope + " " + e.target.id;
+
+				changePolicy(2, scope);
 
 				// check inputs with same domain, uncheck others
 				var hosts = document.querySelectorAll(".script");
@@ -235,6 +242,8 @@ document.addEventListener("DOMContentLoaded", function() {
 				var scope = document.body.className.split(" ")[0];
 				document.body.className = scope + " " + e.target.id;
 
+				changePolicy(1, scope);
+
 				var hosts = document.querySelectorAll(".script");
 				for (var i = hosts.length - 1; i >= 0; i--) {
 					var jsDomain = hosts[i].querySelector(".domain").innerText;
@@ -252,7 +261,29 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 
 /*
- * Relaxed mode - Copy from background process
+ * Send to background process to save new policy for the specific scope
+ */
+function changePolicy(policy, scope) {
+	var msg = {
+		type: 2,
+		private: tabInfo.private
+	}
+	scope = scope.charCodeAt(0);
+	switch (scope) {
+		// page
+		case 112: msg.page = tabInfo.page;
+		// site
+		case 115: msg.subdomain = tabInfo.subdomain;
+		// domain
+		case 100: msg.domain = tabInfo.domain;
+		// global 103
+		default: msg.policy = policy;
+	}
+	chrome.runtime.sendMessage(msg);
+}
+
+/*
+ * Relaxed mode
  * Check if we can allow from some common patterns in the url
  */
 function isCommonHelpers(site) {
@@ -268,21 +299,16 @@ function isCommonHelpers(site) {
 }
 
 /*
- * Relaxed mode - Copy from background process
+ * Relaxed mode
  * Check if the domain name of the site is in the domain of the script
  * If tab domain is bigger, search for the inverse
- *
- * Algorithm from ScriptWeeder
  */
 function isRelated(js, tab) {
 	if (tab.length > js.length) {
 		return isRelated(tab, js);
 	}
-	var domain = tab.slice(0, tab.indexOf("."));
-	if (js.includes(domain)) {
-		return true;
-	}
-	if (domain.length > 2 && js.slice(0, 3) === domain.slice(0, 3)) {
+	var domain = tab.substring(0, tab.indexOf("."));
+	if (js.includes(domain) || (domain.length > 2 && js.slice(0, 3) === domain.slice(0, 3))) {
 		return true;
 	}
 	return false;
