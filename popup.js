@@ -1,7 +1,7 @@
 /*
  * To translate the policy number to text
  */
-var scopeList = ["allowall", "relaxed", "filtered", "blockall", "blockall", "blockall"]
+var scopeList = ["allowall", "relaxed", "filtered", "blockall", "blockall", "blockall"];
 
 /*
  * Holds data obtained from the background process
@@ -35,7 +35,7 @@ chrome.tabs.query({currentWindow: true, active: true}, function(tabs){
 			}
 			// i from file
 			else if (tab.charCodeAt(1) === 105) {
-				msg = "Open files"
+				msg = "Open files";
 			}
 			msg += " are not scanned";
 
@@ -74,11 +74,9 @@ chrome.tabs.query({currentWindow: true, active: true}, function(tabs){
 
 		// build script list
 		for (var domain in tab.scripts) {
-
 			// console.log("Domain:", domain);
 
 			for (var subdomain in tab.scripts[domain]) {
-
 				// console.log("Sub-domain:", subdomain);
 
 				hostNode = document.createElement("div");
@@ -165,7 +163,6 @@ chrome.tabs.query({currentWindow: true, active: true}, function(tabs){
 					js.title = url;
 					js.href = url;
 					scriptNode.appendChild(js);
-
 				}
 			}
 		}
@@ -181,8 +178,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
 	for (var i = scopes.length - 1; i >= 0; i--) {
 		scopes[i].addEventListener("click", function(e) {
-			var scope = document.body.className.split(" ");
-			document.body.className = e.target.id + " " + scope[1];
+			var policy = document.body.className.split(" ")[1];
+			document.body.className = e.target.id + " " + policy;
 		});
 	}
 
@@ -191,8 +188,8 @@ document.addEventListener("DOMContentLoaded", function() {
 		// allow all
 		if (fc === 97) {
 			policies[i].addEventListener("click", function(e) {
-				var policy = document.body.className.split(" ");
-				document.body.className = policy[0] + " " + e.target.id;
+				var scope = document.body.className.split(" ")[0];
+				document.body.className = scope + " " + e.target.id;
 
 				// change all inputs to checked (allowed)
 				var inputs = document.querySelectorAll("input");
@@ -204,8 +201,8 @@ document.addEventListener("DOMContentLoaded", function() {
 		// block all
 		else if (fc === 98) {
 			policies[i].addEventListener("click", function(e) {
-				var policy = document.body.className.split(" ");
-				document.body.className = policy[0] + " " + e.target.id;
+				var scope = document.body.className.split(" ")[0];
+				document.body.className = scope + " " + e.target.id;
 
 				// change all inputs to unchecked (blocked)
 				var inputs = document.querySelectorAll("input");
@@ -214,11 +211,11 @@ document.addEventListener("DOMContentLoaded", function() {
 				}
 			});
 		}
-		// Filtered
+		// filtered
 		else if (fc === 102) {
 			policies[i].addEventListener("click", function(e) {
-				var policy = document.body.className.split(" ");
-				document.body.className = policy[0] + " " + e.target.id;
+				var scope = document.body.className.split(" ")[0];
+				document.body.className = scope + " " + e.target.id;
 
 				// check inputs with same domain, uncheck others
 				var hosts = document.querySelectorAll(".script");
@@ -235,8 +232,8 @@ document.addEventListener("DOMContentLoaded", function() {
 		// relaxed
 		else if (fc === 114) {
 			policies[i].addEventListener("click", function(e) {
-				var policy = document.body.className.split(" ");
-				document.body.className = policy[0] + " " + e.target.id;
+				var scope = document.body.className.split(" ")[0];
+				document.body.className = scope + " " + e.target.id;
 
 				var hosts = document.querySelectorAll(".script");
 				for (var i = hosts.length - 1; i >= 0; i--) {

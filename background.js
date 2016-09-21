@@ -60,7 +60,7 @@ chrome.storage.local.get(function(pref) {
 				name: "startpage.com",
 				rule: 0
 			}]
-		}
+		};
 		blackwhitelist = {
 			domains: [{
 				name: "localhost",
@@ -129,7 +129,7 @@ chrome.storage.local.get(function(pref) {
 					rule: true
 				}]
 			}]
-		}
+		};
 		chrome.storage.local.set({policy: policy, blackwhitelist: blackwhitelist, firstRun: false});
 	}
 	else {
@@ -255,7 +255,7 @@ function removeTab(tabid) {
 chrome.webRequest.onBeforeRequest.addListener(
 	scriptweeder,
 	{
-		urls: ['http://*/*', 'https://*/*'],
+		urls: ["http://*/*", "https://*/*"],
 		types: ["script", "sub_frame"]
 	},
 	["blocking"]
@@ -266,12 +266,6 @@ chrome.webRequest.onBeforeRequest.addListener(
  */
 function scriptweeder(details) {
 
-	/*
-	TODO:
-	- flag sub_frame/iframe requests
-	- Make scripts from iframes follow the rules of the iframe rather
-	  than the top domain ? Might help youtube videos for example
-	*/
 	/*if (details.type !== "script") {
 		// console.log(details);
 		return
@@ -512,7 +506,7 @@ function extractUrl(url) {
 	 * 4 contains the query
 	 */
 	url = url.match(/^([^/]*)(\/|\/.*\/)([\w-.]*)([^/]*)$/);
-	var domains = url[1].split('.');
+	var domains = url[1].split(".");
 	// less than three levels everything is domain
 	if (domains.length < 3) {
 		url[0] = "";
@@ -525,8 +519,8 @@ function extractUrl(url) {
 		if (tld !== "com" && (standardSecondLevelDomains[sld] || otherSecondLevelDomains[tld] && otherSecondLevelDomains[tld][sld])) {
 			levels = 3;
 		}
-		url[0] = domains.slice(0, domains.length - levels).join('.');
-		url[1] = domains.slice(domains.length - levels).join('.');
+		url[0] = domains.slice(0, domains.length - levels).join(".");
+		url[1] = domains.slice(domains.length - levels).join(".");
 	}
 
 	site.subdomain = url[0];
@@ -682,7 +676,7 @@ function isRelated(js, tab) {
 	if (tab.length > js.length) {
 		return isRelated(tab, js);
 	}
-	var domain = tab.substring(0, tab.indexOf('.'));
+	var domain = tab.substring(0, tab.indexOf("."));
 	if (js.includes(domain) || (domain.length > 2 && js.slice(0, 3) === domain.slice(0, 3))) {
 		return true;
 	}
