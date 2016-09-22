@@ -24,8 +24,8 @@
 
 	"browser_action": {
 		"default_icon": {
-			"19": "images/disabled19.png",
-			"38": "images/disabled38.png"
+			"19": "images/undefined19.png",
+			"38": "images/undefined38.png"
 		},
 		"default_title": "ScriptJäger",
 		"default_popup": "popup.html"

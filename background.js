@@ -180,9 +180,17 @@ chrome.tabs.onReplaced.addListener(function (newId, oldId) {
  */
 chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
 	if (changeInfo.status === "loading") {
-		// console.log("##### Loading status fired #####");
-		// console.log("Loading...", tabId, changeInfo, tab)
+		// console.log("##### Loading status fired #####\n", tabId, changeInfo, tab)
 		addTab(tab);
+		// set icon according to policy
+		var applyPolicy = tabStorage[tabId].policy;
+		chrome.browserAction.setIcon({
+			path: {
+				"19": "images/" + jaegerhut[applyPolicy] + "19.png",
+				"38": "images/" + jaegerhut[applyPolicy] + "38.png"
+			},
+			tabId: tabId
+		});
 	}
 });
 
@@ -288,15 +296,6 @@ function scriptweeder(details) {
 	var block = true;
 	var applyPolicy = tabsite.policy;
 	// console.log("Block Policy:", applyPolicy);
-
-	// set icon according to policy
-	chrome.browserAction.setIcon({
-		path: {
-			"19": "images/" + jaegerhut[applyPolicy] + "19.png",
-			"38": "images/" + jaegerhut[applyPolicy] + "38.png"
-		},
-		tabId: tabid
-	});
 
 	// allow all policy
 	if (applyPolicy === 0) {
