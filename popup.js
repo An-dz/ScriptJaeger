@@ -158,9 +158,10 @@ chrome.tabs.query({currentWindow: true, active: true}, function(tabs){
 					}
 
 					js = document.createElement("a");
+					js.target = "_blank";
 					js.className = "js";
-					js.innerText = script.name.substring(script.name.lastIndexOf("/") + 1);
-					url = script.protocol + subdomain + "." + domain + script.name + script.query;
+					js.innerText = script.name.match(/[^/]+.$/);
+					url = script.protocol + subdomainNode.innerText + domain + script.name + script.query;
 					js.title = url;
 					js.href = url;
 					scriptNode.appendChild(js);
