@@ -759,14 +759,20 @@ chrome.runtime.onMessage.addListener(function(msg, src, answer) {
 			}
 			return;
 		}
+		// used later to build what was not found
 		var found = {
 			domain: false,
 			site: false,
 			page: false
 		};
+		// if saving preferences from a frame, use the frame info
+		var tab = tabStorage[msg.tabid];
+		if (msg.frameid > 0) {
+			tab = tab.frames[msg.frameid];
+		}
 		// not global, save in specific policy
 		for (var host of policy.domains) {
-			if (host.name === tabStorage[msg.tabid].domain) {
+			if (host.name === tab.domain) {
 				found.domain = true;
 				// if domain level, stop here
 				if (msg.scope === 100) {
@@ -777,7 +783,7 @@ chrome.runtime.onMessage.addListener(function(msg, src, answer) {
 					break;
 				}
 				for (var site of host.sites) {
-					if (site.name === tabStorage[msg.tabid].subdomain) {
+					if (site.name === tab.subdomain) {
 						found.site = true;
 						// if site level, stop here
 						if (msg.scope === 115) {
@@ -788,7 +794,7 @@ chrome.runtime.onMessage.addListener(function(msg, src, answer) {
 							break
 						}
 						for (var page of site.pages) {
-							if (page.name === tabStorage[msg.tabid].page) {
+							if (page.name === tab.page) {
 								found.page = true;
 								if (page.rules === undefined) {
 									page.rules = [];

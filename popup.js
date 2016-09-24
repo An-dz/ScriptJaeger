@@ -121,6 +121,7 @@ function buildList(frmInfo, frameid) {
 				chrome.runtime.sendMessage({
 					type: 1, // save script exception
 					tabid: tabInfo.tabid,
+					frameid: frameid,
 					scope: document.body.className.charCodeAt(0),
 					private: tabInfo.private,
 					script: {
