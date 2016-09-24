@@ -173,6 +173,30 @@ chrome.tabs.onReplaced.addListener(function (newId, oldId) {
 });
 
 /*
+ * This is only run when the content is not loaded using history.pushState
+ * We reset the info when this occurs because the page was not dynamically
+ * loaded and so the whole content was reloaded.
+ *
+ * This event is fired right before tabs.onUpdated
+ */
+chrome.webNavigation.onBeforeNavigate.addListener(function(details) {
+	if (details.frameId === 0) {
+		// console.log("##### onBeforeNavigate #####\n", details);
+
+		var tabid = details.tabId;
+
+		// delete anything about the tab because tabs.onUpdate will re-add
+		removeTab(tabid);
+
+		// reset counter in badge
+		chrome.browserAction.setBadgeText({
+			text: "",
+			tabId: tabid
+		});
+	}
+});
+
+/*
  * Pages that have content loaded dynamically like Facebook or YouTube
  * can't have the counter and script list reset
  *
@@ -181,7 +205,10 @@ chrome.tabs.onReplaced.addListener(function (newId, oldId) {
 chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
 	if (changeInfo.status === "loading") {
 		// console.log("##### Loading status fired #####\n", tabId, changeInfo, tab)
+
+		// set info
 		addTab(tab);
+
 		// set icon according to policy
 		var applyPolicy = tabStorage[tabId].policy;
 		chrome.browserAction.setIcon({
@@ -195,25 +222,13 @@ chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
 });
 
 /*
- * Resets the loaded script info in case the page was not dynamically loaded
+ * When a tab is created, start monitoring
  */
-chrome.webNavigation.onCommitted.addListener(function(details) {
-	if (details.frameId === 0 && details.tabId > -1) {
-		// console.log("====== Transition", details);
-		var tabid = details.tabId;
-		chrome.browserAction.setBadgeText({
-			text: "",
-			tabId: tabid
-		});
-		if (tabStorage[tabid] !== undefined) {
-			tabStorage[tabid].numScripts = 0;
-			tabStorage[tabid].scripts = {};
-		}
-	}
-});
-
 chrome.tabs.onCreated.addListener(addTab);
 
+/*
+ * When a tab is closed, stop monitoring
+ */
 chrome.tabs.onRemoved.addListener(removeTab);
 
 /*
@@ -233,7 +248,7 @@ function addTab(tab) {
 		var block = getBlockPolicy(site);
 		site.policy = block.policy;
 		site.rules = block.rules;
-		// initialisation
+		// if page uses history.pushState the old scripts are still loaded
 		if (tabStorage[tab.id] === undefined) {
 			site.numScripts = 0;
 			site.scripts = {};
