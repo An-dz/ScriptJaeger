@@ -248,14 +248,16 @@ function addTab(tab) {
 		var block = getBlockPolicy(site);
 		site.policy = block.policy;
 		site.rules = block.rules;
-		// if page uses history.pushState the old scripts are still loaded
 		if (tabStorage[tab.id] === undefined) {
 			site.numScripts = 0;
 			site.scripts = {};
+			site.frames = {};
 		}
+		// if page uses history.pushState the old scripts are still loaded
 		else {
 			site.numScripts = tabStorage[tab.id].numScripts;
 			site.scripts = tabStorage[tab.id].scripts;
+			site.frames = tabStorage[tab.id].frames;
 		}
 		tabStorage[tab.id] = site;
 	}
@@ -297,12 +299,32 @@ function scriptweeder(details) {
 	// console.log(details);
 
 	var tabid = details.tabId;
-
 	if (tabStorage[tabid] === undefined) {
+		console.warn("tabStorage was not found!", tabid);
 		return {cancel: false};
 	}
+
 	var scriptsite = extractUrl(details.url);
 	var tabsite = tabStorage[tabid];
+
+	var subframe = false;
+	// if request comes from sub_frame or is a sub_frame
+	if (details.frameId > 0) {
+		// if request is a sub_frame
+		if (details.type === "sub_frame") {
+			// console.log("# sub frame main html #");
+			subframe = true;
+		}
+		// console.log("Subframe", subframe, "\nParent frame ID", details.parentFrameId);
+		// if request comes from a sub_frame we apply the rules from the frame site
+		if (!subframe || details.parentFrameId > 0) {
+			framesite = tabsite.frames[details.frameId];
+			// if no frame exists with that id we fallback to the page info
+			if (framesite !== undefined) {
+				tabsite = framesite;
+			}
+		}
+	}
 
 	// console.log("Script website", scriptsite);
 	// console.log("Website loading script", tabsite);
@@ -373,9 +395,9 @@ function scriptweeder(details) {
 
 	// set badge icon
 	if (block) {
-		tabsite.numScripts++;
+		tabStorage[tabid].numScripts++;
 		chrome.browserAction.setBadgeText({
-			text: tabsite.numScripts.toString(),
+			text: tabStorage[tabid].numScripts.toString(),
 			tabId: tabid
 		});
 	}
@@ -387,26 +409,42 @@ function scriptweeder(details) {
 		tabid: tabid
 	});*/
 
-	// obtain info about all loaded scripts
+	// save info about loaded scripts or frame
 	var script = tabsite.scripts;
-	var p = {
+	var objInfo = {
 		name: scriptsite.page,
 		query: scriptsite.query,
 		protocol: scriptsite.protocol,
 		blocked: block
+	};
+
+	// save frames loaded inside frames in the frames object
+	var pframeid = details.parentFrameId;
+	if (subframe && pframeid > 0) {
+		script = tabsite.frames[pframeid].scripts;
 	}
-	// console.log("# Saving script info", p);
+
+	// save info about frame
+	if (subframe) {
+		// Add frameId on sub_frame
+		objInfo.frameid = details.frameId;
+
+		// save frame info in another area
+		var frmInfo = scriptsite;
+		frmInfo.policy = getBlockPolicy(scriptsite).policy;
+		frmInfo.scripts = {};
+		tabStorage[tabid].frames[details.frameId] = frmInfo;
+	}
 
 	// console.log("# Saving domain", script[scriptsite.domain])
 	if (script[scriptsite.domain] === undefined) {
 		script[scriptsite.domain] = {};
 	}
-	// console.log("# Saving subdomain", script[scriptsite.domain][scriptsite.subdomain])
 	if (script[scriptsite.domain][scriptsite.subdomain] === undefined) {
-		script[scriptsite.domain][scriptsite.subdomain] = [p];
+		script[scriptsite.domain][scriptsite.subdomain] = [objInfo];
 	}
 	else {
-		script[scriptsite.domain][scriptsite.subdomain].push(p);
+		script[scriptsite.domain][scriptsite.subdomain].push(objInfo);
 	}
 
 	// console.log("Script blocked:", block);

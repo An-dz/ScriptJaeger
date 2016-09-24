@@ -54,122 +54,130 @@ chrome.tabs.query({currentWindow: true, active: true}, function(tabs){
 			blackwhitelist = pref.bwlist;
 		});*/
 
+		// save tab info in variable
 		tabInfo = tab;
-
-		// node containing host info
-		var hostNode;
-		var input;
-		var domainNode;
-		var subdomainNode;
-		var number;
-		// node containing list of script for that host
-		var jsList;
-		var scriptNode;
-		var script;
-		var js;
-		var url;
+		tabInfo.tabid = tabs[0].id;
 
 		// policy button reflects current policy
 		document.body.className = "domain " + scopeList[tab.policy];
 
-		// build script list
-		for (var domain in tab.scripts) {
-			// console.log("Domain:", domain);
+		buildList(tabInfo, 0);
+	});
+});
 
-			for (var subdomain in tab.scripts[domain]) {
-				// console.log("Sub-domain:", subdomain);
+/*
+ * Build script list
+ */
+function buildList(frmInfo, frameid) {
+	for (var domain in frmInfo.scripts) {
+		// console.log("Domain:", domain);
 
-				hostNode = document.createElement("div");
-				input = document.createElement("input");
-				subdomainNode = document.createElement("span");
-				domainNode = document.createElement("span");
-				number = document.createElement("label");
+		for (var subdomain in frmInfo.scripts[domain]) {
+			// console.log("Sub-domain:", subdomain);
 
-				hostNode.className = "script blocked";
-				subdomainNode.className = "subdomain";
-				domainNode.className = "domain";
-				number.className = "number";
+			var hostNode = document.createElement("div");
+			var input = document.createElement("input");
+			var subdomainNode = document.createElement("span");
+			var domainNode = document.createElement("span");
+			var number = document.createElement("label");
 
-				input.type = "checkbox";
-				number.htmlFor = subdomain + domain;
+			hostNode.className = "script blocked";
+			subdomainNode.className = "subdomain";
+			domainNode.className = "domain";
+			number.className = "number";
 
-				subdomainNode.innerText = subdomain + ((subdomain.length > 0)? "." : "");
-				domainNode.innerText = domain;
-				number.innerText = tab.scripts[domain][subdomain].length;
+			input.type = "checkbox";
+			number.htmlFor = subdomain + domain + frameid;
 
-				hostNode.appendChild(input);
-				hostNode.appendChild(subdomainNode);
-				hostNode.appendChild(domainNode);
-				hostNode.appendChild(number);
-				document.querySelector(".scripts").appendChild(hostNode);
+			subdomainNode.innerText = subdomain + ((subdomain.length > 0)? "." : "");
+			domainNode.innerText = domain;
+			number.innerText = frmInfo.scripts[domain][subdomain].length;
 
-				// save script exception
-				hostNode.addEventListener("click", function(e) {
-					var target = e.target;
-					var char = target.tagName.charCodeAt(0);
-					// console.log("Char code:", char);
-					// clicking the 'l'abel for checking individual scripts should not trigger
-					if (char === 76) {
-						return;
+			hostNode.appendChild(input);
+			hostNode.appendChild(subdomainNode);
+			hostNode.appendChild(domainNode);
+			hostNode.appendChild(number);
+			document.querySelector("#f" + frameid + ".scripts").appendChild(hostNode);
+
+			// save script exception
+			hostNode.addEventListener("click", function(e) {
+				var target = e.target;
+				var char = target.tagName.charCodeAt(0);
+				// console.log("Char code:", char);
+				// clicking the 'l'abel for checking individual scripts should not trigger
+				if (char === 76) {
+					return;
+				}
+				// not clicking over checkmark should invert its state
+				else if (char === 83 || char === 68) {
+					// if hostname then move to parent node
+					if (char === 83) {
+						target = target.parentNode;
 					}
-					// not clicking over checkmark should invert its state
-					else if (char === 83 || char === 68) {
-						// if hostname then move to parent node
-						if (char === 83) {
-							target = target.parentNode;
-						}
-						var input = target.querySelector("input");
-						input.checked = !input.checked;
+					var input = target.querySelector("input");
+					input.checked = !input.checked;
+				}
+				// The background script deals with it because the popup process will die on close
+				chrome.runtime.sendMessage({
+					type: 1, // save script exception
+					tabid: tabInfo.tabid,
+					scope: document.body.className.charCodeAt(0),
+					private: tabInfo.private,
+					script: {
+						domain: target.querySelector(".domain").innerText,
+						subdomain: target.querySelector(".subdomain").innerText.slice(0,-1),
+						// @here: true means checked which means allow
+						// @blackwhitelist: true means block
+						rule: !input.checked
 					}
-					// The background script deals with it because the popup process will die on close
-					chrome.runtime.sendMessage({
-						type: 1, // save script exception
-						tabid: tabs[0].id,
-						scope: document.body.className.charCodeAt(0),
-						private: tabInfo.private,
-						script: {
-							domain: target.querySelector(".domain").innerText,
-							subdomain: target.querySelector(".subdomain").innerText.slice(0,-1),
-							// @here: true means checked which means allow
-							// @blackwhitelist: true means block
-							rule: !input.checked
-						}
-					});
-				}, false)
+				});
+			}, false);
 
-				jsList = document.createElement("input");
-				jsList.type = "checkbox";
-				jsList.hidden = true;
-				jsList.id = subdomain + domain;
-				document.querySelector(".scripts").appendChild(jsList);
+			var jsList = document.createElement("input");
+			jsList.type = "checkbox";
+			jsList.hidden = true;
+			jsList.id = subdomain + domain + frameid;
+			document.querySelector("#f" + frameid + ".scripts").appendChild(jsList);
 
-				scriptNode = document.createElement("div");
-				scriptNode.className = "jslist";
-				document.querySelector(".scripts").appendChild(scriptNode);
+			var scriptNode = document.createElement("div");
+			scriptNode.className = "jslist";
+			document.querySelector("#f" + frameid + ".scripts").appendChild(scriptNode);
 
-				for (var i = 0; i < tab.scripts[domain][subdomain].length; i++) {
-					script = tab.scripts[domain][subdomain][i];
+			for (var i = 0; i < frmInfo.scripts[domain][subdomain].length; i++) {
+				var script = frmInfo.scripts[domain][subdomain][i];
 
-					// console.log("Script:", script);
+				// console.log("Script:", script);
 
-					if (!script.blocked) {
-						input.checked = true;
-						hostNode.className = "script";
-					}
+				if (!script.blocked) {
+					input.checked = true;
+					hostNode.className = "script";
+				}
 
-					js = document.createElement("a");
-					js.target = "_blank";
-					js.className = "js";
-					js.innerText = script.name.match(/[^/]+.$/);
-					url = script.protocol + subdomainNode.innerText + domain + script.name + script.query;
-					js.title = url;
-					js.href = url;
+				var js = document.createElement("a");
+				js.target = "_blank";
+				js.className = "js";
+				js.innerText = script.name.match(/[^/]+.$/);
+				var url = script.protocol + subdomainNode.innerText + domain + script.name + script.query;
+				js.title = url;
+				js.href = url;
+
+				var sFrameId = script.frameid;
+				// if frameid exists, it's a frame
+				if (sFrameId === undefined) {
 					scriptNode.appendChild(js);
+				}
+				else {
+					scriptNode.appendChild(js);
+					var frameNode = document.createElement("div");
+					frameNode.className = "scripts";
+					frameNode.id = "f" + sFrameId;
+					scriptNode.appendChild(frameNode);
+					buildList(tabInfo.frames[sFrameId], sFrameId);
 				}
 			}
 		}
-	});
-});
+	}
+}
 
 /*
  * Enable listeners when the DOM has loaded
