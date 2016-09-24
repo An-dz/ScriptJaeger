@@ -239,6 +239,7 @@ chrome.tabs.onRemoved.addListener(removeTab);
  * Function to save info about tab
  */
 function addTab(tab) {
+	// console.log("@addTab tab info", tab);
 	if (tab.id === -1) {
 		// console.info("@addTab: Abort! tabid is -1");
 		return;
@@ -253,7 +254,7 @@ function addTab(tab) {
 		var block = getBlockPolicy(site);
 		site.policy = block.policy;
 		site.rules = block.rules;
-		if (tabStorage[tab.id] === undefined) {
+		if (tabStorage[tab.id] === undefined || tabStorage[tab.id].page === undefined) {
 			site.numScripts = 0;
 			site.scripts = {};
 			site.frames = {};
