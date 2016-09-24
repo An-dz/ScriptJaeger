@@ -108,13 +108,13 @@ function buildList(frmInfo, frameid) {
 				if (char === 76) {
 					return;
 				}
+				// if hostname or checkmark then move to parent node
+				if (char !== 68) {
+					target = target.parentNode;
+				}
+				var input = target.querySelector("input");
 				// not clicking over checkmark should invert its state
-				else if (char === 83 || char === 68) {
-					// if hostname then move to parent node
-					if (char === 83) {
-						target = target.parentNode;
-					}
-					var input = target.querySelector("input");
+				if (char === 83 || char === 68) {
 					input.checked = !input.checked;
 				}
 				// The background script deals with it because the popup process will die on close
