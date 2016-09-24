@@ -184,6 +184,10 @@ chrome.webNavigation.onBeforeNavigate.addListener(function(details) {
 		// console.log("##### onBeforeNavigate #####\n", details);
 
 		var tabid = details.tabId;
+		if (tabid === -1) {
+			// console.info("@onBeforeNavigate: Abort! tabid is -1");
+			return;
+		}
 
 		// delete anything about the tab because tabs.onUpdate will re-add
 		removeTab(tabid);
@@ -236,6 +240,7 @@ chrome.tabs.onRemoved.addListener(removeTab);
  */
 function addTab(tab) {
 	if (tab.id === -1) {
+		// console.info("@addTab: Abort! tabid is -1");
 		return;
 	}
 	// if first char not 'h' from http or https, just monitor for changes
