@@ -204,7 +204,7 @@ chrome.webNavigation.onBeforeNavigate.addListener(function(details) {
 		var pframeid = details.parentFrameId;
 		// if not loaded from main frame, check where it was
 		if (pframeid > 0) {
-			var use = tabStorage[tabid].frames[frameid].use;
+			var use = tabStorage[tabid].frames[pframeid].use;
 			if (use !== undefined) {
 				pframeid = use;
 			}
