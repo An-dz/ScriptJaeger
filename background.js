@@ -180,10 +180,11 @@ chrome.tabs.onReplaced.addListener(function (newId, oldId) {
  * This event is fired right before tabs.onUpdated
  */
 chrome.webNavigation.onBeforeNavigate.addListener(function(details) {
-	if (details.frameId === 0) {
-		// console.log("##### onBeforeNavigate #####\n", details);
+	// console.log("##### onBeforeNavigate #####\n", details);
+	var tabid = details.tabId;
+	var frameid = details.frameId;
 
-		var tabid = details.tabId;
+	if (frameid === 0) {
 		if (tabid === -1) {
 			// console.info("@onBeforeNavigate: Abort! tabid is -1");
 			return;
@@ -197,6 +198,21 @@ chrome.webNavigation.onBeforeNavigate.addListener(function(details) {
 			text: "",
 			tabId: tabid
 		});
+	}
+	// if frameId > 0 & url is about:blank
+	else if (details.url.charCodeAt(0) === 97) {
+		var pframeid = details.parentFrameId;
+		// if not loaded from main frame, check where it was
+		if (pframeid > 0) {
+			var use = tabStorage[tabid].frames[frameid].use;
+			if (use !== undefined) {
+				pframeid = use;
+			}
+		}
+		// save frame information
+		tabStorage[tabid].frames[frameid] = {
+			use: pframeid
+		}
 	}
 });
 
@@ -296,39 +312,35 @@ chrome.webRequest.onBeforeRequest.addListener(
  * The Script Weeder, will evaluate if the script can be downloaded
  */
 function scriptweeder(details) {
-
-	/*if (details.type !== "script") {
-		// console.log(details);
-		return
-	}*/
 	// console.log("============== Script intercepted ==============");
 	// console.log(details);
 
 	var tabid = details.tabId;
 	if (tabStorage[tabid] === undefined) {
-		console.warn("tabStorage was not found!", tabid);
+		// console.warn("tabStorage was not found!", tabid);
 		return {cancel: false};
 	}
 
 	var scriptsite = extractUrl(details.url);
 	var tabsite = tabStorage[tabid];
 
+	var frameid = details.frameId;
+	var pframeid = details.parentFrameId;
+
 	var subframe = false;
 	// if request comes from sub_frame or is a sub_frame
-	if (details.frameId > 0) {
+	if (frameid > 0) {
 		// if request is a sub_frame
 		if (details.type === "sub_frame") {
-			// console.log("# sub frame main html #");
 			subframe = true;
-		}
-		// console.log("Subframe", subframe, "\nParent frame ID", details.parentFrameId);
-		// if request comes from a sub_frame we apply the rules from the frame site
-		if (!subframe || details.parentFrameId > 0) {
-			framesite = tabsite.frames[details.frameId];
-			// if no frame exists with that id we fallback to the page info
-			if (framesite !== undefined) {
-				tabsite = framesite;
+			if (pframeid > 0) {
+				tabsite = getLoadingFrame(pframeid, tabsite);
 			}
+		}
+		// console.log("Is sub_frame?", subframe, "\nParent frame ID", pframeid);
+		// if request comes from a sub_frame we apply the rules from the frame site
+		if (!subframe) {
+			tabsite = getLoadingFrame(frameid, tabsite);
 		}
 	}
 
@@ -424,22 +436,16 @@ function scriptweeder(details) {
 		blocked: block
 	};
 
-	// save frames loaded inside frames in the frames object
-	var pframeid = details.parentFrameId;
-	if (subframe && pframeid > 0) {
-		script = tabsite.frames[pframeid].scripts;
-	}
-
 	// save info about frame
 	if (subframe) {
 		// Add frameId on sub_frame
-		objInfo.frameid = details.frameId;
+		objInfo.frameid = frameid;
 
 		// save frame info in another area
 		var frmInfo = scriptsite;
 		frmInfo.policy = getBlockPolicy(scriptsite).policy;
 		frmInfo.scripts = {};
-		tabStorage[tabid].frames[details.frameId] = frmInfo;
+		tabStorage[tabid].frames[frameid] = frmInfo;
 	}
 
 	// console.log("# Saving domain", script[scriptsite.domain])
@@ -587,6 +593,23 @@ function extractUrl(url) {
 	site.query = url[4];
 
 	return site;
+}
+
+/*
+ * Returns the frame that is loading the object
+ *
+ * use key contains which frameid to use
+ * if it does not exist then we already are in the correct place
+ */
+function getLoadingFrame(frameid, tabsite) {
+	var framesite = tabsite.frames[frameid];
+	if (framesite.use === undefined) {
+		return framesite;
+	}
+	if (framesite.use === 0) {
+		return tabsite;
+	}
+	return tabsite.frames[framesite.use];
 }
 
 /*
