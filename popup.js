@@ -157,7 +157,7 @@ function buildList(frmInfo, frameid) {
 				var js = document.createElement("a");
 				js.target = "_blank";
 				js.className = "js";
-				js.innerText = script.name.match(/[^/]+.$/);
+				js.innerText = script.name.match(/[^/]*.$/);
 				var url = script.protocol + subdomainNode.innerText + domain + script.name + script.query;
 				js.title = url;
 				js.href = url;
