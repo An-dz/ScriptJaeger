@@ -362,25 +362,10 @@ function scriptweeder(details) {
 		if (scriptsite.domain === tabsite.domain) {
 			block = false;
 		}
-		else {
-			// relaxed policy - helper scripts also allowed
-			if (applyPolicy === 1) {
-				if (isCommonHelpers(scriptsite) || isRelated(scriptsite.domain, tabsite.domain)) {
-					block = false;
-				}
-			}
-		}
-
-		// custom rules for the domain/site/page
-		if (tabsite.rules !== undefined) {
-			for (var domain of tabsite.rules) {
-				if (domain.name === scriptsite.domain) {
-					for (var subdomain of domain.sites) {
-						if (subdomain.name === scriptsite.subdomain) {
-							block = subdomain.rule;
-						}
-					}
-				}
+		// relaxed policy - helper scripts also allowed
+		else if (applyPolicy === 1) {
+			if (isCommonHelpers(scriptsite) || isRelated(scriptsite.domain, tabsite.domain)) {
+				block = false;
 			}
 		}
 
@@ -409,6 +394,18 @@ function scriptweeder(details) {
 			}
 		}
 
+		// custom rules for the domain/site/page
+		if (tabsite.rules !== undefined) {
+			for (var domain of tabsite.rules) {
+				if (domain.name === scriptsite.domain) {
+					for (var subdomain of domain.sites) {
+						if (subdomain.name === scriptsite.subdomain) {
+							block = subdomain.rule;
+						}
+					}
+				}
+			}
+		}
 	}
 
 	// set badge icon
