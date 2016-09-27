@@ -1,13 +1,14 @@
 /*
  * To translate the policy number to text
  */
-var scopeList = ["allowall", "relaxed", "filtered", "blockall", "blockall", "blockall"];
+var policyList = ["allowall", "relaxed", "filtered", "blockall", "blockall", "blockall"];
 
 /*
  * Holds data obtained from the background process
  */
 var tabInfo = {};
 var blackwhitelist = {};
+var frameNumber = {};
 
 /*
  * When opening the popup we request the info about the
@@ -59,7 +60,7 @@ chrome.tabs.query({currentWindow: true, active: true}, function(tabs){
 		tabInfo.tabid = tabs[0].id;
 
 		// policy button reflects current policy
-		document.body.className = "domain " + scopeList[tab.policy];
+		document.body.className = "domain " + policyList[tab.policy];
 
 		buildList(tabInfo, 0);
 	});
@@ -76,12 +77,14 @@ function buildList(frmInfo, frameid) {
 			// console.log("Sub-domain:", subdomain);
 
 			var hostNode = document.createElement("div");
+			var frameMark = document.createElement("div");
 			var input = document.createElement("input");
 			var subdomainNode = document.createElement("span");
 			var domainNode = document.createElement("span");
 			var number = document.createElement("label");
 
 			hostNode.className = "script blocked";
+			frameMark.className = "noframe";
 			subdomainNode.className = "subdomain";
 			domainNode.className = "domain";
 			number.className = "number";
@@ -89,15 +92,22 @@ function buildList(frmInfo, frameid) {
 			input.type = "checkbox";
 			number.htmlFor = subdomain + domain + frameid;
 
-			subdomainNode.innerText = subdomain + ((subdomain.length > 0)? "." : "");
-			domainNode.innerText = domain;
+			subdomainNode.innerHTML = "<span>" + subdomain + ((subdomain.length > 0)? "." : "") + "</span>";
+			domainNode.innerHTML = "<span>" + domain + "</span>";
 			number.innerText = frmInfo.scripts[domain][subdomain].length;
 
 			hostNode.appendChild(input);
+			hostNode.appendChild(frameMark);
 			hostNode.appendChild(subdomainNode);
 			hostNode.appendChild(domainNode);
 			hostNode.appendChild(number);
 			document.querySelector("#f" + frameid + ".scripts").appendChild(hostNode);
+
+			// console.log("Domain:\n\tclientWidth", domainNode.clientWidth, "\n\tscrollWidth", domainNode.scrollWidth, "\nSubDomain:\n\tclientWidth", subdomainNode.clientWidth, "\n\tscrollWidth", subdomainNode.scrollWidth);
+			// if the text is larger than the area, we display a tooltip
+			if (subdomainNode.scrollWidth > subdomainNode.clientWidth || domainNode.scrollWidth > domainNode.clientWidth) {
+				hostNode.title = subdomainNode.innerText + domain;
+			}
 
 			// save script exception
 			hostNode.addEventListener("click", function(e) {
@@ -144,6 +154,7 @@ function buildList(frmInfo, frameid) {
 			scriptNode.className = "jslist";
 			document.querySelector("#f" + frameid + ".scripts").appendChild(scriptNode);
 
+			frameNumber[frameid] = 0;
 			for (var i = 0; i < frmInfo.scripts[domain][subdomain].length; i++) {
 				var script = frmInfo.scripts[domain][subdomain][i];
 
@@ -168,11 +179,38 @@ function buildList(frmInfo, frameid) {
 					scriptNode.appendChild(js);
 				}
 				else {
-					scriptNode.appendChild(js);
+					var activePolicy = policyList[tabInfo.frames[sFrameId].policy];
+					frameMark.className = "hasframe";
+					frameNumber[frameid]++;
+					frameMark.title = frameNumber[frameid] + " iframe";
+
+					var scopediv = document.createElement("img");
+					scopediv.src = "/images/" + activePolicy + "38.png";
+					scopediv.className = "frame-scope";
+
+					var fnumber = document.createElement("label");
+					fnumber.className = "number";
+					fnumber.htmlFor = "fl" + sFrameId;
+					fnumber.innerText = tabInfo.frames[sFrameId].numScripts;
+
+					var framediv = document.createElement("div");
+					framediv.className = "frame";
+					framediv.appendChild(scopediv);
+					framediv.appendChild(js);
+					framediv.appendChild(fnumber);
+					scriptNode.appendChild(framediv);
+
+					var flist = document.createElement("input");
+					flist.type = "checkbox";
+					flist.hidden = true;
+					flist.id = "fl" + sFrameId;
+					scriptNode.appendChild(flist);
+
 					var frameNode = document.createElement("div");
-					frameNode.className = "scripts";
+					frameNode.className = "scripts jslist " + activePolicy;
 					frameNode.id = "f" + sFrameId;
 					scriptNode.appendChild(frameNode);
+
 					buildList(tabInfo.frames[sFrameId], sFrameId);
 				}
 			}

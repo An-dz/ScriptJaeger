@@ -410,7 +410,11 @@ function scriptweeder(details) {
 
 	// set badge icon
 	if (block) {
-		tabStorage[tabid].numScripts++;
+		tabsite.numScripts++;
+		// no frame contains this key
+		if (tabsite.private === undefined) {
+			tabStorage[tabid].numScripts++;
+		}
 		chrome.browserAction.setBadgeText({
 			text: tabStorage[tabid].numScripts.toString(),
 			tabId: tabid
@@ -441,6 +445,8 @@ function scriptweeder(details) {
 		// save frame info in another area
 		var frmInfo = scriptsite;
 		frmInfo.policy = getBlockPolicy(scriptsite).policy;
+		frmInfo.rules = getBlockPolicy(scriptsite).rules;
+		frmInfo.numScripts = 0;
 		frmInfo.scripts = {};
 		tabStorage[tabid].frames[frameid] = frmInfo;
 	}

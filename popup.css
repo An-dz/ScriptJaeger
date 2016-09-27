@@ -5,7 +5,7 @@ body {
 	cursor: pointer;
 	background: #ccc;
 }
-.scopes, .policies, .script {
+.scopes, .policies, .script, .frame {
 	display: flex;
 }
 .scopes div, .policies div {
@@ -13,7 +13,7 @@ body {
 	flex: 1;
 	padding: 5px;
 }
-.scopes div:hover, .policies div:hover, .scopes span:hover, .policies span:hover, .script:hover, .js:hover {
+.scopes div:hover, .policies div:hover, .scopes span:hover, .policies span:hover, .script:hover, .frame:hover, .jslist > .js:hover {
 	background: rgba(255, 255, 255, .2);
 }
 input {
@@ -23,6 +23,11 @@ input {
 }
 .scripts p {
 	text-align: center;
+}
+.domain, .subdomain, .js {
+	text-overflow: ellipsis;
+	overflow: hidden;
+	white-space: nowrap;
 }
 .subdomain {
 	flex: 1;
@@ -55,9 +60,26 @@ input:checked + .jslist {
 	padding: 5px 10px 5px 20px;
 	display: block;
 	text-align: right;
-	text-overflow: ellipsis;
-	overflow: hidden;
-	white-space: nowrap;
+}
+.blockall .blockall, .filtered .filtered, .relaxed .relaxed, .allowall .allowall
+{
+	background: rgba(255,255,255,.1) !important;
+}
+.noframe, .hasframe {
+	width: 16px;
+	margin-right: 5px;
+}
+.hasframe {
+	background: url("/images/hasframe.svg") center/100% no-repeat;
+}
+.frame .js {
+	flex: 1;
+	padding-left: 0;
+	padding-right: 0;
+}
+.frame img {
+	height: 20px;
+	padding: 5px;
 }
 .blocked .domain, .blocked .number, .blocked + .jslist {
 	opacity: .5;
@@ -79,19 +101,22 @@ input:checked + .jslist {
 	background: #ffee00;
 }
 /* Block All selected */
-.blockall #blockall, .blockall .scripts, .blockall .js {
+.blockall #blockall, .blockall .scripts, .blockall.scripts {
 	background: #26272a;
 	color: #fff;
 }
+.blockall .js {
+	color: #fff;
+}
 /* Filtered selected */
-.filtered #filtered, .filtered .scripts {
+.filtered #filtered, .filtered .scripts, .filtered.scripts {
 	background: #73ab55;
 }
 /* Relaxed selected */
-.relaxed #relaxed, .relaxed .scripts {
+.relaxed #relaxed, .relaxed .scripts, .relaxed.scripts {
 	background: #559fe6;
 }
 /* Allow All selected */
-.allowall #allowall, .allowall .scripts {
+.allowall #allowall, .allowall .scripts, .allowall.scripts {
 	background: #d84a4a;
 }
