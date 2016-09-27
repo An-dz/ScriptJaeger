@@ -965,7 +965,7 @@ function saveBlackWhitelist(level, data) {
 				}
 			}
 			if (!found) {
-				sites.push({
+				host.sites.push({
 					name: data.subdomain,
 					rule: data.rule
 				});
