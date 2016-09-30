@@ -145,13 +145,6 @@ chrome.storage.local.get(function(pref) {
 		}
 	});
 });
-// while Vivaldi does not fix the blurry icons we force them sharp
-chrome.browserAction.setIcon({
-	path: {
-		"19": "images/disabled19.png",
-		"38": "images/disabled38.png"
-	}
-});
 
 /*
  * Badge icons, one for each policy
