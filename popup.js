@@ -114,17 +114,21 @@ function buildList(frmInfo, frameid) {
 				var target = e.target;
 				var char = target.tagName.charCodeAt(0);
 				// console.log("Char code:", char);
-				// clicking the 'l'abel for checking individual scripts should not trigger
+
+				// clicking the (L)abel for checking individual scripts should not trigger
 				if (char === 76) {
 					return;
 				}
-				// if hostname or checkmark then move to parent node
-				if (char !== 68) {
+
+				target = target.parentNode;
+				// the span element is inside another span
+				if (target.tagName.charCodeAt(0) === 83) {
 					target = target.parentNode;
 				}
+
 				var input = target.querySelector("input");
-				// not clicking over checkmark should invert its state
-				if (char === 83 || char === 68) {
+				// not clicking over (I)nput checkmark should invert its state
+				if (char !== 76) {
 					input.checked = !input.checked;
 				}
 				// The background script deals with it because the popup process will die on close
