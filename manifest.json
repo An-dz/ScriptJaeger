@@ -14,7 +14,7 @@
 		"48": "images/jaegerhut48.png",
 		"16": "images/jaegerhut16.png"
 	},
-	// "options_page": "options.html",
+	"options_page": "prefs.html",
 
 	"background": {
 		"scripts": [
