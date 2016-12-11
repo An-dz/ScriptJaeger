@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>ScriptJäger Preferences</title>
+	<link rel="icon" href="images/jaegerhut16.png">
+	<link rel="stylesheet" type="text/css" href="prefs.css">
+	<script type="text/javascript" src="prefs.js"></script>
+</head>
+<body>
+	<h1><img src="images/jaegerhut48.png" alt="Jägerhut" class="logo">ScriptJäger<span class="by">by An_dz</span></h1>
+	<h2>Default policy</h2>
+	<label><input type="radio" name="rule" value="0">Allow All</label><br>
+	<label><input type="radio" name="rule" value="1">Relaxed</label><br>
+	<label><input type="radio" name="rule" value="2">Filtered</label><br>
+	<label><input type="radio" name="rule" value="3">Block All</label>
+	<h2>Default policy on private browsing</h2>
+	<label><input type="radio" name="private" value="0">Allow All</label><br>
+	<label><input type="radio" name="private" value="1">Relaxed</label><br>
+	<label><input type="radio" name="private" value="2">Filtered</label><br>
+	<label><input type="radio" name="private" value="3">Block All</label>
+	<h2>Whitelist &amp; Blacklist</h2>
+	<ul id="bwl">
+	</ul>
+	<h2>Rules</h2>
+	<ul id="rules"></ul>
+	<h2>Preferences Management</h2>
+	<button name="r" title="There's no confirmation dialogue and no going back! Export your preferences if you want them!">Reset</button><button name="e" class="middle" title="Preferences will be exported to the text area below">Export</button><button name="i" title="Paste your old preferences in the text area and then press this button">Import</button>
+	<textarea id="text" placeholder="(Paste preferences here to import)"></textarea>
+	<div id="dropdown" class="hide">
+		<input type="radio" name="custom" id="undefined" value="-1">
+		<label for="undefined">
+			<img class="rule" src="images/undefined38.png" alt="">No Rule
+		</label>
+		<input type="radio" name="custom" id="whitelist" value="1">
+		<label for="whitelist" class="bwl">
+			<img class="rule" src="images/whitelist38.png" alt="">Whitelisted
+		</label>
+		<input type="radio" name="custom" id="blacklist" value="0">
+		<label for="blacklist" class="bwl">
+			<img class="rule" src="images/blacklist38.png" alt="">Blacklisted
+		</label>
+		<input type="radio" name="custom" id="allowall" value="0">
+		<label for="allowall" class="policy">
+			<img class="rule" src="images/allowall38.png" alt="">Allow All
+		</label>
+		<input type="radio" name="custom" id="relaxed" value="1">
+		<label for="relaxed" class="policy">
+			<img class="rule" src="images/relaxed38.png" alt="">Relaxed
+		</label>
+		<input type="radio" name="custom" id="filtered" value="2">
+		<label for="filtered" class="policy">
+			<img class="rule" src="images/filtered38.png" alt="">Filtered
+		</label>
+		<input type="radio" name="custom" id="blockall" value="3">
+		<label for="blockall" class="policy">
+			<img class="rule" src="images/blockall38.png" alt="">Block All
+		</label>
+	</div>
+</body>
+</html>

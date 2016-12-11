@@ -860,6 +860,17 @@ chrome.runtime.onMessage.addListener(function(msg, src, answer) {
 			chrome.storage.local.set({policy: policy});
 		}
 	}
+	// preferences page changes
+	else if (msg.type === 3) {	
+		if (msg.newPrefs.policy !== undefined) {
+			policy = msg.policy;
+			console.log("Policy received from prefs page committed!\n", policy);
+		}
+		if (msg.newPrefs.blackwhitelist !== undefined) {
+			blackwhitelist = msg.blackwhitelist;
+			console.log("Blackwhitelist received from prefs page committed!\n", blackwhitelist);
+		}
+	}
 });
 
 /*

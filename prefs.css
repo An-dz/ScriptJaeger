@@ -1,0 +1,215 @@
+html {
+	--colorBorder: #d1d0d2;
+	--colorBorderHighlight: #c83838;
+	--colorAccentBg: #c83838;
+	--colorAccentBgDark: #b22128;
+	--colorAccentBgFadedMore: #e4524d;
+	--colorBg: #f4f4f4;
+	--colorBgAlpha: rgba(245,244,246,0.8);
+	--colorBgLightIntense: #fff;
+	--colorBgIntense: #fff;
+	--colorBgDark: #eaeaea;
+	--colorBgDarker: #d1d0d2;
+	--colorFg: #1e1e1e;
+	--colorHighlightBg: #c83838;
+	--colorHighlightBgAlpha: rgba(200,56,56,0.25);
+	--colorHighlightFg: #fff;
+	--radius: 0;
+	--radiusRound: 100px;
+	--radiusRounded: 2px;
+}
+body {
+	background: var(--colorBgLightIntense);
+	color: var(--colorFg);
+	margin: 0 80px 50px;
+	position: relative;
+}
+h1, h2, li, span {
+	cursor: default;
+}
+h1 {
+	margin-left: -20px;
+}
+body, h2, .by {
+	font-size: 13px;
+}
+h1 {
+	border-bottom: 1px solid var(--colorBorder);
+	padding-bottom: .2em;
+}
+.by {
+	margin-left: .5em;
+}
+.logo {
+	vertical-align: bottom;
+	height: 35px;
+	margin-right: 7px;
+}
+input[type=radio] {
+	background-color: var(--colorBgIntense);
+	border: 1px solid var(--colorBorder);
+	border-radius: var(--radiusRound);
+	box-shadow: inset 0 1px 2px rgba(0,0,0,.1);
+	position: relative;
+	margin: 0 10px 4px 0;
+	outline: none;
+	height: 16px;
+	width: 16px;
+	-webkit-appearance: none;
+	vertical-align: middle;
+}
+input[type=radio]:focus {
+	border-color: var(--colorBorderHighlight);
+	box-shadow: 0 0 0 1px var(--colorBorderHighlight);
+}
+input[type=radio]:checked:before {
+	content: "";
+	position: absolute;
+	background-color: var(--colorHighlightBg);
+	border-radius: var(--radiusRound);
+	top: 3px;
+	left: 3px;
+	right: 3px;
+	bottom: 3px;
+}
+body > ul {
+	border: 1px solid var(--colorBorder);
+	border-radius: var(--radius);
+	padding: 0;
+	height: 350px;
+	max-width: 750px;
+	overflow-y: scroll;
+	overflow-x: hidden;
+}
+li {
+	list-style-type: none;
+}
+li div {
+	padding: 5px 10px;
+}
+ul li:nth-child(even) {
+	background-color: var(--colorBg);
+}
+li ul {
+	display: none;
+}
+.show > ul {
+	display: block;
+}
+.rule {
+	margin-right: 10px;
+	vertical-align: middle;
+	width: 19px;
+	height: 19px;
+}
+#dropdown {
+	background: #fff;
+	border: 1px solid var(--colorBorder);
+	box-shadow: 0 0 5px rgba(0,0,0,0.2);
+	margin-top: -7px;
+	margin-left: -11px;
+	position: absolute;
+	top: 0;
+	left: -200px;
+	opacity: 0;
+	visibility: hidden;
+	transition: opacity 200ms ease-out;
+}
+#dropdown input {
+	display: none;
+}
+#dropdown label {
+	cursor: pointer;
+	display: block;
+	padding: 5px 10px;
+}
+#dropdown input[checked] + label {
+	background: var(--colorHighlightBgAlpha);
+}
+#dropdown label:hover {
+	background: var(--colorBgAlpha) !important;
+}
+#dropdown input[checked] + label:hover{
+	background: var(--colorHighlightBg) !important;
+	color: var(--colorHighlightFg);
+}
+#dropdown.bwl, #dropdown.policy {
+	opacity: 1;
+	visibility: visible;
+}
+#dropdown.bwl .policy, #dropdown.policy .bwl {
+	display: none;
+}
+.number {
+	background-color: var(--colorBgDarker);
+	color: white;
+	border-radius: var(--radiusRounded);
+	margin-left: 5px;
+	padding: 0 4px;
+	font-size: 9pt;
+	font-weight: bold;
+}
+.number.scripts {
+	background-color: var(--colorAccentBgFadedMore);
+}
+.number:empty {
+	display: none;
+}
+.delete {
+	opacity: 0;
+	float: right;
+	background-color: var(--colorBgDarker);
+	background-image: url("images/closebutton.svg");
+	border-radius: 100%;
+	height: 17px;
+	width: 17px;
+	transition: 200ms ease-in;
+	transform: scale(0);
+}
+.delete:hover {
+	transform: scale(1.25) !important;
+	background-color: var(--colorAccentBgDark);
+}
+.delete:active {
+	background: var(--colorAccentBgDarkDark)
+}
+.delete:focus {
+	border: 1px solid var(--colorBorderHighlight);
+	box-shadow: 0 0 0 1px var(--colorBorderHighlight);
+}
+div:hover .delete {
+	transform: scale(1);
+	opacity: 1;
+}
+button {
+	background: linear-gradient(var(--colorBgLightIntense), var(--colorBg));
+	color: var(--colorFg);
+	border: 1px solid var(--colorBorder);
+	box-shadow: 0 1px var(--colorBg);
+	padding: 6px 12px;
+}
+button.middle {
+	border-left: 0;
+	border-right: 0;
+}
+button:hover {
+	background: var(--colorBg);
+}
+button:active {
+	background: var(--colorBgDark);
+}
+textarea {
+	display: block;
+	border: 1px solid var(--colorBorder);
+	border-radius: var(--border);
+	background: var(--colorBgIntense);
+	color: var(--colorFg);
+	max-width: 750px;
+	width: 100%;
+	height: 50px;
+	margin-top: 20px;
+	transition: height 300ms ease;
+}
+textarea:focus {
+	height: 300px;
+}
