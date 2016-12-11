@@ -24,113 +24,29 @@ var blackwhitelist = {};
 var tabStorage = {};
 
 /*
+ * Called when the default preferences file is loaded so they are saved
+ */
+function defaultPreferencesLoaded() {
+	chrome.storage.local.set({policy: policy, blackwhitelist: blackwhitelist, firstRun: false});
+
+	// remove the injected script
+	document.head.removeChild(document.getElementById("default"));
+}
+
+/*
  * Obtain preferences
  */
-chrome.storage.local.get(function(pref) {
+chrome.storage.local.get(function (pref) {
 	// on first run the key does not exist
 	if (pref.firstRun === undefined) {
 		// console.log("firstRun! Loading defaults!");
-		// set defaults
-		policy = {
-			rule: 1,
-			private: 1,
-			domains: [{
-				name: "duckduckgo.com",
-				rule: 0
-			},{
-				name: "duolingo.com",
-				rule: 1,
-				rules: [{
-					name: "cloudfront.net",
-					sites: [{
-						name: "d7mj4aqfscim2",
-						rule: false
-					}]
-				}]
-			},{
-				name: "instagram.com",
-				rules: [{
-					name: "akamaihd.net",
-					sites: [{
-						name: "instagramstatic-a",
-						rule: false
-					}]
-				}]
-			},{
-				name: "startpage.com",
-				rule: 0
-			}]
-		};
-		blackwhitelist = {
-			domains: [{
-				name: "localhost",
-				rule: false
-			},{
-				name: "google.com",
-				sites: [{
-					name: "maps",
-					rule: false
-				},{
-					name: "apis", // +1 stuff
-					rule: true
-				}]
-			},{
-				name: "gstatic.com",
-				sites: [{
-					name: "maps",
-					rule: false
-				}]
-			},{
-				name: "gfx.ms", // Microsoft live account
-				rule: false
-			},{
-				name: "pfx.ms", // Microsoft live account
-				rule: false
-			},{
-				name: "ytimg.com",
-				sites: [{
-					name: "s", // Youtube images
-					rule: false
-				}]
-			},{
-				name: "jquery.com",
-				sites: [{
-					name: "code",
-					rule: false
-				}]
-			},{
-				name: "images-amazon.com",
-				sites: [{
-					name: "z-ecx",
-					rule: false
-				}]
-			},{
-				name: "deviantart.net",
-				sites: [{
-					name: "st",
-					rule: false
-				}]
-			},{
-				name: "tumblr.com",
-				sites: [{
-					name: "static",
-					rule: false
-				}]
-			},{
-				name: "twimg.com", // Twitter
-				sites: [{
-					name: "widgets",
-					rule: true
-				}]
-			},{
-				name: "fbcdn.net",
-				sites: [{
-					name: "static.ak",
-					rule: true
-				}]
-			}]
-		};
-		chrome.storage.local.set({policy: policy, blackwhitelist: blackwhitelist, firstRun: false});
+
+		// the default preferences are in an external file for lowering the size of this background page
+		var script = document.createElement("script");
+			script.src = "default-prefs.js";
+			script.type = "text/javascript";
+			script.id = "default";
+			document.head.appendChild(script);
 	}
 	else {
 		// not first run just load prefs
