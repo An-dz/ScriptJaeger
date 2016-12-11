@@ -128,7 +128,7 @@ function buildList(frmInfo, frameid) {
 
 				var input = target.querySelector("input");
 				// not clicking over (I)nput checkmark should invert its state
-				if (char !== 76) {
+				if (char !== 73) {
 					input.checked = !input.checked;
 				}
 				// The background script deals with it because the popup process will die on close
