@@ -24,6 +24,13 @@ var blackwhitelist = {};
 var tabStorage = {};
 
 /*
+ * Badge icons, one for each policy
+ */
+var jaegerhut = ["allowall", "relaxed", "filtered", "blockall", "blockall", "blockall"];
+
+/* ====================================================================== */
+
+/*
  * Called when the default preferences file is loaded so they are saved
  */
 function defaultPreferencesLoaded() {
@@ -33,501 +40,10 @@ function defaultPreferencesLoaded() {
 	document.head.removeChild(document.getElementById("default"));
 }
 
-/*
- * Obtain preferences
- */
-chrome.storage.local.get(function (pref) {
-	// on first run the key does not exist
-	if (pref.firstRun === undefined) {
-		// console.log("firstRun! Loading defaults!");
-
-		// the default preferences are in an external file for lowering the size of this background page
-		var script = document.createElement("script");
-			script.src = "default-prefs.js";
-			script.type = "text/javascript";
-			script.id = "default";
-			document.head.appendChild(script);
-	}
-	else {
-		// not first run just load prefs
-		policy = pref.policy;
-		blackwhitelist = pref.blackwhitelist;
-		// console.log("Loaded preferences", {policy: policy, blackwhitelist: blackwhitelist});
-	}
-	// console.log("Initialising...");
-	chrome.tabs.query({}, function(tabs){
-		for (var i in tabs){
-			addTab(tabs[i]);
-		}
-	});
-});
-
-/*
- * Badge icons, one for each policy
- */
-var jaegerhut = ["allowall", "relaxed", "filtered", "blockall", "blockall", "blockall"];
-
-/*
- * Monitoring the tabs to get their urls
- * Based on https://github.com/Christoph142/Pin-Sites/
- */
-chrome.tabs.onReplaced.addListener(function (newId, oldId) {
-	// console.log("@ Tab replace @", oldId, "replaced by", newId);
-	if (newId === oldId || typeof tabStorage[oldId] === "undefined") {
-		return;
-	}
-
-	tabStorage[newId] = tabStorage[oldId];
-	removeTab(oldId);
-});
-
-/*
- * This is only run when the content is not loaded using history.pushState
- * We reset the info when this occurs because the page was not dynamically
- * loaded and so the whole content was reloaded.
- *
- * This event is fired right before tabs.onUpdated
- */
-chrome.webNavigation.onBeforeNavigate.addListener(function(details) {
-	// console.log("##### onBeforeNavigate #####\n", details);
-	var tabid = details.tabId;
-	var frameid = details.frameId;
-
-	if (frameid === 0) {
-		if (tabid === -1) {
-			// console.info("@onBeforeNavigate: Abort! tabid is -1");
-			return;
-		}
-
-		// delete anything about the tab because tabs.onUpdate will re-add
-		removeTab(tabid);
-
-		// reset counter in badge
-		chrome.browserAction.setBadgeText({
-			text: "",
-			tabId: tabid
-		});
-	}
-	// if frameId > 0 & url is about:blank
-	else if (details.url.charCodeAt(0) === 97) {
-		var pframeid = details.parentFrameId;
-		// if not loaded from main frame, check where it was
-		if (pframeid > 0) {
-			var use = tabStorage[tabid].frames[pframeid].use;
-			if (use !== undefined) {
-				pframeid = use;
-			}
-		}
-		// save frame information
-		tabStorage[tabid].frames[frameid] = {
-			use: pframeid
-		}
-	}
-});
-
-/*
- * Pages that have content loaded dynamically like Facebook or YouTube
- * can't have the counter and script list reset
- *
- * onUpdated updates all info about the page
- */
-chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
-	if (changeInfo.status === "loading") {
-		// console.log("##### Loading status fired #####\n", tabId, changeInfo, tab)
-
-		// set info
-		addTab(tab);
-
-		// set icon according to policy
-		var applyPolicy = tabStorage[tabId].policy;
-		chrome.browserAction.setIcon({
-			path: {
-				"19": "images/" + jaegerhut[applyPolicy] + "19.png",
-				"38": "images/" + jaegerhut[applyPolicy] + "38.png"
-			},
-			tabId: tabId
-		});
-	}
-});
-
-/*
- * When a tab is created, start monitoring
- */
-chrome.tabs.onCreated.addListener(addTab);
-
-/*
- * When a tab is closed, stop monitoring
- */
-chrome.tabs.onRemoved.addListener(removeTab);
-
-/*
- * Function to save info about tab
- */
-function addTab(tab) {
-	// console.log("@addTab tab info", tab);
-	if (tab.id === -1) {
-		// console.info("@addTab: Abort! tabid is -1");
-		return;
-	}
-	// if first char not 'h' from http or https, just monitor for changes
-	if (tab.url.charCodeAt(0) !== 104) {
-		tabStorage[tab.id] = tab.url;
-	}
-	else {
-		var site = extractUrl(tab.url);
-		site.private = tab.incognito;
-		var block = getBlockPolicy(site);
-		site.policy = block.policy;
-		site.rules = block.rules;
-		if (tabStorage[tab.id] === undefined || tabStorage[tab.id].page === undefined) {
-			site.numScripts = 0;
-			site.scripts = {};
-			site.frames = {};
-		}
-		// if page uses history.pushState the old scripts are still loaded
-		else {
-			site.numScripts = tabStorage[tab.id].numScripts;
-			site.scripts = tabStorage[tab.id].scripts;
-			site.frames = tabStorage[tab.id].frames;
-		}
-		tabStorage[tab.id] = site;
-	}
-
-	// console.log("Monitoring tab", tab.id, "with", tabStorage[tab.id]);
-}
-
-/*
- * Function to remove saved info about tab
- */
-function removeTab(tabid) {
-	// console.log("Stopped monitoring tab", tabid, "with", tabStorage[tabid]);
-	delete tabStorage[tabid];
-}
-
-/*
- * Chromium webRequest, we check before the request is made
- * We just need to check from http protocol and only scripts and frames
- */
-chrome.webRequest.onBeforeRequest.addListener(
-	scriptweeder,
-	{
-		urls: ["http://*/*", "https://*/*"],
-		types: ["script", "sub_frame"]
-	},
-	["blocking"]
-);
-
-/*
- * The Script Weeder, will evaluate if the script can be downloaded
- */
-function scriptweeder(details) {
-	// console.log("============== Script intercepted ==============");
-	// console.log(details);
-
-	var tabid = details.tabId;
-	if (tabStorage[tabid] === undefined) {
-		// console.warn("tabStorage was not found!", tabid);
-		return {cancel: false};
-	}
-
-	var scriptsite = extractUrl(details.url);
-	var tabsite = tabStorage[tabid];
-
-	var frameid = details.frameId;
-	var pframeid = details.parentFrameId;
-
-	var subframe = false;
-	// if request comes from sub_frame or is a sub_frame
-	if (frameid > 0) {
-		// if request is a sub_frame
-		if (details.type === "sub_frame") {
-			subframe = true;
-			if (pframeid > 0) {
-				tabsite = getLoadingFrame(pframeid, tabsite);
-			}
-		}
-		// console.log("Is sub_frame?", subframe, "\nParent frame ID", pframeid);
-		// if request comes from a sub_frame we apply the rules from the frame site
-		if (!subframe) {
-			tabsite = getLoadingFrame(frameid, tabsite);
-		}
-	}
-
-	// console.log("Script website", scriptsite);
-	// console.log("Website loading script", tabsite);
-
-	// begin assuming it's block all
-	var block = true;
-	var applyPolicy = tabsite.policy;
-	// console.log("Block Policy:", applyPolicy);
-
-	// allow all policy
-	if (applyPolicy === 0) {
-		block = false;
-	}
-	// relaxed or filtered policies
-	else if (applyPolicy === 1 || applyPolicy === 2) {
-		// allow same domain
-		if (scriptsite.domain === tabsite.domain) {
-			block = false;
-		}
-		// relaxed policy - helper scripts also allowed
-		else if (applyPolicy === 1) {
-			if (isCommonHelpers(scriptsite) || isRelated(scriptsite.domain, tabsite.domain)) {
-				block = false;
-			}
-		}
-
-		// whitelist & blacklist, it's one single list, rule key defines it
-		for (var i = blackwhitelist.domains.length - 1; i >= 0; i--) {
-			if (scriptsite.domain === blackwhitelist.domains[i].name) {
-				var domain = blackwhitelist.domains[i];
-				if (domain.rule !== undefined) {
-					block = domain.rule;
-				}
-				if (domain.sites === undefined) {
-					break;
-				}
-
-				// search for a sub-domain that matches
-				for (var j = domain.sites.length - 1; j >= 0; j--) {
-					if (scriptsite.subdomain === domain.sites[j].name) {
-						block = domain.sites[j].rule;
-						// subdomain has matched, no need to continue
-						break;
-					}
-				}
-
-				// domain has alredy matched, no need to continue
-				break;
-			}
-		}
-
-		// custom rules for the domain/site/page
-		if (tabsite.rules !== undefined) {
-			for (var domain of tabsite.rules) {
-				if (domain.name === scriptsite.domain) {
-					for (var subdomain of domain.sites) {
-						if (subdomain.name === scriptsite.subdomain) {
-							block = subdomain.rule;
-						}
-					}
-				}
-			}
-		}
-	}
-
-	// set badge icon
-	if (block) {
-		tabsite.numScripts++;
-		// no frame contains this key
-		if (tabsite.private === undefined) {
-			tabStorage[tabid].numScripts++;
-		}
-		chrome.browserAction.setBadgeText({
-			text: tabStorage[tabid].numScripts.toString(),
-			tabId: tabid
-		});
-	}
-
-	// send info about the scripts to the popup
-	/*chrome.runtime.sendMessage({
-		site: scriptsite,
-		blocked: block,
-		tabid: tabid
-	});*/
-
-	// save info about loaded scripts or frame
-	var script = tabsite.scripts;
-	var objInfo = {
-		name: scriptsite.page,
-		query: scriptsite.query,
-		protocol: scriptsite.protocol,
-		blocked: block
-	};
-
-	// save info about frame
-	if (subframe) {
-		// Add frameId on sub_frame
-		objInfo.frameid = frameid;
-
-		// save frame info in another area
-		var frmInfo = scriptsite;
-		frmInfo.policy = getBlockPolicy(scriptsite).policy;
-		frmInfo.rules = getBlockPolicy(scriptsite).rules;
-		frmInfo.numScripts = 0;
-		frmInfo.scripts = {};
-		tabStorage[tabid].frames[frameid] = frmInfo;
-	}
-
-	// console.log("# Saving domain", script[scriptsite.domain])
-	if (script[scriptsite.domain] === undefined) {
-		script[scriptsite.domain] = {};
-	}
-	if (script[scriptsite.domain][scriptsite.subdomain] === undefined) {
-		script[scriptsite.domain][scriptsite.subdomain] = [objInfo];
-	}
-	else {
-		script[scriptsite.domain][scriptsite.subdomain].push(objInfo);
-	}
-
-	// console.log("Script blocked:", block);
-	// cancel: true - blocks loading, false - allows loading
-	return {cancel: block};
-}
-
-/*
- * Returns the blocking policy to be used
- */
-function getBlockPolicy(site) {
-	// begin with default policy
-	var applyPolicy = policy.rule;
-	// private windows can have a different default
-	if (site.private === true) {
-		applyPolicy = policy.private;
-	}
-	// console.log("Block policy site", site);
-
-	var domain = false;
-	var host = false;
-	var page = false;
-	// search for a domain that matches
-	for (var i = policy.domains.length - 1; i >= 0; i--) {
-		if (site.domain === policy.domains[i].name) {
-			domain = policy.domains[i];
-			// only apply a new policy if such exist
-			if (domain.rule !== undefined) {
-				applyPolicy = domain.rule;
-			}
-			if (domain.sites === undefined) {
-				break;
-			}
-
-			// search for a sub-domain that matches
-			for (var j = domain.sites.length - 1; j >= 0; j--) {
-				if (site.subdomain === domain.sites[j].name) {
-					host = domain.sites[j];
-					// only apply a new policy if such exist
-					if (host.rule !== undefined) {
-						applyPolicy = host.rule;
-					}
-					if (host.pages === undefined) {
-						break;
-					}
-
-					// search for a page that matches
-					for (var k = host.pages.length - 1; k >= 0; k--) {
-						if (site.page === host.pages[k].name) {
-							page = host.pages[k];
-							// no need to check if it exists because this level always has a rule
-							applyPolicy = page.rule;
-						}
-					}
-					// subdomain has alredy matched, no need to continue
-					break;
-
-				}
-			}
-			// domain has alredy matched, no need to continue
-			break;
-
-		}
-	}
-
-	// check custom rules
-	var rules;
-	if (page && page.rules !== undefined) {
-		rules = page.rules;
-	}
-	else if (host && host.rules !== undefined) {
-		rules = host.rules;
-	}
-	else if (domain && domain.rules !== undefined) {
-		rules = domain.rules;
-	}
-
-	// return the policy that has to be applied & any custom rules
-	return {policy: applyPolicy, rules: rules};
-}
-
-/*
- * Extract the important parts of the url and returns an object with them
- *
- * Object children:
- * protocol = contains the protocol http or https
- * subdomain = contains the subdomain name
- * domain = contains the domain name
- * page = contains the directory & file name
- * query = contains query information
- */
-function extractUrl(url) {
-	var site = {protocol: "http://"};
-
-	// strip the protocol because all requests are http or https
-	var strip = 7;
-	// check if it's https
-	// the advantage of this method is that it's fast, since strings are arrays
-	if (url.charCodeAt(4) === 115) {
-		strip = 8;
-		site.protocol = "https://";
-	}
-	url = url.slice(strip);
-
-	/*
-	 * Obtain the important parts of the url to load settings
-	 * 0 contains the full url (because it's the match of the full regexp)
-	 * 1 contains the hostname (subdomain + domain)
-	 * 2 contains the directory
-	 * 3 contains the filename
-	 * 4 contains the query
-	 */
-	url = url.match(/^([^/]*)(\/|\/.*\/)([\w-.]*)([^/]*)$/);
-	var domains = url[1].split(".");
-	// less than three levels everything is domain
-	if (domains.length < 3) {
-		url[0] = "";
-	}
-	else {
-		// let's keep it simple, no more than two levels
-		var levels = 2;
-		var tld = domains[domains.length - 1];
-		var sld = domains[domains.length - 2];
-		if (tld !== "com" && (standardSecondLevelDomains[sld] || otherSecondLevelDomains[tld] && otherSecondLevelDomains[tld][sld])) {
-			levels = 3;
-		}
-		url[0] = domains.slice(0, domains.length - levels).join(".");
-		url[1] = domains.slice(domains.length - levels).join(".");
-	}
-
-	site.subdomain = url[0];
-	site.domain = url[1];
-	site.page = url[2] + url[3];
-	site.query = url[4];
-
-	return site;
-}
-
-/*
- * Returns the frame that is loading the object
- *
- * use key contains which frameid to use
- * if it does not exist then we already are in the correct place
- */
-function getLoadingFrame(frameid, tabsite) {
-	var framesite = tabsite.frames[frameid];
-	if (framesite.use === undefined) {
-		return framesite;
-	}
-	if (framesite.use === 0) {
-		return tabsite;
-	}
-	return tabsite.frames[framesite.use];
-}
-
-/*
+/* ======================================================================
  * Relaxed mode functions and variables, default values based from
  * ScriptWeeder https://github.com/lemonsqueeze/scriptweeder
- */
+ * ====================================================================== */
 
 /*
  * List of standard second level domains
@@ -642,20 +158,20 @@ var otherSecondLevelDomains = {
 	"ve": { "e12": 1, "web": 1},
 	"vi": { "k12": 1},
 	"vn": { "name": 1, "pro": 1}
-}
+};
 
 /*
  * Relaxed mode
  * Check if we can allow from some common patterns in the url
  */
 function isCommonHelpers(site) {
-	if (site.domain.search(/apis|cdn|img/) > -1      ||
+	if (site.domain.search(/apis|cdn|img/) > -1       ||
 		site.subdomain.search(/(apis?|code)\./) === 0 ||
 		site.domain === "google.com"     ||
 		site.domain === "googlecode.com" ||
 		site.domain === "gstatic.com")
 	{
-		return true
+		return true;
 	}
 	return false;
 }
@@ -677,22 +193,559 @@ function isRelated(js, tab) {
 }
 
 /*
+ * Extract the important parts of the url and returns an object with them
+ *
+ * Object children:
+ * protocol = contains the protocol http or https
+ * subdomain = contains the subdomain name
+ * domain = contains the domain name
+ * page = contains the directory & file name
+ * query = contains query information
+ */
+function extractUrl(url) {
+	var site = {protocol: "http://"};
+
+	// strip the protocol because all requests are http or https
+	var strip = 7;
+	// check if it's https
+	// the advantage of this method is that it's fast, since strings are arrays
+	if (url.charCodeAt(4) === 115) {
+		strip = 8;
+		site.protocol = "https://";
+	}
+	url = url.slice(strip);
+
+	/*
+	 * Obtain the important parts of the url to load settings
+	 * 0 contains the full url (because it's the match of the full regexp)
+	 * 1 contains the hostname (subdomain + domain)
+	 * 2 contains the directory
+	 * 3 contains the filename
+	 * 4 contains the query
+	 */
+	url = url.match(/^([^\/]*)(\/|\/.*\/)([\w-.]*)([^\/]*)$/);
+	var domains = url[1].split(".");
+	// less than three levels everything is domain
+	if (domains.length < 3) {
+		url[0] = "";
+	}
+	else {
+		// let's keep it simple, no more than two levels
+		var levels = 2;
+		var tld = domains[domains.length - 1];
+		var sld = domains[domains.length - 2];
+		if (tld !== "com" && (standardSecondLevelDomains[sld] || (otherSecondLevelDomains[tld] && otherSecondLevelDomains[tld][sld]))) {
+			levels = 3;
+		}
+		url[0] = domains.slice(0, domains.length - levels).join(".");
+		url[1] = domains.slice(domains.length - levels).join(".");
+	}
+
+	site.subdomain = url[0];
+	site.domain = url[1];
+	site.page = url[2] + url[3];
+	site.query = url[4];
+
+	return site;
+}
+
+/* ====================================================================== */
+
+/*
+ * Returns the blocking policy to be used
+ */
+function getBlockPolicy(site) {
+	// begin with default policy
+	var applyPolicy = policy.rule;
+	// private windows can have a different default
+	if (site.private === true) {
+		applyPolicy = policy.private;
+	}
+	// console.log("Block policy site", site);
+
+	var rules;
+	// search for a domain that matches
+	policy.domains.find(function (domain) {
+		if (site.domain === domain.name) {
+			// only apply a new policy if such exist
+			if (domain.rule !== undefined) {
+				applyPolicy = domain.rule;
+			}
+			rules = domain.rules;
+			// check subdomain rules if they exist
+			if (domain.sites !== undefined) {
+				// search for a sub-domain that matches
+				domain.sites.find(function (subdomain) {
+					if (site.subdomain === subdomain.name) {
+						// only apply a new policy if such exist
+						if (subdomain.rule !== undefined) {
+							applyPolicy = subdomain.rule;
+						}
+						rules = subdomain.rules;
+						if (subdomain.pages !== undefined) {
+							// search for a page that matches
+							subdomain.pages.find(function (page) {
+								if (site.page === page.name) {
+									// no need to check if it exists because this level always has a rule
+									applyPolicy = page.rule;
+									rules = page.rules;
+									return true;
+								}
+							});
+						}
+						// subdomain matched rule, stop execution and return to domains.find()
+						return true;
+					}
+				});
+			}
+			// domain matches rule, stop execution of find()
+			return true;
+		}
+	});
+
+	// return the policy that has to be applied & any custom rules
+	return {policy: applyPolicy, rules: rules};
+}
+
+/* ====================================================================== */
+
+/*
+ * Function to save info about tab
+ */
+function addTab(tab) {
+	// console.log("@addTab tab info", tab);
+	if (tab.id === -1) {
+		// console.info("@addTab: Abort! tabid is -1");
+		return;
+	}
+	// if first char not 'h' from http or https, just monitor for changes
+	if (tab.url.charCodeAt(0) !== 104) {
+		tabStorage[tab.id] = tab.url;
+	}
+	else {
+		var site = extractUrl(tab.url);
+		site.private = tab.incognito;
+		var block = getBlockPolicy(site);
+		site.policy = block.policy;
+		site.rules = block.rules;
+		if (tabStorage[tab.id] === undefined || tabStorage[tab.id].page === undefined) {
+			site.numScripts = 0;
+			site.scripts = {};
+			site.frames = {};
+		}
+		// if page uses history.pushState the old scripts are still loaded
+		else {
+			site.numScripts = tabStorage[tab.id].numScripts;
+			site.scripts = tabStorage[tab.id].scripts;
+			site.frames = tabStorage[tab.id].frames;
+		}
+		tabStorage[tab.id] = site;
+	}
+
+	// console.log("Monitoring tab", tab.id, "with", tabStorage[tab.id]);
+}
+
+/*
+ * Function to remove saved info about tab
+ */
+function removeTab(tabid) {
+	// console.log("Stopped monitoring tab", tabid, "with", tabStorage[tabid]);
+	delete tabStorage[tabid];
+}
+
+/*
+ * When a tab is created, start monitoring
+ */
+chrome.tabs.onCreated.addListener(addTab);
+
+/*
+ * When a tab is closed, stop monitoring
+ */
+chrome.tabs.onRemoved.addListener(removeTab);
+
+/*
+ * Obtain preferences
+ */
+chrome.storage.local.get(function (pref) {
+	// on first run the key does not exist
+	if (pref.firstRun === undefined) {
+		// console.log("firstRun! Loading defaults!");
+
+		// the default preferences are in an external file for lowering the size of this background page
+		var script = document.createElement("script");
+			script.src = "default-prefs.js";
+			script.type = "text/javascript";
+			script.id = "default";
+			document.head.appendChild(script);
+	}
+	else {
+		// not first run just load prefs
+		policy = pref.policy;
+		blackwhitelist = pref.blackwhitelist;
+		// console.log("Loaded preferences", {policy: policy, blackwhitelist: blackwhitelist});
+	}
+	// console.log("Initialising...");
+	chrome.tabs.query({}, function (tabs) {
+		tabs.forEach(function (tab) {
+			addTab(tab);
+		});
+	});
+});
+
+/*
+ * Monitoring the tabs to get their urls
+ * Based on https://github.com/Christoph142/Pin-Sites/
+ */
+chrome.tabs.onReplaced.addListener(function (newId, oldId) {
+	// console.log("@ Tab replace @", oldId, "replaced by", newId);
+	if (newId === oldId || tabStorage[oldId] === undefined) {
+		return;
+	}
+
+	tabStorage[newId] = tabStorage[oldId];
+	removeTab(oldId);
+});
+
+/*
+ * This is only run when the content is not loaded using history.pushState
+ * We reset the info when this occurs because the page was not dynamically
+ * loaded and so the whole content was reloaded.
+ *
+ * This event is fired right before tabs.onUpdated
+ */
+chrome.webNavigation.onBeforeNavigate.addListener(function (details) {
+	// console.log("##### onBeforeNavigate #####\n", details);
+	var tabid = details.tabId;
+	var frameid = details.frameId;
+
+	if (frameid === 0) {
+		if (tabid === -1) {
+			// console.info("@onBeforeNavigate: Abort! tabid is -1");
+			return;
+		}
+
+		// delete anything about the tab because tabs.onUpdate will re-add
+		removeTab(tabid);
+
+		// reset counter in badge
+		chrome.browserAction.setBadgeText({
+			text: "",
+			tabId: tabid
+		});
+	}
+	// if frameId > 0 & url is about:blank
+	else if (details.url.charCodeAt(0) === 97) {
+		var pframeid = details.parentFrameId;
+		// if not loaded from main frame, check where it was
+		if (pframeid > 0) {
+			var use = tabStorage[tabid].frames[pframeid].use;
+			if (use !== undefined) {
+				pframeid = use;
+			}
+		}
+		// save frame information
+		tabStorage[tabid].frames[frameid] = {
+			use: pframeid
+		};
+	}
+});
+
+/*
+ * Pages that have content loaded dynamically like Facebook or YouTube
+ * can't have the counter and script list reset
+ *
+ * onUpdated updates all info about the page
+ */
+chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
+	if (changeInfo.status === "loading") {
+		// console.log("##### Loading status fired #####\n", tabId, changeInfo, tab);
+
+		// set info
+		addTab(tab);
+
+		// set icon according to policy
+		var applyPolicy = tabStorage[tabId].policy;
+		chrome.browserAction.setIcon({
+			path: {
+				"19": "images/" + jaegerhut[applyPolicy] + "19.png",
+				"38": "images/" + jaegerhut[applyPolicy] + "38.png"
+			},
+			tabId: tabId
+		});
+	}
+});
+
+// =========================================================================
+
+/*
+ * Returns the frame that is loading the object
+ *
+ * use key contains which frameid to use
+ * if it does not exist then we already are in the correct place
+ */
+function getLoadingFrame(frameid, tabsite) {
+	var framesite = tabsite.frames[frameid];
+	if (framesite.use === undefined) {
+		return framesite;
+	}
+	if (framesite.use === 0) {
+		return tabsite;
+	}
+	return tabsite.frames[framesite.use];
+}
+
+/*
+ * The Script Weeder, will evaluate if the script can be downloaded
+ */
+function scriptweeder(details) {
+	// console.log("============== Script intercepted ==============");
+	// console.log(details);
+
+	var tabid = details.tabId;
+	if (tabStorage[tabid] === undefined) {
+		// console.warn("tabStorage was not found!", tabid);
+		return {cancel: false};
+	}
+
+	var scriptsite = extractUrl(details.url);
+	var tabsite = tabStorage[tabid];
+
+	var frameid = details.frameId;
+	var pframeid = details.parentFrameId;
+
+	var subframe = false;
+	// if request comes from sub_frame or is a sub_frame
+	if (frameid > 0) {
+		// if request is a sub_frame
+		if (details.type === "sub_frame") {
+			subframe = true;
+			if (pframeid > 0) {
+				tabsite = getLoadingFrame(pframeid, tabsite);
+			}
+		}
+		// console.log("Is sub_frame?", subframe, "\nParent frame ID", pframeid);
+		// if request comes from a sub_frame we apply the rules from the frame site
+		if (!subframe) {
+			tabsite = getLoadingFrame(frameid, tabsite);
+		}
+	}
+
+	// console.log("Script website", scriptsite);
+	// console.log("Website loading script", tabsite);
+
+	// begin assuming it's block all
+	var block = true;
+	var applyPolicy = tabsite.policy;
+	// console.log("Block Policy:", applyPolicy);
+
+	// allow all policy
+	if (applyPolicy === 0) {
+		block = false;
+	}
+	// relaxed or filtered policies
+	else if (applyPolicy === 1 || applyPolicy === 2) {
+		// allow same domain
+		if (scriptsite.domain === tabsite.domain) {
+			block = false;
+		}
+		// relaxed policy - helper scripts also allowed
+		else if (applyPolicy === 1) {
+			if (isCommonHelpers(scriptsite) || isRelated(scriptsite.domain, tabsite.domain)) {
+				block = false;
+			}
+		}
+
+		// whitelist & blacklist, it's one single list, rule key defines it
+		blackwhitelist.domains.find(function (domain) {
+			if (domain.name === scriptsite.domain) {
+				if (domain.rule !== undefined) {
+					block = domain.rule;
+				}
+				if (domain.sites !== undefined) {
+					domain.sites.find(function (site) {
+						if (site.name === scriptsite.subdomain) {
+							block = site.rule;
+							// subdomain matched rule, stop execution and return to domains.find()
+							return true;
+						}
+					});
+				}
+				// domain matches rule, stop execution of find()
+				return true;
+			}
+		});
+
+		// custom rules for the domain/site/page
+		if (tabsite.rules !== undefined) {
+			tabsite.rules.find(function (domain) {
+				if (domain.name === scriptsite.domain) {
+					if (domain.rule !== undefined) {
+						block = domain.rule;
+					}
+					if (domain.sites !== undefined) {
+						domain.sites.find(function (site) {
+							if (site.name === scriptsite.subdomain) {
+								block = site.rule;
+								// subdomain matched rule, stop execution and return to domains.find()
+								return true;
+							}
+						});
+					}
+					// domain matches rule, stop execution of find()
+					return true;
+				}
+			});
+		}
+	}
+
+	// set badge icon
+	if (block) {
+		tabsite.numScripts++;
+		// no frame contains this key
+		if (tabsite.private === undefined) {
+			tabStorage[tabid].numScripts++;
+		}
+		chrome.browserAction.setBadgeText({
+			text: tabStorage[tabid].numScripts.toString(),
+			tabId: tabid
+		});
+	}
+
+	// send info about the scripts to the popup
+	/*chrome.runtime.sendMessage({
+		site: scriptsite,
+		blocked: block,
+		tabid: tabid
+	});*/
+
+	// save info about loaded scripts or frame
+	var script = tabsite.scripts;
+	var objInfo = {
+		name: scriptsite.page,
+		query: scriptsite.query,
+		protocol: scriptsite.protocol,
+		blocked: block
+	};
+
+	// save info about frame
+	if (subframe) {
+		// add frameId on sub_frame
+		objInfo.frameid = frameid;
+
+		// save frame info in another area
+		var frmInfo = scriptsite;
+		frmInfo.policy = getBlockPolicy(scriptsite).policy;
+		frmInfo.rules = getBlockPolicy(scriptsite).rules;
+		frmInfo.numScripts = 0;
+		frmInfo.scripts = {};
+		tabStorage[tabid].frames[frameid] = frmInfo;
+	}
+
+	// console.log("# Saving domain", script[scriptsite.domain])
+	if (script[scriptsite.domain] === undefined) {
+		script[scriptsite.domain] = {};
+	}
+	if (script[scriptsite.domain][scriptsite.subdomain] === undefined) {
+		script[scriptsite.domain][scriptsite.subdomain] = [objInfo];
+	}
+	else {
+		script[scriptsite.domain][scriptsite.subdomain].push(objInfo);
+	}
+
+	// console.log("Script blocked:", block);
+	// cancel: true - blocks loading, false - allows loading
+	return {cancel: block};
+}
+
+/*
+ * Chromium webRequest, we check before the request is made
+ * We just need to check from http protocol and only scripts and frames
+ */
+chrome.webRequest.onBeforeRequest.addListener(
+	scriptweeder,
+	{
+		urls: ["http://*/*", "https://*/*"],
+		types: ["script", "sub_frame"]
+	},
+	["blocking"]
+);
+
+// =========================================================================
+
+/*
+ * Function that saves blackwhitelist objects in any place
+ * level: where to store
+ * data: data to store
+ */
+function saveBlackWhitelist(level, data) {
+	if (level.domains !== undefined) {
+		level = level.domains;
+	}
+	// if rules key does not exist we create it
+	else {
+		if (level.rules === undefined) {
+			level.rules = [];
+		}
+		level = level.rules;
+	}
+	var found = false;
+	// check if domain and subdomain exists
+	level.find(function (host) {
+		if (host.name === data.domain) {
+			host.sites.find(function (site) {
+				if (site.name === data.subdomain) {
+					site.rule = data.rule;
+					found = true;
+					return true;
+				}
+			});
+			if (!found) {
+				host.sites.push({
+					name: data.subdomain,
+					rule: data.rule
+				});
+				found = true;
+			}
+			return true;
+		}
+	});
+	// domain does not exist, push everything
+	if (!found) {
+		level.push({
+			name: data.domain,
+			sites: [{
+				name: data.subdomain,
+				rule: data.rule
+			}]
+		});
+	}
+}
+
+/*
  * The popup might require info or things to be executed
  * child 'type' will contain the type of the request
  */
-chrome.runtime.onMessage.addListener(function(msg, src, answer) {
+chrome.runtime.onMessage.addListener(function (msg, src, answer) {
 	// console.log("# Message Received #\n", msg);
+
+	var found;
+	var level;
+	var host;
+	var site;
+	var page;
+
 	// tab data request
 	if (msg.type === 0) {
 		answer(tabStorage[msg.tabid]);
 	}
 	// scope is decimal unicode for the first letter
 	// 103: global, 100: domain, 115: site, 112: page
+
 	// save individual scripts blackwhitelist preferences
 	else if (msg.type === 1) {
 		// global scope, save in blackwhitelist
 		if (msg.scope === 103) {
-			saveBlackWhitelist(blackwhitelist.domains, msg.script);
+			saveBlackWhitelist(blackwhitelist, msg.script);
 			// console.log("blackwhitelist applied!")
 			if (!msg.private) {
 				// console.log("Saved blackwhitelist!");
@@ -701,7 +754,7 @@ chrome.runtime.onMessage.addListener(function(msg, src, answer) {
 			return;
 		}
 		// used later to build what was not found
-		var found = {
+		found = {
 			domain: false,
 			site: false,
 			page: false
@@ -712,48 +765,39 @@ chrome.runtime.onMessage.addListener(function(msg, src, answer) {
 			tab = tab.frames[msg.frameid];
 		}
 		// not global, save in specific policy
-		for (var host of policy.domains) {
+		policy.domains.find(function (host) {
 			if (host.name === tab.domain) {
 				found.domain = true;
 				// if domain level, stop here
 				if (msg.scope === 100) {
-					if (host.rules === undefined) {
-						host.rules = [];
-					}
-					saveBlackWhitelist(host.rules, msg.script);
-					break;
+					saveBlackWhitelist(host, msg.script);
+					return true;
 				}
-				for (var site of host.sites) {
+				host.sites.find(function (site) {
 					if (site.name === tab.subdomain) {
 						found.site = true;
 						// if site level, stop here
 						if (msg.scope === 115) {
-							if (site.rules === undefined) {
-								site.rules = [];
-							}
-							saveBlackWhitelist(site.rules, msg.script);
-							break
+							saveBlackWhitelist(site, msg.script);
+							return true;
 						}
-						for (var page of site.pages) {
+						site.pages.find(function (page) {
 							if (page.name === tab.page) {
 								found.page = true;
-								if (page.rules === undefined) {
-									page.rules = [];
-								}
-								saveBlackWhitelist(page.rules, msg.script);
-								break;
+								saveBlackWhitelist(page, msg.script);
+								return true;
 							}
-						}
-						break;
+						});
+						return true;
 					}
-				}
-				break;
+				});
+				return true;
 			}
-		}
+		});
 		// if the rules have not been found, we create a new one
-		var level = false;
+		level = false;
 		if (!found.domain) {
-			var host = {name: tabStorage[msg.tabid].domain};
+			host = {name: tabStorage[msg.tabid].domain};
 			policy.domains.push(host);
 			level = host;
 		}
@@ -761,7 +805,7 @@ chrome.runtime.onMessage.addListener(function(msg, src, answer) {
 			if (host.sites === undefined) {
 				host.sites = [];
 			}
-			var site = {name: tabStorage[msg.tabid].subdomain};
+			site = {name: tabStorage[msg.tabid].subdomain};
 			host.sites.push(site);
 			level = site;
 		}
@@ -769,14 +813,13 @@ chrome.runtime.onMessage.addListener(function(msg, src, answer) {
 			if (site.pages === undefined) {
 				site.pages = [];
 			}
-			var page = {name: tabStorage[msg.tabid].page};
+			page = {name: tabStorage[msg.tabid].page};
 			site.pages.push(page);
 			level = page;
 		}
 		// only run if it was needed to be created
 		if (level) {
-			level.rules = [];
-			saveBlackWhitelist(level.rules, msg.script);
+			saveBlackWhitelist(level, msg.script);
 		}
 		// console.log("Applied exceptions!");
 		if (!msg.private) {
@@ -791,45 +834,44 @@ chrome.runtime.onMessage.addListener(function(msg, src, answer) {
 			policy.rule = msg.policy;
 		}
 		else {
-			var found = {
+			found = {
 				domain: false,
 				site: false,
 				page: false
 			};
-			for (var domain of policy.domains) {
+			policy.domains.find(function (domain) {
 				if (domain.name === msg.domain) {
 					found.domain = true;
-					// save domain
+					// if no subdomain in the message the rule is for the domain
 					if (msg.subdomain === undefined) {
 						domain.rule = msg.policy;
-					} else {
-						for (var site of domain.sites) {
-							if (site.name === msg.subdomain) {
-								found.site = true;
-								// save subdomain
-								if (msg.page === undefined) {
-									site.rule = msg.policy;
-								} else {
-									for (var page of site.pages) {
-										// save page
-										if (page.name === msg.page) {
-											found.page = true;
-											page.rule = msg.policy;
-											break;
-										}
-									}
-								}
-								break;
-							}
-						}
+						return true;
 					}
-					break;
+					domain.sites.find(function (site) {
+						if (site.name === msg.subdomain) {
+							found.site = true;
+							// if no page in the message the rule is for the site
+							if (msg.page === undefined) {
+								site.rule = msg.policy;
+								return true;
+							}
+							site.pages.find(function (page) {
+								if (page.name === msg.page) {
+									found.page = true;
+									page.rule = msg.policy;
+									return true;
+								}
+							});
+							return true;
+						}
+					});
+					return true;
 				}
-			}
+			});
 			// if the rule has not been found, we create a new one
-			var level = false;
+			level = false;
 			if (!found.domain) {
-				var host = {name: msg.domain};
+				host = {name: msg.domain};
 				policy.domains.push(host);
 				level = host;
 			}
@@ -837,7 +879,7 @@ chrome.runtime.onMessage.addListener(function(msg, src, answer) {
 				if (host.sites === undefined) {
 					host.sites = [];
 				}
-				var site = {name: msg.subdomain};
+				site = {name: msg.subdomain};
 				host.sites.push(site);
 				level = site;
 			}
@@ -845,7 +887,7 @@ chrome.runtime.onMessage.addListener(function(msg, src, answer) {
 				if (site.pages === undefined) {
 					site.pages = [];
 				}
-				var page = {name: msg.page};
+				page = {name: msg.page};
 				site.pages.push(page);
 				level = page;
 			}
@@ -863,51 +905,12 @@ chrome.runtime.onMessage.addListener(function(msg, src, answer) {
 	// preferences page changes
 	else if (msg.type === 3) {	
 		if (msg.newPrefs.policy !== undefined) {
-			policy = msg.policy;
-			console.log("Policy received from prefs page committed!\n", policy);
+			policy = msg.newPrefs.policy;
+			// console.log("Policy received from prefs page committed!\n", policy);
 		}
 		if (msg.newPrefs.blackwhitelist !== undefined) {
-			blackwhitelist = msg.blackwhitelist;
-			console.log("Blackwhitelist received from prefs page committed!\n", blackwhitelist);
+			blackwhitelist = msg.newPrefs.blackwhitelist;
+			// console.log("Blackwhitelist received from prefs page committed!\n", blackwhitelist);
 		}
 	}
 });
-
-/*
- * Function that saves blackwhitelist objects in any place
- * level: where to store
- * data: data to store
- */
-function saveBlackWhitelist(level, data) {
-	var found = false;
-	// check if domain and subdomain exists
-	for (var host of level) {
-		if (host.name === data.domain) {
-			for (var site of host.sites) {
-				if (site.name === data.subdomain) {
-					site.rule = data.rule;
-					found = true;
-					break;
-				}
-			}
-			if (!found) {
-				host.sites.push({
-					name: data.subdomain,
-					rule: data.rule
-				});
-				found = true;
-			}
-			break;
-		}
-	}
-	// domain does not exist, push everything
-	if (!found) {
-		level.push({
-			name: data.domain,
-			sites: [{
-				name: data.subdomain,
-				rule: data.rule
-			}]
-		});
-	}
-}
