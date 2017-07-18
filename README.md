@@ -1,7 +1,7 @@
 # ScriptJäger
 __Der ScriptJäger - die Erweiterung für der Jägermeister!__
 
-ScriptJäger is a script management extension, it allows you to control which scripts each page can load. ScriptJäger is inspired in [ScriptWeeder](https://github.com/lemonsqueeze/scriptweeder) by lemonsqueeze.
+ScriptJäger is a script management extension, it allows you to control which scripts each page can load. ScriptJäger is inspired by [ScriptWeeder](https://github.com/lemonsqueeze/scriptweeder) by lemonsqueeze.
 
 ## How it works
 ScriptJäger only checks for scripts and sub-frames in the http & https protocols, traffic from other resource types or protocols are not intercepted.
@@ -18,7 +18,7 @@ Yes, I must pay to help them make their browser more popular
 * This fee is their verification method  
 Yes, you pay and you are verified, how does this protect the user?
 
-For the current moment this extension is still not enough stable for distribution. It's on the roadmap to offer the compiled extension as CRX through GitHub and for the extension to check for updates and at least notify of new updates.
+For the current moment this extension is still not enough stable for distribution. It's on the roadmap to offer a compiled extension as CRX through GitHub and for the extension to check for updates and at least notify of new updates.
 
 ## Permissions
 This extension requests some permissions, here's why it requires each one:
