@@ -77,20 +77,31 @@ function buildList(frmInfo, frameid) {
 				if (char !== 73) {
 					input.checked = !input.checked;
 				}
+
+				var site = [];
+				switch (document.body.className.charCodeAt(0)) {
+					// page
+					case 112: site[2] = frmInfo.page;
+					// site
+					case 115: site[1] = frmInfo.subdomain;
+					// domain
+					case 100: site[0] = frmInfo.domain;
+					// global
+					default: break;
+				}
+
 				// The background script deals with it because the popup process will die on close
 				chrome.runtime.sendMessage({
 					type: 1, // save script exception
-					tabid: tabInfo.tabid,
-					frameid: frameid,
-					scope: document.body.className.charCodeAt(0),
 					private: tabInfo.private,
-					script: {
-						domain: target.querySelector(".domain").innerText,
-						subdomain: target.querySelector(".subdomain").innerText.slice(0,-1),
-						// @here: true means checked which means allow
-						// @blackwhitelist: true means block
-						rule: !input.checked
-					}
+					site: site, // site where the script is being loaded
+					script: [ // script information
+						target.querySelector(".domain").innerText,
+						target.querySelector(".subdomain").innerText.slice(0,-1)
+					],
+					// @here: true means checked which means allow
+					// @blackwhitelist: true means block
+					rule: !input.checked
 				});
 			}, false);
 
@@ -228,16 +239,17 @@ chrome.tabs.query({currentWindow: true, active: true}, function (tabs){
 function changePolicy(policy, scope) {
 	var msg = {
 		type: 2,
-		private: tabInfo.private
+		private: tabInfo.private,
+		site: []
 	};
 	scope = scope.charCodeAt(0);
 	switch (scope) {
 		// page
-		case 112: msg.page = tabInfo.page;
+		case 112: msg.site[2] = tabInfo.page;
 		// site
-		case 115: msg.subdomain = tabInfo.subdomain;
+		case 115: msg.site[1] = tabInfo.subdomain;
 		// domain
-		case 100: msg.domain = tabInfo.domain;
+		case 100: msg.site[0] = tabInfo.domain;
 		// global 103
 		default: msg.policy = policy;
 	}
@@ -249,7 +261,7 @@ function changePolicy(policy, scope) {
  * Check if we can allow from some common patterns in the url
  */
 function isCommonHelpers(site) {
-	if (site.domain.search(/apis|cdn|img/) > -1      ||
+	if (site.domain.search(/apis|cdn|img/) > -1       ||
 		site.subdomain.search(/(apis?|code)\./) === 0 ||
 		site.domain === "google.com"     ||
 		site.domain === "googlecode.com" ||

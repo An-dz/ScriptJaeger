@@ -258,13 +258,13 @@ function fillList(array, parentNode, url, idx) {
 		if (item.rules) {
 			// console.log("@fillList script list\n", item.rules);
 			// add number of script rules
-			tempNode.innerText = item.rules.length;
+			tempNode.innerText = item.rules.domains.length;
 
 			// node to hold the list
 			tempNode = document.createElement("ul");
 			// sort the list and call this same function to fill the list
-			item.rules = item.rules.sort(sortUrls);
-			fillList(item.rules, tempNode, ["", ""], idx + index + ",rules,");
+			item.rules.domains = item.rules.domains.sort(sortUrls);
+			fillList(item.rules.domains, tempNode, ["", ""], idx + index + ",rules,");
 
 			// add the sub-list into the main container
 			mainNode.appendChild(tempNode);

@@ -24,6 +24,19 @@ var blackwhitelist = {};
 var tabStorage = {};
 
 /*
+ * Holds all preferences on private browsing
+ *
+ * It's only filled when required and is cleared when no longer
+ *
+ * windows key holds the number of open private windows
+ */
+var privateRules = {
+	windows: 0,
+	policy: {},
+	blackwhitelist: {}
+};
+
+/*
  * Badge icons, one for each policy
  */
 var jaegerhut = ["allowall", "relaxed", "filtered", "blockall", "blockall", "blockall"];
@@ -255,60 +268,145 @@ function extractUrl(url) {
 /* ====================================================================== */
 
 /*
+ * Function that *saves* or *loads* a rule in the correct place
+ * 
+ * subject, array to search in
+ * names, array of strings to find; order like prefs (domain, site, page)
+ * lvl, level of the search; the function itself may call the next levels
+ * rule, the rule to save; `undefined` for loading
+ */
+var lvlName = ["domains", "sites", "pages"];
+function saveLoadRule(subject, names, lvl, rule) {
+	var level;
+	if (subject[lvlName[lvl]] !== undefined) {
+		level = subject[lvlName[lvl]].find(function (level) {
+			if (level.name === names[lvl]) {
+				return level;
+			}
+		});
+	}
+
+	// only if saving
+	if (rule !== undefined) {
+		// if not in the `subject` we add it
+		if (level === undefined) {
+			level = {name: names[lvl]};
+			subject[lvlName[lvl]].push(level);
+		}
+
+		// if next name does not exist we save here
+		if (names[++lvl] === undefined) {
+			if (typeof(rule) === "object") {
+				if (level.rules === undefined) {
+					level.rules = {domains: []};
+				}
+				return saveLoadRule(level.rules, rule.names, 0, rule.rule);
+			}
+
+			level.rule = rule;
+			return true; // saved
+		}
+
+		// if next level does not exist we create it
+		if (level[lvlName[lvl]] === undefined) {
+			level[lvlName[lvl]] = [];
+		}
+
+		return saveLoadRule(level, names, lvl, rule);
+	}
+
+	// level does not exist
+	if (level === undefined) {
+		if (lvl === 0) {
+			return false;
+		}
+		// return previous level if not first
+		return subject;
+	}
+
+	if (names[++lvl] !== undefined) {
+		return saveLoadRule(level, names, lvl, rule);
+	}
+	return level;
+}
+
+/*
  * Returns the blocking policy to be used
  */
 function getBlockPolicy(site) {
 	// begin with default policy
 	var applyPolicy = policy.rule;
+	var policyObj = policy;
 	// private windows can have a different default
 	if (site.private === true) {
-		applyPolicy = policy.private;
+		applyPolicy = privateRules.policy.private;
+		policyObj = privateRules.policy;
 	}
 	// console.log("Block policy site", site);
 
-	var rules;
-	// search for a domain that matches
-	policy.domains.find(function (domain) {
-		if (site.domain === domain.name) {
-			// only apply a new policy if such exist
-			if (domain.rule !== undefined) {
-				applyPolicy = domain.rule;
-			}
-			rules = domain.rules;
-			// check subdomain rules if they exist
-			if (domain.sites !== undefined) {
-				// search for a sub-domain that matches
-				domain.sites.find(function (subdomain) {
-					if (site.subdomain === subdomain.name) {
-						// only apply a new policy if such exist
-						if (subdomain.rule !== undefined) {
-							applyPolicy = subdomain.rule;
-						}
-						rules = subdomain.rules;
-						if (subdomain.pages !== undefined) {
-							// search for a page that matches
-							subdomain.pages.find(function (page) {
-								if (site.page === page.name) {
-									// no need to check if it exists because this level always has a rule
-									applyPolicy = page.rule;
-									rules = page.rules;
-									return true;
-								}
-							});
-						}
-						// subdomain matched rule, stop execution and return to domains.find()
-						return true;
-					}
-				});
-			}
-			// domain matches rule, stop execution of find()
-			return true;
-		}
-	});
+	var applyRules;
+	var sites = [
+		site.domain,
+		site.subdomain,
+		site.page
+	];
+
+	// search if setting for this site exists
+	var siteRules = saveLoadRule(policyObj, sites, 0, undefined);
+
+	if (siteRules !== false) {
+		applyPolicy = siteRules.rule;
+		applyRules = siteRules.rules;
+	}
 
 	// return the policy that has to be applied & any custom rules
-	return {policy: applyPolicy, rules: rules};
+	return {policy: applyPolicy, rules: applyRules};
 }
+
+/* ====================================================================== */
+
+/*
+ * When a windows is created we check if it's a private one
+ * If it is and there is no other private window we create a
+ * private preferences object apart from the main preferences
+ */
+function createPrivatePrefs(details) {
+	if (details.incognito === false) {
+		return;
+	}
+
+	privateRules.windows++;
+	if (privateRules.windows === 1) {
+		// console.log("@@@ First Private Window @@@");
+		privateRules.policy = JSON.parse(JSON.stringify(policy));
+		privateRules.blackwhitelist = JSON.parse(JSON.stringify(blackwhitelist));
+	}
+}
+
+/*
+ * Listener for window creation event
+ */
+chrome.windows.onCreated.addListener(createPrivatePrefs);
+
+/*
+ * When a windows is closed we check if it's the last private
+ * window, if it is we delete the private preferences object
+ */
+chrome.windows.onRemoved.addListener(function (details) {
+	if (details.incognito === false) {
+		return;
+	}
+
+	privateRules.windows--;
+	if (privateRules.windows === 0) {
+		// console.log("@@@ Last Private Window @@@");
+		privateRules = {
+			windows: 0,
+			policy: {},
+			blackwhitelist: {}
+		};
+	}
+});
 
 /* ====================================================================== */
 
@@ -395,6 +493,12 @@ chrome.storage.local.get(function (pref) {
 	chrome.tabs.query({}, function (tabs) {
 		tabs.forEach(function (tab) {
 			addTab(tab);
+		});
+	});
+
+	chrome.windows.getAll({populate: false}, function (windows) {
+		windows.forEach(function (details) {
+			createPrivatePrefs(details);
 		});
 	});
 });
@@ -567,46 +671,28 @@ function scriptweeder(details) {
 			}
 		}
 
+		var scriptsiteNames = [
+			scriptsite.domain,
+			scriptsite.subdomain
+		];
+
+		var blackwhitelistObj = blackwhitelist;
+		if (tabsite.private === true) {
+			blackwhitelistObj = privateRules.blackwhitelist;
+		}
 		// whitelist & blacklist, it's one single list, rule key defines it
-		blackwhitelist.domains.find(function (domain) {
-			if (domain.name === scriptsite.domain) {
-				if (domain.rule !== undefined) {
-					block = domain.rule;
-				}
-				if (domain.sites !== undefined) {
-					domain.sites.find(function (site) {
-						if (site.name === scriptsite.subdomain) {
-							block = site.rule;
-							// subdomain matched rule, stop execution and return to domains.find()
-							return true;
-						}
-					});
-				}
-				// domain matches rule, stop execution of find()
-				return true;
-			}
-		});
+		var siteRules = saveLoadRule(blackwhitelistObj, scriptsiteNames, 0, undefined);
+
+		if (siteRules !== false) {
+			block = siteRules.rule;
+		}
 
 		// custom rules for the domain/site/page
 		if (tabsite.rules !== undefined) {
-			tabsite.rules.find(function (domain) {
-				if (domain.name === scriptsite.domain) {
-					if (domain.rule !== undefined) {
-						block = domain.rule;
-					}
-					if (domain.sites !== undefined) {
-						domain.sites.find(function (site) {
-							if (site.name === scriptsite.subdomain) {
-								block = site.rule;
-								// subdomain matched rule, stop execution and return to domains.find()
-								return true;
-							}
-						});
-					}
-					// domain matches rule, stop execution of find()
-					return true;
-				}
-			});
+			siteRules = saveLoadRule(tabsite.rules, scriptsiteNames, 0, undefined);
+			if (siteRules !== false) {
+				block = siteRules.rule;
+			}
 		}
 	}
 
@@ -646,8 +732,9 @@ function scriptweeder(details) {
 
 		// save frame info in another area
 		var frmInfo = scriptsite;
-		frmInfo.policy = getBlockPolicy(scriptsite).policy;
-		frmInfo.rules = getBlockPolicy(scriptsite).rules;
+		var sitePolicies = getBlockPolicy(scriptsite);
+		frmInfo.policy = sitePolicies.policy;
+		frmInfo.rules = sitePolicies.rules;
 		frmInfo.numScripts = 0;
 		frmInfo.scripts = {};
 		tabStorage[tabid].frames[frameid] = frmInfo;
@@ -685,235 +772,107 @@ chrome.webRequest.onBeforeRequest.addListener(
 // =========================================================================
 
 /*
- * Function that saves blackwhitelist objects in any place
- * level: where to store
- * data: data to store
- */
-function saveBlackWhitelist(level, data) {
-	if (level.domains !== undefined) {
-		level = level.domains;
-	}
-	// if rules key does not exist we create it
-	else {
-		if (level.rules === undefined) {
-			level.rules = [];
-		}
-		level = level.rules;
-	}
-	var found = false;
-	// check if domain and subdomain exists
-	level.find(function (host) {
-		if (host.name === data.domain) {
-			host.sites.find(function (site) {
-				if (site.name === data.subdomain) {
-					site.rule = data.rule;
-					found = true;
-					return true;
-				}
-			});
-			if (!found) {
-				host.sites.push({
-					name: data.subdomain,
-					rule: data.rule
-				});
-				found = true;
-			}
-			return true;
-		}
-	});
-	// domain does not exist, push everything
-	if (!found) {
-		level.push({
-			name: data.domain,
-			sites: [{
-				name: data.subdomain,
-				rule: data.rule
-			}]
-		});
-	}
-}
-
-/*
  * The popup might require info or things to be executed
  * child 'type' will contain the type of the request
+ * each request has different msg childs/info
+ *
+ * 0 Request tab information
+ *   tabid, the id of the requested tab
+ * 
+ * 1 Change blackwhitelist
+ *   private, if it comes from private browsing
+ *   rule, new script rule for that domain
+ *   script [
+ *     domain, of the script being allowed or blocked
+ *     subdomain, of the script being allowed or blocked
+ *   ]
+ *   site [
+ *     domain, of the page to change the rule
+ *     subdomain, of the page to change the rule
+ *     page, name of the page to change the rule
+ *   ]
+ * 
+ * 2 Change policy
+ *   private, if it comes from private browsing
+ *   policy, the new policy rule
+ *   site [
+ *     domain, of the page to change the rule
+ *     subdomain, of the page to change the rule
+ *     page, name of the page to change the rule
+ *   ]
+ * 
+ * 3 New preferences from preferences page
+ *   newPrefs, can contain either `policy` or `blackwhitelist`
  */
 chrome.runtime.onMessage.addListener(function (msg, src, answer) {
 	// console.log("# Message Received #\n", msg);
-
-	var found;
-	var level;
-	var host;
-	var site;
-	var page;
 
 	// tab data request
 	if (msg.type === 0) {
 		answer(tabStorage[msg.tabid]);
 	}
-	// scope is decimal unicode for the first letter
-	// 103: global, 100: domain, 115: site, 112: page
 
-	// save individual scripts blackwhitelist preferences
+	// save individual scripts (blackwhitelist)
 	else if (msg.type === 1) {
 		// global scope, save in blackwhitelist
-		if (msg.scope === 103) {
-			saveBlackWhitelist(blackwhitelist, msg.script);
-			// console.log("blackwhitelist applied!")
-			if (!msg.private) {
-				// console.log("Saved blackwhitelist!");
+		if (msg.site[0] === undefined) {
+			if (msg.private === true) {
+				saveLoadRule(privateRules.blackwhitelist, msg.script, 0, msg.rule);
+			}
+			else {
+				saveLoadRule(blackwhitelist, msg.script, 0, msg.rule);
+				// console.log("blackwhitelist applied!")
 				chrome.storage.local.set({blackwhitelist: blackwhitelist});
+				// console.log("Saved blackwhitelist!");
 			}
 			return;
 		}
-		// used later to build what was not found
-		found = {
-			domain: false,
-			site: false,
-			page: false
+
+		var policyObj = policy;
+		if (msg.private === true) {
+			policyObj = privateRules.policy;
+		}
+
+		var bwlist = {
+			names: msg.script,
+			rule: msg.rule
 		};
-		// if saving preferences from a frame, use the frame info
-		var tab = tabStorage[msg.tabid];
-		if (msg.frameid > 0) {
-			tab = tab.frames[msg.frameid];
-		}
-		// not global, save in specific policy
-		policy.domains.find(function (host) {
-			if (host.name === tab.domain) {
-				found.domain = true;
-				// if domain level, stop here
-				if (msg.scope === 100) {
-					saveBlackWhitelist(host, msg.script);
-					return true;
-				}
-				host.sites.find(function (site) {
-					if (site.name === tab.subdomain) {
-						found.site = true;
-						// if site level, stop here
-						if (msg.scope === 115) {
-							saveBlackWhitelist(site, msg.script);
-							return true;
-						}
-						site.pages.find(function (page) {
-							if (page.name === tab.page) {
-								found.page = true;
-								saveBlackWhitelist(page, msg.script);
-								return true;
-							}
-						});
-						return true;
-					}
-				});
-				return true;
-			}
-		});
-		// if the rules have not been found, we create a new one
-		level = false;
-		if (!found.domain) {
-			host = {name: tabStorage[msg.tabid].domain};
-			policy.domains.push(host);
-			level = host;
-		}
-		if (msg.scope > 110 && !found.site) {
-			if (host.sites === undefined) {
-				host.sites = [];
-			}
-			site = {name: tabStorage[msg.tabid].subdomain};
-			host.sites.push(site);
-			level = site;
-		}
-		if (msg.scope === 112 && !found.page) {
-			if (site.pages === undefined) {
-				site.pages = [];
-			}
-			page = {name: tabStorage[msg.tabid].page};
-			site.pages.push(page);
-			level = page;
-		}
-		// only run if it was needed to be created
-		if (level) {
-			saveBlackWhitelist(level, msg.script);
-		}
+
+		saveLoadRule(policyObj, msg.site, 0, bwlist);
+
 		// console.log("Applied exceptions!");
-		if (!msg.private) {
+		if (msg.private === false) {
 			// console.log("Saved exceptions!");
 			chrome.storage.local.set({policy: policy});
 		}
 	}
-	// save scope preferences
+
+	// save policy preferences
 	else if (msg.type === 2) {
 		// save global
 		if (msg.domain === undefined) {
-			policy.rule = msg.policy;
+			if (msg.private === false) {
+				policy.rule = msg.policy;
+			}
+			else {
+				privateRules.policy.private = msg.policy;
+			}
 		}
 		else {
-			found = {
-				domain: false,
-				site: false,
-				page: false
-			};
-			policy.domains.find(function (domain) {
-				if (domain.name === msg.domain) {
-					found.domain = true;
-					// if no subdomain in the message the rule is for the domain
-					if (msg.subdomain === undefined) {
-						domain.rule = msg.policy;
-						return true;
-					}
-					domain.sites.find(function (site) {
-						if (site.name === msg.subdomain) {
-							found.site = true;
-							// if no page in the message the rule is for the site
-							if (msg.page === undefined) {
-								site.rule = msg.policy;
-								return true;
-							}
-							site.pages.find(function (page) {
-								if (page.name === msg.page) {
-									found.page = true;
-									page.rule = msg.policy;
-									return true;
-								}
-							});
-							return true;
-						}
-					});
-					return true;
-				}
-			});
-			// if the rule has not been found, we create a new one
-			level = false;
-			if (!found.domain) {
-				host = {name: msg.domain};
-				policy.domains.push(host);
-				level = host;
+			var policyObj = policy;
+			if (msg.private === true) {
+				policyObj = privateRules.policy;
 			}
-			if (!found.site && msg.subdomain !== undefined) {
-				if (host.sites === undefined) {
-					host.sites = [];
-				}
-				site = {name: msg.subdomain};
-				host.sites.push(site);
-				level = site;
-			}
-			if (!found.page && msg.page !== undefined) {
-				if (site.pages === undefined) {
-					site.pages = [];
-				}
-				page = {name: msg.page};
-				site.pages.push(page);
-				level = page;
-			}
-			// only run if it was needed to be created
-			if (level) {
-				level.rule = msg.policy;
-			}
+
+			saveLoadRule(policyObj, msg.site, 0, msg.policy);
 		}
 		// console.log("Applied new policy!");
-		if (!msg.private) {
+		if (msg.private === false) {
 			// console.log("Saved new policy!");
 			chrome.storage.local.set({policy: policy});
 		}
 	}
+
 	// preferences page changes
 	else if (msg.type === 3) {	
 		if (msg.newPrefs.policy !== undefined) {

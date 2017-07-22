@@ -10,43 +10,51 @@ policy = {
 	},{
 		name: "duolingo.com",
 		rule: 1,
-		rules: [{
-			name: "cloudfront.net",
-			sites: [{
-				name: "d7mj4aqfscim2",
-				rule: false
+		rules: {
+			domains: [{
+				name: "cloudfront.net",
+				sites: [{
+					name: "d7mj4aqfscim2",
+					rule: false
+				}]
 			}]
-		}]
+		}
 	},{
 		name: "instagram.com",
 		rule: 1,
-		rules: [{
-			name: "akamaihd.net",
-			sites: [{
-				name: "instagramstatic-a",
-				rule: false
+		rules: {
+			domains: [{
+				name: "akamaihd.net",
+				sites: [{
+					name: "instagramstatic-a",
+					rule: false
+				}]
 			}]
-		}]
+		}
 	},{
 		name: "netflix.com",
 		rule: 1,
-		rules: [{
-			name: "nflxext.com",
-			sites: [{
-				name: "assets",
-				rule: false
+		rules: {
+			domains: [{
+				name: "nflxext.com",
+				sites: [{
+					name: "assets",
+					rule: false
+				}]
 			}]
-		}]
+		}
 	},{
 		name: "slack.com",
 		rule: 1,
-		rules: [{
-			name: "fastly.net",
-			sites: [{
-				name: "slack.global.ssl",
-				rule: false
+		rules: {
+			domains: [{
+				name: "fastly.net",
+				sites: [{
+					name: "slack.global.ssl",
+					rule: false
+				}]
 			}]
-		}]
+		}
 	},{
 		name: "startpage.com",
 		rule: 0
