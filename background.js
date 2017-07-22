@@ -850,7 +850,7 @@ chrome.runtime.onMessage.addListener(function (msg, src, answer) {
 	// save policy preferences
 	else if (msg.type === 2) {
 		// save global
-		if (msg.domain === undefined) {
+		if (msg.site[0] === undefined) {
 			if (msg.private === false) {
 				policy.rule = msg.policy;
 			}
