@@ -185,10 +185,12 @@ function isRelated(js, tab) {
 	if (tab.length > js.length) {
 		return isRelated(tab, js);
 	}
+
 	var domain = tab.substring(0, tab.indexOf("."));
 	if (js.includes(domain) || (domain.length > 2 && js.slice(0, 3) === domain.slice(0, 3))) {
 		return true;
 	}
+
 	return false;
 }
 
@@ -225,6 +227,7 @@ function extractUrl(url) {
 	 */
 	url = url.match(/^([^\/]*)(\/|\/.*\/)([\w-.]*)([^\/]*)$/);
 	var domains = url[1].split(".");
+
 	// less than three levels everything is domain
 	if (domains.length < 3) {
 		url[0] = "";
@@ -318,6 +321,7 @@ function addTab(tab) {
 		// console.info("@addTab: Abort! tabid is -1");
 		return;
 	}
+
 	// if first char not 'h' from http or https, just monitor for changes
 	if (tab.url.charCodeAt(0) !== 104) {
 		tabStorage[tab.id] = tab.url;
@@ -328,6 +332,7 @@ function addTab(tab) {
 		var block = getBlockPolicy(site);
 		site.policy = block.policy;
 		site.rules = block.rules;
+
 		if (tabStorage[tab.id] === undefined || tabStorage[tab.id].page === undefined) {
 			site.numScripts = 0;
 			site.scripts = {};
@@ -339,6 +344,7 @@ function addTab(tab) {
 			site.scripts = tabStorage[tab.id].scripts;
 			site.frames = tabStorage[tab.id].frames;
 		}
+
 		tabStorage[tab.id] = site;
 	}
 
@@ -364,14 +370,14 @@ chrome.tabs.onCreated.addListener(addTab);
 chrome.tabs.onRemoved.addListener(removeTab);
 
 /*
- * Obtain preferences
+ * Obtain preferences, fired on load
  */
 chrome.storage.local.get(function (pref) {
 	// on first run the key does not exist
 	if (pref.firstRun === undefined) {
 		// console.log("firstRun! Loading defaults!");
 
-		// the default preferences are in an external file for lowering the size of this background page
+		// the default preferences are in an external file for reducing the size of this background page
 		var script = document.createElement("script");
 			script.src = "default-prefs.js";
 			script.type = "text/javascript";
@@ -384,6 +390,7 @@ chrome.storage.local.get(function (pref) {
 		blackwhitelist = pref.blackwhitelist;
 		// console.log("Loaded preferences", {policy: policy, blackwhitelist: blackwhitelist});
 	}
+
 	// console.log("Initialising...");
 	chrome.tabs.query({}, function (tabs) {
 		tabs.forEach(function (tab) {
@@ -443,6 +450,9 @@ chrome.webNavigation.onBeforeNavigate.addListener(function (details) {
 				pframeid = use;
 			}
 		}
+
+		// console.log("tabid:", tabid, "frameid:", frameid, "tabStorage:", tabStorage[tabid]);
+
 		// save frame information
 		tabStorage[tabid].frames[frameid] = {
 			use: pframeid
@@ -488,9 +498,11 @@ function getLoadingFrame(frameid, tabsite) {
 	if (framesite.use === undefined) {
 		return framesite;
 	}
+
 	if (framesite.use === 0) {
 		return tabsite;
 	}
+
 	return tabsite.frames[framesite.use];
 }
 
@@ -503,7 +515,7 @@ function scriptweeder(details) {
 
 	var tabid = details.tabId;
 	if (tabStorage[tabid] === undefined) {
-		// console.warn("tabStorage was not found!", tabid);
+		console.warn("tabStorage was not found!", tabid);
 		return {cancel: false};
 	}
 
