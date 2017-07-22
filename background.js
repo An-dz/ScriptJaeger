@@ -324,10 +324,15 @@ function saveLoadRule(subject, names, lvl, rule) {
 		return subject;
 	}
 
-	if (names[++lvl] !== undefined) {
-		return saveLoadRule(level, names, lvl, rule);
+	var mergedLevel = level;
+	if (lvl > 0) {
+		mergedLevel = Object.assign({rule: subject.rule, rules: subject.rules}, level);
 	}
-	return level;
+
+	if (names[++lvl] !== undefined) {
+		return saveLoadRule(mergedLevel, names, lvl, rule);
+	}
+	return mergedLevel;
 }
 
 /*
@@ -355,7 +360,9 @@ function getBlockPolicy(site) {
 	var siteRules = saveLoadRule(policyObj, sites, 0, undefined);
 
 	if (siteRules !== false) {
-		applyPolicy = siteRules.rule;
+		if (siteRules.rule !== undefined) {
+			applyPolicy = siteRules.rule;
+		}
 		applyRules = siteRules.rules;
 	}
 
