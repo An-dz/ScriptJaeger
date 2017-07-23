@@ -14,21 +14,41 @@ policy = {
 			domains: [{
 				name: "cloudfront.net",
 				sites: [{
-					name: "d7mj4aqfscim2",
+					name: "d35aaqx5ub95lt",
 					rule: false
 				}]
 			}]
 		}
 	},{
-		name: "instagram.com",
-		rule: 1,
-		rules: {
-			domains: [{
-				name: "akamaihd.net",
-				sites: [{
-					name: "instagramstatic-a",
+		name: "live.com",
+		sites: [{
+			name: "onedrive",
+			rules: {
+				domains: [{
+					name: "akamaihd.net", // needs 
+					sites: [{
+						name: "spoprod-a",
+						rule: false
+					}]
+				},{
+					name: "1drv.com", // download data
+					rule: false
+				},{
+					name: "outlook.com", // loads the main bar
+					rule: false
+				},{
+					name: "sfx.ms", // loads free space statistics
 					rule: false
 				}]
+			}
+		}],
+		rules: {
+			domains: [{
+				name: "office.net",
+				rule: false
+			},{
+				name: "gfx.ms",
+				rule: false
 			}]
 		}
 	},{
@@ -41,6 +61,18 @@ policy = {
 					name: "assets",
 					rule: false
 				}]
+			}]
+		}
+	},{
+		name: "onenote.com",
+		rule: 2,
+		rules: {
+			domains: [{
+				name: "aspnetcdn.com",
+				rule: false
+			},{
+				name: "onenote.net",
+				rule: false
 			}]
 		}
 	},{
@@ -98,12 +130,6 @@ blackwhitelist = {
 			name: "maps",
 			rule: false
 		}]
-	},{
-		name: "gfx.ms", // Microsoft live account
-		rule: false
-	},{
-		name: "pfx.ms", // Microsoft live account
-		rule: false
 	},{
 		name: "vimeo.com", // Allow Vimeo frames
 		rule: false
