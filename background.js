@@ -53,6 +53,50 @@ function defaultPreferencesLoaded() {
 	document.head.removeChild(document.getElementById("default"));
 }
 
+/*
+ * Clicking on the update notification will open the GitHub releases
+ */
+chrome.notifications.onClicked.addListener(function (notification) {
+	chrome.tabs.create({
+		url: "https://github.com/An-dz/ScriptJaeger/releases"
+	});
+	chrome.notifications.clear(notification);
+});
+
+/*
+ * A created alarm will check for updates regularly
+ * The manifest.json in the repository will contain the version number
+ */
+chrome.alarms.onAlarm.addListener(function checkUpdates() {
+	var xhr = new XMLHttpRequest();
+	xhr.onreadystatechange = function processUpdate() {
+		if (xhr.readyState != 4) {
+			return;
+		}
+
+		var currentVersion = chrome.runtime.getManifest().version.slice(".")
+		var version = JSON.parse(xhr.responseText).version.slice(".");
+		// if version is equal 
+		if (parseInt(version[0]) === parseInt(currentVersion[0]) &&
+			parseInt(version[1]) === parseInt(currentVersion[1]) &&
+			parseInt(version[2]) === parseInt(currentVersion[2])) {
+			return;
+		}
+
+		chrome.notifications.create({
+			type: "basic",
+			title: "ScriptJäger Update",
+			iconUrl: "images/jaegerhut128.png",
+			message: "Version " + version.join(".") + " is available\nYou are using version " + currentVersion.join("."),
+			contextMessage: "Click here to open the download page",
+			isClickable: true,
+			requireInteraction: true
+		});
+	};
+	xhr.open("GET", "https://raw.githubusercontent.com/An-dz/ScriptJaeger/master/manifest.json");
+	xhr.send();
+});
+
 /* ======================================================================
  * Relaxed mode functions and variables, default values based from
  * ScriptWeeder https://github.com/lemonsqueeze/scriptweeder
@@ -485,6 +529,12 @@ chrome.storage.local.get(function (pref) {
 			script.type = "text/javascript";
 			script.id = "default";
 			document.head.appendChild(script);
+
+		// alarm creates a permanent check across restarts
+		chrome.alarms.create("updateCheck", {
+			delayInMinutes: 1, // first check after 1 minute
+			periodInMinutes: 1440 // check for updates every 24 hours
+		});
 	}
 	else {
 		// not first run just load prefs

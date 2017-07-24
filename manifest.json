@@ -32,6 +32,8 @@
 	},
 
 	"permissions": [
+		"alarms",
+		"notifications",
 		"tabs",
 		"storage",
 		"webNavigation",
