@@ -565,9 +565,11 @@ chrome.webNavigation.onBeforeNavigate.addListener(function (details) {
 		// console.log("tabid:", tabid, "frameid:", frameid, "tabStorage:", tabStorage[tabid]);
 
 		// save frame information
-		tabStorage[tabid].frames[frameid] = {
-			use: pframeid
-		};
+		if (typeof(tabStorage[tabid]) !== "string") {
+			tabStorage[tabid].frames[frameid] = {
+				use: pframeid
+			};
+		}
 	}
 });
 
