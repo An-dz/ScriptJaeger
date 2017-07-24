@@ -347,7 +347,7 @@ function getBlockPolicy(site) {
 		applyPolicy = privateRules.policy.private;
 		policyObj = privateRules.policy;
 	}
-	// console.log("Block policy site", site);
+	// console.log("@getBlockPolicy, site", site);
 
 	var applyRules;
 	var sites = [
@@ -406,7 +406,7 @@ chrome.windows.onRemoved.addListener(function (details) {
 
 	privateRules.windows--;
 	if (privateRules.windows === 0) {
-		// console.log("@@@ Last Private Window @@@");
+		// console.log("@windows.onRemoved, Last private window closed");
 		privateRules = {
 			windows: 0,
 			policy: {},
@@ -421,9 +421,9 @@ chrome.windows.onRemoved.addListener(function (details) {
  * Function to save info about tab
  */
 function addTab(tab) {
-	// console.log("@addTab tab info", tab);
+	// console.log("@addTab, Tab info", tab);
 	if (tab.id === -1) {
-		// console.info("@addTab: Abort! tabid is -1");
+		// console.info("@addTab, Abort! tabid is -1");
 		return;
 	}
 
@@ -453,14 +453,14 @@ function addTab(tab) {
 		tabStorage[tab.id] = site;
 	}
 
-	// console.log("Monitoring tab", tab.id, "with", tabStorage[tab.id]);
+	// console.log("@addTab, Monitoring tab", tab.id, "with", tabStorage[tab.id]);
 }
 
 /*
  * Function to remove saved info about tab
  */
 function removeTab(tabid) {
-	// console.log("Stopped monitoring tab", tabid, "with", tabStorage[tabid]);
+	// console.log("@removeTab, Stopped monitoring tab", tabid, "with", tabStorage[tabid]);
 	delete tabStorage[tabid];
 }
 
@@ -480,7 +480,7 @@ chrome.tabs.onRemoved.addListener(removeTab);
 chrome.storage.local.get(function (pref) {
 	// on first run the key does not exist
 	if (pref.firstRun === undefined) {
-		// console.log("firstRun! Loading defaults!");
+		// console.log("@storage.get, First Run! Loading defaults!");
 
 		// the default preferences are in an external file for reducing the size of this background page
 		var script = document.createElement("script");
@@ -493,10 +493,10 @@ chrome.storage.local.get(function (pref) {
 		// not first run just load prefs
 		policy = pref.policy;
 		blackwhitelist = pref.blackwhitelist;
-		// console.log("Loaded preferences", {policy: policy, blackwhitelist: blackwhitelist});
+		// console.log("@storage.get, Loaded preferences", {policy: policy, blackwhitelist: blackwhitelist});
 	}
 
-	// console.log("Initialising...");
+	// console.log("@storage.get, Initialising...");
 	chrome.tabs.query({}, function (tabs) {
 		tabs.forEach(function (tab) {
 			addTab(tab);
@@ -515,7 +515,7 @@ chrome.storage.local.get(function (pref) {
  * Based on https://github.com/Christoph142/Pin-Sites/
  */
 chrome.tabs.onReplaced.addListener(function (newId, oldId) {
-	// console.log("@ Tab replace @", oldId, "replaced by", newId);
+	// console.log("@tabs.onReplaced,", oldId, "replaced by", newId);
 	if (newId === oldId || tabStorage[oldId] === undefined) {
 		return;
 	}
@@ -532,13 +532,13 @@ chrome.tabs.onReplaced.addListener(function (newId, oldId) {
  * This event is fired right before tabs.onUpdated
  */
 chrome.webNavigation.onBeforeNavigate.addListener(function (details) {
-	// console.log("##### onBeforeNavigate #####\n", details);
+	// console.log("############### onBeforeNavigate ###############\n", details);
 	var tabid = details.tabId;
 	var frameid = details.frameId;
 
 	if (frameid === 0) {
 		if (tabid === -1) {
-			// console.info("@onBeforeNavigate: Abort! tabid is -1");
+			// console.warn("@onBeforeNavigate: Abort! tabid is -1");
 			return;
 		}
 
@@ -562,7 +562,7 @@ chrome.webNavigation.onBeforeNavigate.addListener(function (details) {
 			}
 		}
 
-		// console.log("tabid:", tabid, "frameid:", frameid, "tabStorage:", tabStorage[tabid]);
+		// console.log("@onBeforeNavigate, tabid:", tabid, "frameid:", frameid, "tabStorage:", tabStorage[tabid]);
 
 		// save frame information
 		if (typeof(tabStorage[tabid]) !== "string") {
@@ -581,7 +581,7 @@ chrome.webNavigation.onBeforeNavigate.addListener(function (details) {
  */
 chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
 	if (changeInfo.status === "loading") {
-		// console.log("##### Loading status fired #####\n", tabId, changeInfo, tab);
+		// console.log("@tabs.onUpdated, Loading status fired", tabId, changeInfo, tab);
 
 		// set info
 		addTab(tab);
@@ -628,7 +628,7 @@ function scriptweeder(details) {
 
 	var tabid = details.tabId;
 	if (tabStorage[tabid] === undefined) {
-		console.warn("tabStorage was not found!", tabid);
+		console.warn("@scriptweeder, tabStorage was not found!", tabid);
 		return {cancel: false};
 	}
 
@@ -648,20 +648,20 @@ function scriptweeder(details) {
 				tabsite = getLoadingFrame(pframeid, tabsite);
 			}
 		}
-		// console.log("Is sub_frame?", subframe, "\nParent frame ID", pframeid);
+		// console.log("@scriptweeder, Is sub_frame?", subframe, "\nParent frame ID", pframeid);
 		// if request comes from a sub_frame we apply the rules from the frame site
 		if (!subframe) {
 			tabsite = getLoadingFrame(frameid, tabsite);
 		}
 	}
 
-	// console.log("Script website", scriptsite);
-	// console.log("Website loading script", tabsite);
+	// console.log("@scriptweeder, Script website", scriptsite);
+	// console.log("@scriptweeder, Website loading script", tabsite);
 
 	// begin assuming it's block all
 	var block = true;
 	var applyPolicy = tabsite.policy;
-	// console.log("Block Policy:", applyPolicy);
+	// console.log("@scriptweeder, Block Policy:", applyPolicy);
 
 	// allow all policy
 	if (applyPolicy === 0) {
@@ -749,7 +749,7 @@ function scriptweeder(details) {
 		tabStorage[tabid].frames[frameid] = frmInfo;
 	}
 
-	// console.log("# Saving domain", script[scriptsite.domain])
+	// console.log("@scriptweeder, Saving domain", script[scriptsite.domain])
 	if (script[scriptsite.domain] === undefined) {
 		script[scriptsite.domain] = {};
 	}
@@ -760,7 +760,7 @@ function scriptweeder(details) {
 		script[scriptsite.domain][scriptsite.subdomain].push(objInfo);
 	}
 
-	// console.log("Script blocked:", block);
+	// console.log("@scriptweeder, Script blocked:", block);
 	// cancel: true - blocks loading, false - allows loading
 	return {cancel: block};
 }
@@ -814,7 +814,7 @@ chrome.webRequest.onBeforeRequest.addListener(
  *   newPrefs, can contain either `policy` or `blackwhitelist`
  */
 chrome.runtime.onMessage.addListener(function (msg, src, answer) {
-	// console.log("# Message Received #\n", msg);
+	// console.log("@@@@@@@@@@@@@@@ Message Received @@@@@@@@@@@@@@@\n", msg);
 
 	// tab data request
 	if (msg.type === 0) {
@@ -830,10 +830,10 @@ chrome.runtime.onMessage.addListener(function (msg, src, answer) {
 			}
 			else {
 				saveLoadRule(blackwhitelist, msg.script, 0, msg.rule);
-				// console.log("blackwhitelist applied!")
 				chrome.storage.local.set({blackwhitelist: blackwhitelist});
-				// console.log("Saved blackwhitelist!");
+				// console.log("@onMessage, Saved blackwhitelist!");
 			}
+			// console.log("@onMessage, blackwhitelist applied!", blackwhitelist)
 			return;
 		}
 
@@ -849,10 +849,10 @@ chrome.runtime.onMessage.addListener(function (msg, src, answer) {
 
 		saveLoadRule(policyObj, msg.site, 0, bwlist);
 
-		// console.log("Applied exceptions!");
+		// console.log("@onMessage, b&w list was saved for", msg.site, "!");
 		if (msg.private === false) {
-			// console.log("Saved exceptions!");
 			chrome.storage.local.set({policy: policy});
+			// console.log("@onMessage, Policy object was saved!");
 		}
 	}
 
@@ -875,9 +875,9 @@ chrome.runtime.onMessage.addListener(function (msg, src, answer) {
 
 			saveLoadRule(policyObj, msg.site, 0, msg.policy);
 		}
-		// console.log("Applied new policy!");
+		// console.log("@onMessage, Applied new policy!", policy);
 		if (msg.private === false) {
-			// console.log("Saved new policy!");
+			// console.log("@onMessage, Saved new policy!");
 			chrome.storage.local.set({policy: policy});
 		}
 	}
@@ -886,11 +886,11 @@ chrome.runtime.onMessage.addListener(function (msg, src, answer) {
 	else if (msg.type === 3) {	
 		if (msg.newPrefs.policy !== undefined) {
 			policy = msg.newPrefs.policy;
-			// console.log("Policy received from prefs page committed!\n", policy);
+			// console.log("@onMessage, Policy received from prefs page committed!\n", policy);
 		}
 		if (msg.newPrefs.blackwhitelist !== undefined) {
 			blackwhitelist = msg.newPrefs.blackwhitelist;
-			// console.log("Blackwhitelist received from prefs page committed!\n", blackwhitelist);
+			// console.log("@onMessage, Blackwhitelist received from prefs page committed!\n", blackwhitelist);
 		}
 	}
 });
