@@ -465,17 +465,14 @@ function removeTab(tabid) {
 }
 
 /*
- * When a tab is created, start monitoring
- */
-chrome.tabs.onCreated.addListener(addTab);
-
-/*
  * When a tab is closed, stop monitoring
  */
 chrome.tabs.onRemoved.addListener(removeTab);
 
 /*
- * Obtain preferences, fired on load
+ * Obtain preferences & monitor current tabs
+ *
+ * Fired on load
  */
 chrome.storage.local.get(function (pref) {
 	// on first run the key does not exist
