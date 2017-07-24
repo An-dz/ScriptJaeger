@@ -384,9 +384,9 @@ function createPrivatePrefs(details) {
 
 	privateRules.windows++;
 	if (privateRules.windows === 1) {
-		// console.log("@@@ First Private Window @@@");
-		privateRules.policy = JSON.parse(JSON.stringify(policy));
-		privateRules.blackwhitelist = JSON.parse(JSON.stringify(blackwhitelist));
+		// console.log("@createPrivatePrefs, First private window created");
+		privateRules.policy = Object.assign({}, policy);
+		privateRules.blackwhitelist = Object.assign({}, blackwhitelist);
 	}
 }
 
