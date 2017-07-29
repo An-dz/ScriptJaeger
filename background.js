@@ -739,14 +739,14 @@ function scriptweeder(details) {
 		// whitelist & blacklist, it's one single list, rule key defines it
 		var siteRules = saveLoadRule(blackwhitelistObj, scriptsiteNames, 0, undefined);
 
-		if (siteRules !== false) {
+		if (siteRules !== false && siteRules.rule !== undefined) {
 			block = siteRules.rule;
 		}
 
 		// custom rules for the domain/site/page
 		if (tabsite.rules !== undefined) {
 			siteRules = saveLoadRule(tabsite.rules, scriptsiteNames, 0, undefined);
-			if (siteRules !== false) {
+			if (siteRules !== false && siteRules.rule !== undefined) {
 				block = siteRules.rule;
 			}
 		}
