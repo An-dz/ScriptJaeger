@@ -788,6 +788,7 @@ function scriptweeder(details) {
 
 		// save frame info in another area
 		var frmInfo = scriptsite;
+		scriptsite.private = tabsite.private;
 		var sitePolicies = getBlockPolicy(scriptsite);
 		frmInfo.policy = sitePolicies.policy;
 		frmInfo.rules = sitePolicies.rules;
