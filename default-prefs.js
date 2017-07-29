@@ -98,6 +98,12 @@ blackwhitelist = {
 		name: "localhost",
 		rule: false
 	},{
+		name: "aspnetcdn.com",
+		sites: [{
+			name: "ajax",
+			rule: false
+		}]
+	},{
 		name: "cloudflare.com",
 		sites: [{
 			name: "cdnjs",
