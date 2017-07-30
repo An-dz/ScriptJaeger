@@ -28,10 +28,10 @@ var tabStorage = {};
  *
  * It's only filled when required and is cleared when no longer
  *
- * windows key holds the number of open private windows
+ * windows key holds the number of open private windows and their ids
  */
 var privateRules = {
-	windows: 0,
+	windows: {length: 0},
 	policy: {},
 	blackwhitelist: {}
 };
@@ -422,15 +422,15 @@ function getBlockPolicy(site) {
  * private preferences object apart from the main preferences
  */
 function createPrivatePrefs(details) {
-	if (details.incognito === false) {
-		return;
-	}
+	if (details.incognito === true) {
+		privateRules.windows[details.id] = true;
+		privateRules.windows.length++;
 
-	privateRules.windows++;
-	if (privateRules.windows === 1) {
-		// console.log("@createPrivatePrefs, First private window created");
-		privateRules.policy = Object.assign({}, policy);
-		privateRules.blackwhitelist = Object.assign({}, blackwhitelist);
+		if (privateRules.windows.length === 1) {
+			// console.log("@createPrivatePrefs, First private window created");
+			privateRules.policy = Object.assign({}, policy);
+			privateRules.blackwhitelist = Object.assign({}, blackwhitelist);
+		}
 	}
 }
 
@@ -443,19 +443,19 @@ chrome.windows.onCreated.addListener(createPrivatePrefs);
  * When a windows is closed we check if it's the last private
  * window, if it is we delete the private preferences object
  */
-chrome.windows.onRemoved.addListener(function (details) {
-	if (details.incognito === false) {
-		return;
-	}
+chrome.windows.onRemoved.addListener(function (windowid) {
+	if (privateRules.windows[windowid] === true) {
+		delete privateRules.windows[windowid];
+		privateRules.windows.length--;
 
-	privateRules.windows--;
-	if (privateRules.windows === 0) {
-		// console.log("@windows.onRemoved, Last private window closed");
-		privateRules = {
-			windows: 0,
-			policy: {},
-			blackwhitelist: {}
-		};
+		if (privateRules.windows.length === 0) {
+			// console.log("@windows.onRemoved, Last private window closed");
+			privateRules = {
+				windows: {length: 0},
+				policy: {},
+				blackwhitelist: {}
+			};
+		}
 	}
 });
 
