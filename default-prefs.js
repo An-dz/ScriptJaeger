@@ -16,6 +16,9 @@ policy = {
 				sites: [{
 					name: "d35aaqx5ub95lt",
 					rule: false
+				},{
+					name: "d7mj4aqfscim2",
+					rule: false
 				}]
 			}]
 		}
