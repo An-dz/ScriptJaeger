@@ -14,7 +14,7 @@ body {
 	padding: 5px;
 }
 .scopes div:hover, .policies div:hover, .scopes span:hover, .policies span:hover, .script:hover, .frame:hover, .jslist > .js:hover {
-	background: rgba(255, 255, 255, .2);
+	background-color: rgba(255, 255, 255, .2);
 }
 input {
 	cursor: pointer;
@@ -65,12 +65,23 @@ input:checked + .jslist {
 {
 	background: rgba(255,255,255,.1) !important;
 }
-.noframe, .hasframe {
+.frames {
 	width: 16px;
 	margin-right: 5px;
 }
+.websocket {
+	width: 16px;
+	margin-right: -16px;
+}
 .hasframe {
 	background: url("/images/hasframe.svg") center/100% no-repeat;
+}
+.haswebsocket {
+	background: url("/images/websocket.svg") center/100% no-repeat;
+}
+.js.haswebsocket {
+	background-size: 16px;
+	background-position: 3px center;
 }
 .frame .js {
 	flex: 1;

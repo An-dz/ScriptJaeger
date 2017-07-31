@@ -8,7 +8,7 @@ var policyList = ["allowall", "relaxed", "filtered", "blockall", "blockall", "bl
  */
 var tabInfo = {};
 var blackwhitelist = {};
-var frameNumber = {};
+var framesAndWebsocket = {};
 
 /*
  * Build script list
@@ -20,32 +20,38 @@ function buildList(frmInfo, frameid) {
 		Object.keys(frmInfo.scripts[domain]).forEach( function (subdomain) {
 			// console.log("Sub-domain:", subdomain);
 
-			var subdomainArr = frmInfo.scripts[domain][subdomain];
-			var hostNode = document.createElement("div");
-			var frameMark = document.createElement("div");
-			var checkmark = document.createElement("input");
+			var subdomainArr  = frmInfo.scripts[domain][subdomain];
+			var hostNode      = document.createElement("div");
+			var websocketNode = document.createElement("div");
+			var frameNode     = document.createElement("div");
+			var checkmarkNode = document.createElement("input");
 			var subdomainNode = document.createElement("span");
-			var domainNode = document.createElement("span");
-			var number = document.createElement("label");
+			var domainNode    = document.createElement("span");
+			var numberNode    = document.createElement("label");
 
-			hostNode.className = "script blocked";
-			frameMark.className = "noframe";
+			hostNode.className      = "script blocked";
+			websocketNode.className = "websocket";
+			frameNode.className     = "frames";
 			subdomainNode.className = "subdomain";
-			domainNode.className = "domain";
-			number.className = "number";
+			domainNode.className    = "domain";
+			numberNode.className    = "number";
 
-			checkmark.type = "checkbox";
-			number.htmlFor = subdomain + domain + frameid;
+			checkmarkNode.type = "checkbox";
+
+			numberNode.htmlFor = subdomain + domain + frameid;
 
 			subdomainNode.innerHTML = "<span>" + subdomain + ((subdomain.length > 0)? "." : "") + "</span>";
 			domainNode.innerHTML = "<span>" + domain + "</span>";
-			number.innerText = subdomainArr.length;
+			numberNode.innerText = subdomainArr.length;
 
-			hostNode.appendChild(checkmark);
-			hostNode.appendChild(frameMark);
+			numberNode.title = "Click to see the list of scripts, frames or websocket connections";
+
+			hostNode.appendChild(checkmarkNode);
+			hostNode.appendChild(websocketNode);
+			hostNode.appendChild(frameNode);
 			hostNode.appendChild(subdomainNode);
 			hostNode.appendChild(domainNode);
-			hostNode.appendChild(number);
+			hostNode.appendChild(numberNode);
 			document.querySelector("#f" + frameid + ".scripts").appendChild(hostNode);
 
 			// console.log("Domain:\n\tclientWidth", domainNode.clientWidth, "\n\tscrollWidth", domainNode.scrollWidth, "\nSubDomain:\n\tclientWidth", subdomainNode.clientWidth, "\n\tscrollWidth", subdomainNode.scrollWidth);
@@ -115,12 +121,12 @@ function buildList(frmInfo, frameid) {
 			scriptNode.className = "jslist";
 			document.querySelector("#f" + frameid + ".scripts").appendChild(scriptNode);
 
-			frameNumber[frameid] = 0;
+			framesAndWebsocket[frameid] = [0, 0];
 			subdomainArr.forEach(function (script) {
 				// console.log("Script:", script);
 
 				if (!script.blocked) {
-					checkmark.checked = true;
+					checkmarkNode.checked = true;
 					hostNode.className = "script";
 				}
 
@@ -132,6 +138,13 @@ function buildList(frmInfo, frameid) {
 				js.title = url;
 				js.href = url;
 
+				// websocket conection
+				if (script.protocol.charCodeAt(0) === 119) {
+					js.className = "js haswebsocket";
+					websocketNode.className = "websocket haswebsocket";
+					websocketNode.title = "\nWebsocket: " + (++framesAndWebsocket[frameid][1]);
+				}
+
 				var sFrameId = script.frameid;
 				// if frameid exists, it's a frame
 				if (sFrameId === undefined) {
@@ -139,9 +152,8 @@ function buildList(frmInfo, frameid) {
 				}
 				else {
 					var activePolicy = policyList[tabInfo.frames[sFrameId].policy];
-					frameMark.className = "hasframe";
-					frameNumber[frameid]++;
-					frameMark.title = frameNumber[frameid] + " iframe";
+					frameNode.className = "frames hasframe";
+					frameNode.title = "Frames: " + (++framesAndWebsocket[frameid][0]);
 
 					var scopediv = document.createElement("img");
 					scopediv.src = "/images/" + activePolicy + "38.png";
@@ -173,6 +185,8 @@ function buildList(frmInfo, frameid) {
 					buildList(tabInfo.frames[sFrameId], sFrameId);
 				}
 			});
+
+			frameNode.title = frameNode.title + websocketNode.title;
 		});
 	});
 }

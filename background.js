@@ -262,28 +262,17 @@ function isRelated(js, tab) {
  * query = contains query information
  */
 function extractUrl(url) {
-	var site = {protocol: "http://"};
-
-	// strip the protocol because all requests are http or https
-	var strip = 7;
-	// check if it's https
-	// the advantage of this method is that it's fast, since strings are arrays
-	if (url.charCodeAt(4) === 115) {
-		strip = 8;
-		site.protocol = "https://";
-	}
-	url = url.slice(strip);
-
 	/*
 	 * Obtain the important parts of the url to load settings
 	 * 0 contains the full url (because it's the match of the full regexp)
-	 * 1 contains the hostname (subdomain + domain)
-	 * 2 contains the directory
-	 * 3 contains the filename
-	 * 4 contains the query
+	 * 1 contains the protocol
+	 * 2 contains the hostname (subdomain + domain)
+	 * 3 contains the directory
+	 * 4 contains the filename
+	 * 5 contains the query
 	 */
-	url = url.match(/^([^\/]*)(\/|\/.*\/)([\w-.]*)([^\/]*)$/);
-	var domains = url[1].split(".");
+	url = url.match(/^(.*:\/\/)([^\/]*)(\/|\/.*\/)([\w-+.]*)([^\/]*)$/);
+	var domains = url[2].split(".");
 
 	// less than three levels everything is domain
 	if (domains.length < 3) {
@@ -298,15 +287,16 @@ function extractUrl(url) {
 			levels = 3;
 		}
 		url[0] = domains.slice(0, domains.length - levels).join(".");
-		url[1] = domains.slice(domains.length - levels).join(".");
+		url[2] = domains.slice(domains.length - levels).join(".");
 	}
 
-	site.subdomain = url[0];
-	site.domain = url[1];
-	site.page = url[2] + url[3];
-	site.query = url[4];
-
-	return site;
+	return {
+		protocol:  url[1],
+		subdomain: url[0],
+		domain:    url[2],
+		page:      url[3] + url[4],
+		query:     url[5]
+	}
 }
 
 /* ====================================================================== */
@@ -820,8 +810,8 @@ function scriptweeder(details) {
 chrome.webRequest.onBeforeRequest.addListener(
 	scriptweeder,
 	{
-		urls: ["http://*/*", "https://*/*"],
-		types: ["script", "sub_frame"]
+		urls: ["http://*/*", "https://*/*", "ws://*/*", "wss://*/*", "file://*/*"],
+		types: ["script", "sub_frame", "websocket"]
 	},
 	["blocking"]
 );
