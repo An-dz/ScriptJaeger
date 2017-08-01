@@ -1,11 +1,11 @@
 {
 	"name": "ScriptJäger",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"author": {
 		"name": "André Zanghelini (An_dz)",
 		"url": "https://github.com/An-dz"
 	},
-	"description": "Die Erweiterung für den Jägermeister! Control which scripts & frames to load per webpage.",
+	"description": "Die Erweiterung für den Jägermeister! Control which scripts, frames & websocket connections to load per webpage.",
 	"homepage_url": "https://github.com/An-dz",
 
 	"icons": {
