@@ -1,14 +1,18 @@
 # ScriptJäger
 __Der ScriptJäger - die Erweiterung für den Jägermeister!__
 
-ScriptJäger is a script management extension, it allows you to control which scripts each page can load. ScriptJäger is inspired by [ScriptWeeder](https://github.com/lemonsqueeze/scriptweeder) by lemonsqueeze.
+ScriptJäger is a script, frame and websocket connection management extension, it allows you to control which domains are allowed to load those resources for each page.
+
+ScriptJäger is inspired by [ScriptWeeder](https://github.com/lemonsqueeze/scriptweeder) by lemonsqueeze.
 
 ## How it works
-ScriptJäger only checks for scripts and sub-frames in the http & https protocols, traffic from other resource types or protocols are not intercepted.
+ScriptJäger only checks for scripts, frames and websocket connections on the http, https and file protocols, traffic from other resource types or protocols are not intercepted.
 
 ScriptJäger was created to be lightweigth, fast, powerful & easy-to-use. Anything is only loaded when really required.
 
 ScriptJäger is tested only under the [Vivaldi browser](https://vivaldi.com/) and may not work on other Chromium browsers, including Chromium itself. No matter which browser you are using remember to include this info when reporting a bug.
+
+Check the [wiki](https://github.com/An-dz/ScriptJaeger/wiki) for info on how to use it.
 
 ## Download
 A _'stable'_ version of the extension as a CRX file can be downloaded on the [releases](https://github.com/An-dz/ScriptJaeger/releases) page. The extension automatically checks for updates every 24 hours and will notify you of updates, if you cancel the notification a new one will be shown in the next 24 hours. The update check will send a normal GET request to GitHub to download the latest manifest file here, no other information is sent.
