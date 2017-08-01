@@ -47,7 +47,21 @@ policy = {
 		}],
 		rules: {
 			domains: [{
-				name: "office.net",
+				name: "office.net", // Office apps
+				rule: false
+			},{
+				name: "gfx.ms",
+				rule: false
+			}]
+		}
+	},{
+		name: "microsoft.com",
+		rules: {
+			domains: [{
+				name: "onestore.ms",
+				rule: false
+			},{
+				name: "akamaized.net",
 				rule: false
 			},{
 				name: "gfx.ms",
