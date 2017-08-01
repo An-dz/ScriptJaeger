@@ -23,7 +23,7 @@ function buildList(frmInfo, frameid) {
 			var subdomainArr  = frmInfo.scripts[domain][subdomain];
 			var hostNode      = document.createElement("div");
 			var websocketNode = document.createElement("div");
-			var frameNode     = document.createElement("div");
+			var framesNode    = document.createElement("div");
 			var checkmarkNode = document.createElement("input");
 			var subdomainNode = document.createElement("span");
 			var domainNode    = document.createElement("span");
@@ -31,7 +31,7 @@ function buildList(frmInfo, frameid) {
 
 			hostNode.className      = "script blocked";
 			websocketNode.className = "websocket";
-			frameNode.className     = "frames";
+			framesNode.className    = "frames";
 			subdomainNode.className = "subdomain";
 			domainNode.className    = "domain";
 			numberNode.className    = "number";
@@ -48,7 +48,7 @@ function buildList(frmInfo, frameid) {
 
 			hostNode.appendChild(checkmarkNode);
 			hostNode.appendChild(websocketNode);
-			hostNode.appendChild(frameNode);
+			hostNode.appendChild(framesNode);
 			hostNode.appendChild(subdomainNode);
 			hostNode.appendChild(domainNode);
 			hostNode.appendChild(numberNode);
@@ -152,41 +152,41 @@ function buildList(frmInfo, frameid) {
 				}
 				else {
 					var activePolicy = policyList[tabInfo.frames[sFrameId].policy];
-					frameNode.className = "frames hasframe";
-					frameNode.title = "Frames: " + (++framesAndWebsocket[frameid][0]);
+					framesNode.className = "frames hasframe";
+					framesNode.title = "Frames: " + (++framesAndWebsocket[frameid][0]);
 
-					var scopediv = document.createElement("img");
-					scopediv.src = "/images/" + activePolicy + "38.png";
-					scopediv.className = "frame-scope";
+					var policyNode = document.createElement("img");
+					policyNode.src = "/images/" + activePolicy + "38.png";
+					policyNode.className = "frame-scope";
 
-					var fnumber = document.createElement("label");
-					fnumber.className = "number";
-					fnumber.htmlFor = "fl" + sFrameId;
-					fnumber.innerText = tabInfo.frames[sFrameId].numScripts;
+					var frameNumberNode = document.createElement("label");
+					frameNumberNode.className = "number";
+					frameNumberNode.htmlFor = "fl" + sFrameId;
+					frameNumberNode.innerText = tabInfo.frames[sFrameId].numScripts;
 
-					var framediv = document.createElement("div");
-					framediv.className = "frame";
-					framediv.appendChild(scopediv);
-					framediv.appendChild(js);
-					framediv.appendChild(fnumber);
-					scriptNode.appendChild(framediv);
+					var frameInfoNode = document.createElement("div");
+					frameInfoNode.className = "frame";
+					frameInfoNode.appendChild(policyNode);
+					frameInfoNode.appendChild(js);
+					frameInfoNode.appendChild(frameNumberNode);
+					scriptNode.appendChild(frameInfoNode);
 
-					var flist = document.createElement("input");
-					flist.type = "checkbox";
-					flist.hidden = true;
-					flist.id = "fl" + sFrameId;
-					scriptNode.appendChild(flist);
+					var scriptListToggle = document.createElement("input");
+					scriptListToggle.type = "checkbox";
+					scriptListToggle.hidden = true;
+					scriptListToggle.id = "fl" + sFrameId;
+					scriptNode.appendChild(scriptListToggle);
 
-					var frameNode = document.createElement("div");
-					frameNode.className = "scripts jslist " + activePolicy;
-					frameNode.id = "f" + sFrameId;
-					scriptNode.appendChild(frameNode);
+					var scriptList = document.createElement("div");
+					scriptList.className = "scripts jslist " + activePolicy;
+					scriptList.id = "f" + sFrameId;
+					scriptNode.appendChild(scriptList);
 
 					buildList(tabInfo.frames[sFrameId], sFrameId);
 				}
 			});
 
-			frameNode.title = frameNode.title + websocketNode.title;
+			framesNode.title = framesNode.title + websocketNode.title;
 		});
 	});
 }
