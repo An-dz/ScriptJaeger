@@ -24,18 +24,18 @@ input {
 .scripts p {
 	text-align: center;
 }
-.domain, .subdomain, .js {
+span.domain, span.subdomain, .js {
 	text-overflow: ellipsis;
 	overflow: hidden;
 	white-space: nowrap;
 }
-.subdomain {
+span.subdomain {
 	flex: 1;
 	opacity: .5;
 	padding: 5px 0;
 	text-align: right;
 }
-.domain:not(body) {
+span.domain {
 	flex: 1.3;
 	padding: 5px 0;
 	text-align: left;
