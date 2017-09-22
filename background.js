@@ -601,7 +601,7 @@ chrome.webNavigation.onBeforeNavigate.addListener(function (details) {
 		}
 
 		// delete anything about the tab because tabs.onUpdate will re-add
-		removeTab(tabid, (tabStorage[tabid] ? tabStorage[tabid].allowonce : false);
+		removeTab(tabid, (tabStorage[tabid] ? tabStorage[tabid].allowonce : false));
 	}
 	// if frameId > 0 & url is about:blank
 	else if (details.url.charCodeAt(0) === 97) {
