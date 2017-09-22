@@ -65,6 +65,10 @@ input:checked + .jslist {
 {
 	background: rgba(255,255,255,.1) !important;
 }
+#allowonce, #preferences {
+	height: 30px;
+	width: 30px;
+}
 .frames {
 	width: 16px;
 	margin-right: 5px;
@@ -128,6 +132,6 @@ input:checked + .jslist {
 	background: #559fe6;
 }
 /* Allow All selected */
-.allowall #allowall, .allowall .scripts, .allowall.scripts {
+.allowall #allowall, .allowall .scripts, .allowall.scripts, .allowonce {
 	background: #d84a4a;
 }

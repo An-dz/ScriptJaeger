@@ -243,6 +243,14 @@ chrome.tabs.query({currentWindow: true, active: true}, function (tabs){
 		// policy button reflects current policy
 		document.body.className = "domain " + policyList[tab.policy];
 
+		// Allow once is turned on, change button
+		if (tabInfo.allowonce === true) {
+			var node = document.querySelector("#allowonce");
+			node.title = "Reload & Go back to normal settings";
+			node.className = "allowonce";
+			node.innerHTML = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'><path d='M22.33,12.18V7.24L20.25,9.33a7.75,7.75,0,1,0,2.09,8.1h-1.2a6.64,6.64,0,1,1-1.69-7.29l-2,2.05Z'/><rect x='11.56' y='10.98' width='2.13' height='8.04'/><rect x='15.88' y='10.98' width='2.13' height='8.04'/></svg>";
+		}
+
 		buildList(tabInfo, 0);
 	});
 });
@@ -382,5 +390,14 @@ document.addEventListener("DOMContentLoaded", function () {
 				});
 			});
 		}
+	});
+
+	// allow once
+	document.querySelector("#allowonce").addEventListener("click", function () {
+		chrome.runtime.sendMessage({
+			type: 4,
+			tabId: tabInfo.tabid,
+			allow: !tabInfo.allowonce
+		});
 	});
 });

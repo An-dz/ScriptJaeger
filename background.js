@@ -466,22 +466,34 @@ function addTab(tab) {
 		tabStorage[tab.id] = tab.url;
 	}
 	else {
+		var tabStore = tabStorage[tab.id];
 		var site = extractUrl(tab.url);
 		site.private = tab.incognito;
-		var block = getBlockPolicy(site);
-		site.policy = block.policy;
-		site.rules = block.rules;
 
-		if (tabStorage[tab.id] === undefined || tabStorage[tab.id].page === undefined) {
+		if (tabStore !== undefined && tabStore.allowonce === true && tabStore.subdomain === site.subdomain && tabStore.domain === site.domain) {
+			site.policy = 0;
+			site.allowonce = true;
+			chrome.browserAction.setBadgeText({
+				text: "T",
+				tabId: tab.id
+			});
+		}
+		else {
+			var block = getBlockPolicy(site);
+			site.policy = block.policy;
+			site.rules = block.rules;
+		}
+
+		if (tabStore === undefined || tabStore.page === undefined) {
 			site.numScripts = 0;
 			site.scripts = {};
 			site.frames = {};
 		}
 		// if page uses history.pushState the old scripts are still loaded
 		else {
-			site.numScripts = tabStorage[tab.id].numScripts;
-			site.scripts = tabStorage[tab.id].scripts;
-			site.frames = tabStorage[tab.id].frames;
+			site.numScripts = tabStore.numScripts;
+			site.scripts = tabStore.scripts;
+			site.frames = tabStore.frames;
 		}
 
 		tabStorage[tab.id] = site;
@@ -493,8 +505,17 @@ function addTab(tab) {
 /*
  * Function to remove saved info about tab
  */
-function removeTab(tabid) {
+function removeTab(tabid, allowonce = false) {
 	// console.log("@removeTab, Stopped monitoring tab", tabid, "with", tabStorage[tabid]);
+	if (allowonce === true) {
+		tabStorage[tabid] = {
+			allowonce: true,
+			domain: tabStorage[tabid].domain,
+			subdomain: tabStorage[tabid].subdomain
+		};
+		return;
+	}
+
 	delete tabStorage[tabid];
 }
 
@@ -558,7 +579,7 @@ chrome.tabs.onReplaced.addListener(function (newId, oldId) {
 	}
 
 	tabStorage[newId] = tabStorage[oldId];
-	removeTab(oldId);
+	removeTab(oldId, false);
 });
 
 /*
@@ -580,13 +601,7 @@ chrome.webNavigation.onBeforeNavigate.addListener(function (details) {
 		}
 
 		// delete anything about the tab because tabs.onUpdate will re-add
-		removeTab(tabid);
-
-		// reset counter in badge
-		chrome.browserAction.setBadgeText({
-			text: "",
-			tabId: tabid
-		});
+		removeTab(tabid, (tabStorage[tabid] ? tabStorage[tabid].allowonce : false);
 	}
 	// if frameId > 0 & url is about:blank
 	else if (details.url.charCodeAt(0) === 97) {
@@ -850,6 +865,10 @@ chrome.webRequest.onBeforeRequest.addListener(
  * 
  * 3 New preferences from preferences page
  *   newPrefs, can contain either `policy` or `blackwhitelist`
+ *
+ * 4 Allow all scripts once (do not save)
+ *   tabId, id of the tab to allow once
+ *   allow, enable/disable allow once
  */
 chrome.runtime.onMessage.addListener(function (msg, src, answer) {
 	// console.log("@@@@@@@@@@@@@@@ Message Received @@@@@@@@@@@@@@@\n", msg);
@@ -930,5 +949,10 @@ chrome.runtime.onMessage.addListener(function (msg, src, answer) {
 			blackwhitelist = msg.newPrefs.blackwhitelist;
 			// console.log("@onMessage, Blackwhitelist received from prefs page committed!\n", blackwhitelist);
 		}
+	}
+
+	else if (msg.type === 4) {
+		tabStorage[msg.tabId].allowonce = msg.allow;
+		chrome.tabs.reload(msg.tabId, {bypassCache: !msg.allow});
 	}
 });
