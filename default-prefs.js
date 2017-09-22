@@ -23,6 +23,14 @@ policy = {
 			}]
 		}
 	},{
+		name: "facebook.com",
+		rules: {
+			domains: [{
+				name: "fbcdn.net",
+				rule: false
+			}]
+		}
+	},{
 		name: "live.com",
 		sites: [{
 			name: "onedrive",
