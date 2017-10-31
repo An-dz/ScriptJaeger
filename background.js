@@ -74,12 +74,10 @@ chrome.alarms.onAlarm.addListener(function checkUpdates() {
 			return;
 		}
 
-		var currentVersion = chrome.runtime.getManifest().version.slice(".")
-		var version = JSON.parse(xhr.responseText).version.slice(".");
-		// if version is equal 
-		if (parseInt(version[0]) === parseInt(currentVersion[0]) &&
-			parseInt(version[1]) === parseInt(currentVersion[1]) &&
-			parseInt(version[2]) === parseInt(currentVersion[2])) {
+		var currentVersion = chrome.runtime.getManifest().version;
+		var version = JSON.parse(xhr.responseText).version;
+		// if version is equal then we are up-to-date
+		if (version === currentVersion) {
 			return;
 		}
 
@@ -87,7 +85,7 @@ chrome.alarms.onAlarm.addListener(function checkUpdates() {
 			type: "basic",
 			title: "ScriptJäger Update",
 			iconUrl: "images/jaegerhut128.png",
-			message: "Version " + version.join(".") + " is available\nYou are using version " + currentVersion.join("."),
+			message: "Version " + version + " is available\nYou are using version " + currentVersion,
 			contextMessage: "Click here to open the download page",
 			isClickable: true,
 			requireInteraction: true
