@@ -5,6 +5,14 @@ policy = {
 	rule: 1,
 	private: 1,
 	domains: [{
+		name: "amazon.com",
+		rules: {
+			"domains": [{
+				name: "amazon-adsystem.com",
+				rule: true
+			}]
+		}
+	},{
 		name: "duckduckgo.com",
 		rule: 0
 	},{
@@ -50,6 +58,17 @@ policy = {
 				},{
 					name: "sfx.ms", // loads free space statistics
 					rule: false
+				}]
+			}
+		},{
+			name: "outlook",
+			rules: {
+				domains: [{
+					name: "azureedge.net",
+					sites: [{
+						name: "owamail",
+						rule: false
+					}]
 				}]
 			}
 		}],
