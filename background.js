@@ -371,16 +371,11 @@ function saveLoadRule(subject, names, lvl, rule) {
  * Returns the blocking policy to be used
  */
 function getBlockPolicy(site) {
+	// console.log("@getBlockPolicy, site", site);
 	// begin with default policy
 	var applyPolicy = policy.rule;
-	var policyObj = policy;
-	// private windows can have a different default
-	if (site.private === true) {
-		applyPolicy = privateRules.policy.private;
-		policyObj = privateRules.policy;
-	}
-	// console.log("@getBlockPolicy, site", site);
 
+	var siteRules;
 	var applyRules;
 	var sites = [
 		site.domain,
@@ -389,7 +384,14 @@ function getBlockPolicy(site) {
 	];
 
 	// search if setting for this site exists
-	var siteRules = saveLoadRule(policyObj, sites, 0, undefined);
+	if (site.private === true) {
+		// private windows can have a different default
+		applyPolicy = privateRules.policy.private;
+		siteRules = saveLoadRule(privateRules.policy, sites, 0, undefined);
+	}
+	else {
+		siteRules = saveLoadRule(policy, sites, 0, undefined);
+	}
 
 	if (siteRules !== false) {
 		if (siteRules.rule !== undefined) {
@@ -416,8 +418,8 @@ function createPrivatePrefs(details) {
 
 		if (privateRules.windows.length === 1) {
 			// console.log("@createPrivatePrefs, First private window created");
-			privateRules.policy = Object.assign({}, policy);
-			privateRules.blackwhitelist = Object.assign({}, blackwhitelist);
+			privateRules.policy = JSON.parse(JSON.stringify(policy));
+			privateRules.blackwhitelist = JSON.parse(JSON.stringify(blackwhitelist));
 		}
 	}
 }
@@ -880,21 +882,16 @@ chrome.runtime.onMessage.addListener(function (msg, src, answer) {
 	else if (msg.type === 1) {
 		// global scope, save in blackwhitelist
 		if (msg.site[0] === undefined) {
+			// console.log("@onMessage, blackwhitelist applied!", blackwhitelist)
 			if (msg.private === true) {
 				saveLoadRule(privateRules.blackwhitelist, msg.script, 0, msg.rule);
+				return;
 			}
-			else {
-				saveLoadRule(blackwhitelist, msg.script, 0, msg.rule);
-				chrome.storage.local.set({blackwhitelist: blackwhitelist});
-				// console.log("@onMessage, Saved blackwhitelist!");
-			}
-			// console.log("@onMessage, blackwhitelist applied!", blackwhitelist)
-			return;
-		}
 
-		var policyObj = policy;
-		if (msg.private === true) {
-			policyObj = privateRules.policy;
+			saveLoadRule(blackwhitelist, msg.script, 0, msg.rule);
+			chrome.storage.local.set({blackwhitelist: blackwhitelist});
+			// console.log("@onMessage, Saved blackwhitelist!");
+			return;
 		}
 
 		var bwlist = {
@@ -902,39 +899,39 @@ chrome.runtime.onMessage.addListener(function (msg, src, answer) {
 			rule: msg.rule
 		};
 
-		saveLoadRule(policyObj, msg.site, 0, bwlist);
-
 		// console.log("@onMessage, b&w list was saved for", msg.site, "!");
-		if (msg.private === false) {
-			chrome.storage.local.set({policy: policy});
-			// console.log("@onMessage, Policy object was saved!");
+		if (msg.private === true) {
+			saveLoadRule(privateRules.policy, msg.site, 0, bwlist);
+			return;
 		}
+
+		saveLoadRule(policy, msg.site, 0, bwlist);
+		chrome.storage.local.set({policy: policy});
+		// console.log("@onMessage, Policy object was saved!");
 	}
 
 	// save policy preferences
 	else if (msg.type === 2) {
+		// console.log("@onMessage, Applied new policy!", policy);
 		// save global
 		if (msg.site[0] === undefined) {
-			if (msg.private === false) {
-				policy.rule = msg.policy;
-			}
-			else {
-				privateRules.policy.private = msg.policy;
-			}
-		}
-		else {
-			var policyObj = policy;
 			if (msg.private === true) {
-				policyObj = privateRules.policy;
+				privateRules.policy.private = msg.policy;
+				return;
 			}
 
-			saveLoadRule(policyObj, msg.site, 0, msg.policy);
+			policy.rule = msg.policy;
 		}
-		// console.log("@onMessage, Applied new policy!", policy);
-		if (msg.private === false) {
-			// console.log("@onMessage, Saved new policy!");
-			chrome.storage.local.set({policy: policy});
+		else {
+			if (msg.private === true) {
+				saveLoadRule(privateRules.policy, msg.site, 0, msg.policy);
+				return;
+			}
+
+			saveLoadRule(policy, msg.site, 0, msg.policy);
 		}
+		// console.log("@onMessage, Saved new policy!");
+		chrome.storage.local.set({policy: policy});
 	}
 
 	// preferences page changes
