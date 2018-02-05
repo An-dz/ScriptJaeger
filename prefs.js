@@ -78,6 +78,7 @@ var stateMachine = {
 	"b": false,
 	"p": false
 };
+
 var saveDelay;
 function saveAndAlertBackground(savePref) {
 	clearTimeout(saveDelay);

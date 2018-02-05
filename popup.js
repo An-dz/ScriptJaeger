@@ -195,7 +195,7 @@ function buildList(frmInfo, frameid) {
  * When opening the popup we request the info about the
  * page scripts and create the DOM nodes with this info
  */
-chrome.tabs.query({currentWindow: true, active: true}, function (tabs){
+chrome.tabs.query({currentWindow: true, active: true}, function (tabs) {
 	chrome.runtime.sendMessage({
 		type: 0, // tab info request
 		tabid: tabs[0].id

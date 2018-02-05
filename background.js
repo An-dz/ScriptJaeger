@@ -949,6 +949,7 @@ chrome.runtime.onMessage.addListener(function (msg, src, answer) {
 		}
 	}
 
+	// allow once
 	else if (msg.type === 4) {
 		tabStorage[msg.tabId].allowonce = msg.allow;
 		chrome.tabs.reload(msg.tabId, {bypassCache: !msg.allow});
