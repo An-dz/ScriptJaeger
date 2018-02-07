@@ -29,13 +29,11 @@ h1, h2, li, span {
 }
 h1 {
 	margin-left: -20px;
+	border-bottom: 1px solid var(--colorBorder);
+	padding-bottom: .2em;
 }
 body, h2, .by {
 	font-size: 13px;
-}
-h1 {
-	border-bottom: 1px solid var(--colorBorder);
-	padding-bottom: .2em;
 }
 .by {
 	margin-left: .5em;
@@ -44,6 +42,15 @@ h1 {
 	vertical-align: bottom;
 	height: 35px;
 	margin-right: 7px;
+}
+.github {
+	display: inline-block;
+	float: right;
+	height: 35px;
+}
+.github img {
+	height: 60%;
+	margin-left: 5px;
 }
 input[type=radio] {
 	background-color: var(--colorBgIntense);
