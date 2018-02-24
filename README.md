@@ -17,6 +17,8 @@ Check the [wiki](https://github.com/An-dz/ScriptJaeger/wiki) for info on how to 
 ## Download
 A _'stable'_ version of the extension as a CRX file can be downloaded on the [releases](https://github.com/An-dz/ScriptJaeger/releases) page. The extension automatically checks for updates every 24 hours and will notify you of updates, if you cancel the notification a new one will be shown in the next 24 hours. The update check will send a normal GET request to GitHub to download the latest manifest file here, no other information is sent.
 
+After downloading the latest CRX just drag and drop it inside the <vivaldi://extensions/> page.
+
 This extension is not available on Chrome Web Store, if it ever becomes available on it this notice will be removed and a link to the store will be added. There are two reasons for this:
 
 * You must pay a fee to be there  
