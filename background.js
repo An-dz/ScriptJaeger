@@ -40,6 +40,7 @@ var privateRules = {
  * Badge icons, one for each policy
  */
 var jaegerhut = ["allowall", "relaxed", "filtered", "blockall", "blockall", "blockall"];
+var colours = ["#D84A4A", "#559FE6", "#73AB55", "#26272A", "#26272A", "#26272A"];
 
 /* ====================================================================== */
 
@@ -477,6 +478,10 @@ function addTab(tab) {
 				text: "T",
 				tabId: tab.id
 			});
+			chrome.browserAction.setBadgeBackgroundColor({
+				color: colours[0],
+				tabId: tab.id
+			});
 		}
 		else {
 			var block = getBlockPolicy(site);
@@ -646,6 +651,10 @@ chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
 				"38": "images/" + jaegerhut[applyPolicy] + "38.png"
 			},
 			tabId: tabId
+		});
+		chrome.browserAction.setBadgeBackgroundColor({
+			color: colours[applyPolicy],
+			tabId: tab.id
 		});
 	}
 });
