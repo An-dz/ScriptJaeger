@@ -40,7 +40,7 @@ var privateRules = {
  * Badge icons, one for each policy
  */
 var jaegerhut = ["allowall", "relaxed", "filtered", "blockall", "blockall", "blockall"];
-var colours = ["#D84A4A", "#559FE6", "#73AB55", "#26272A", "#26272A", "#26272A"];
+var colours = ["#D84A4A", "#559FE6", "#73AB55", "#26272A", "#26272A", "#26272A", undefined="#6F7072"];
 
 /* ====================================================================== */
 
