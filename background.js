@@ -599,12 +599,13 @@ chrome.webNavigation.onBeforeNavigate.addListener(function (details) {
 	var tabid = details.tabId;
 	var frameid = details.frameId;
 
-	if (frameid === 0) {
-		if (tabid === -1) {
-			// console.warn("@onBeforeNavigate: Abort! tabid is -1");
-			return;
-		}
+	// we should not continue if we don't know from which tab the frame is coming
+	if (tabid === -1) {
+		// console.warn("@onBeforeNavigate: Abort! tabid is -1");
+		return;
+	}
 
+	if (frameid === 0) {
 		// delete anything about the tab because tabs.onUpdate will re-add
 		removeTab(tabid, (tabStorage[tabid] ? tabStorage[tabid].allowonce : false));
 	}
