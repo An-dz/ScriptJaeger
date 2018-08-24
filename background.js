@@ -270,7 +270,7 @@ function extractUrl(url) {
 	 * 4 contains the filename
 	 * 5 contains the query
 	 */
-	url = url.match(/^(.*:\/\/)([^\/]*)(\/|\/.*\/)([\w-+.]*)([^\/]*)$/);
+	url = url.match(/^([^:]+:\/\/)([^\/]+)([^?]+)(.*)$/);
 	var domains = url[2].split(".");
 
 	// less than three levels everything is domain
@@ -293,8 +293,8 @@ function extractUrl(url) {
 		protocol:  url[1],
 		subdomain: url[0],
 		domain:    url[2],
-		page:      url[3] + url[4],
-		query:     url[5]
+		page:      url[3],
+		query:     url[4]
 	}
 }
 
