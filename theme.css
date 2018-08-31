@@ -1,0 +1,35 @@
+html {
+	--colorBorder: #d1d0d2;
+	--colorBorderHighlight: #c83838;
+	--colorAccentBg: #c83838;
+	--colorAccentBgDark: #b22128;
+	--colorAccentBgLight: #ffb7b7;
+	--colorSecondary: #73ab55;
+	--colorSecondaryLight: #c2d8b7;
+	--colorFg: #1e1e1e;
+	--colorBg: #fafafa;
+	--colorBgAlpha: rgba(255, 255, 255, 0.5);
+	--colorBgLightIntense: #fff;
+	--colorBgIntense: #fff;
+	--colorBgDark: #dedede;
+	--colorBgDarker: rgba(0, 0, 0, 0.3);
+	--colorHighlightBg: #c83838;
+	--colorHighlightBgDark: #dedede;
+	--colorHighlightBgLight: #ffb7b7;
+	--colorHighlightFg: #fff;
+	--radius: 0;
+	--radiusRound: 100px;
+	--radiusRounded: 2px;
+	--colorPolicyGlobal: #ab74c2;
+	--colorPolicyDomain: #f8b11b;
+	--colorPolicySite: #18c5a1;
+	--colorPolicyPage: #e5d817;
+	--colorScopeAllow: #d84a4a;
+	--colorScopeRelaxed: #559fe6;
+	--colorScopeFiltered: #73ab55;
+	--colorScopeBlock: #26272a;
+	--colorPolicyGlobalLight: #d8c1e2;
+	--colorPolicyDomainLight: #fcde9c;
+	--colorPolicySiteLight: #9ce8d9;
+	--colorPolicyPageLight: #f9f3a3;
+}

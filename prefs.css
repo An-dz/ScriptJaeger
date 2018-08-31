@@ -1,22 +1,5 @@
 html {
-	--colorBorder: #d1d0d2;
-	--colorBorderHighlight: #c83838;
-	--colorAccentBg: #c83838;
-	--colorAccentBgDark: #b22128;
-	--colorAccentBgFadedMore: #e4524d;
-	--colorBg: #f4f4f4;
-	--colorBgAlpha: rgba(245,244,246,0.8);
-	--colorBgLightIntense: #fff;
-	--colorBgIntense: #fff;
-	--colorBgDark: #eaeaea;
-	--colorBgDarker: #d1d0d2;
-	--colorFg: #1e1e1e;
-	--colorHighlightBg: #c83838;
-	--colorHighlightBgAlpha: rgba(200,56,56,0.25);
-	--colorHighlightFg: #fff;
-	--radius: 0;
-	--radiusRound: 100px;
-	--radiusRounded: 2px;
+	background: var(--colorBg);
 }
 body {
 	background: var(--colorBgLightIntense);
