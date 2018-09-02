@@ -1,35 +1,62 @@
 body {
 	margin: 0;
-	width: 350px;
+	width: 380px;
 	font-size: 11pt;
+	background: var(--colorBgDark);
+}
+form {
+	margin: 0;
+}
+div,
+body,
+span,
+input,
+label {
 	cursor: pointer;
-	background: #ccc;
+	transition: background .2s ease-in-out;
 }
-.scopes, .policies, .script, .frame {
+input {
+	margin: 0 5px;
+	height: 30px;
+	display: none;
+}
+.script > input {
+	display: block;
+}
+p {
+	cursor: default;
+	text-align: center;
+}
+.scopes,
+.policies,
+.script,
+.frame {
 	display: flex;
+	overflow: hidden;
 }
-.scopes div, .policies div {
+.scopes label,
+.policies label {
 	text-align: center;
 	flex: 1;
 	padding: 5px;
 }
-.scopes div:hover, .policies div:hover, .scopes span:hover, .policies span:hover, .script:hover, .frame:hover, .jslist > .js:hover {
-	background-color: rgba(255, 255, 255, .2);
+.scopes label:hover,
+.policies label:hover,
+.scopes span:hover,
+.policies span:hover,
+.script:hover,
+.frame:hover,
+.jslist > .js:hover {
+	background-color: rgba(255, 255, 255, 0.4);
 }
-input {
-	cursor: pointer;
-	margin: 0 5px;
-	height: 30px;
-}
-.scripts p {
-	text-align: center;
-}
-span.domain, span.subdomain, .js {
+span.domain,
+.subdomain,
+.js {
 	text-overflow: ellipsis;
 	overflow: hidden;
 	white-space: nowrap;
 }
-span.subdomain {
+.subdomain {
 	flex: 1;
 	opacity: .5;
 	padding: 5px 0;
@@ -61,11 +88,12 @@ input:checked + .jslist {
 	display: block;
 	text-align: right;
 }
-.blockall .blockall, .filtered .filtered, .relaxed .relaxed, .allowall .allowall
+/* .blockall .blockall, .filtered .filtered, .relaxed .relaxed, .allowall .allowall
 {
-	background: rgba(255,255,255,.1) !important;
-}
-#allowonce, #preferences {
+	background: rgba(255, 255, 255, 0.1) !important;
+} */
+#allowonce,
+#preferences {
 	height: 30px;
 	width: 30px;
 }
@@ -92,46 +120,126 @@ input:checked + .jslist {
 	padding-left: 0;
 	padding-right: 0;
 }
-.frame img {
+.frame-policy {
 	height: 20px;
 	padding: 5px;
+	transition: transform 200ms ease;
 }
-.blocked .domain, .blocked .number, .blocked + .jslist {
-	opacity: .5;
+.frame-policy:hover {
+	transform: scale(1.3);
+}
+.blocked .domain,
+.blocked .number,
+.blocked + input + .jslist {
+	opacity: .6;
 }
 /* Global selected */
-.global #global, .global .policies {
-	background: #cf56e1;
+.global label.global,
+.global .policies {
+	background: var(--colorScopeGlobal);
+}
+.global .scopes {
+	background: var(--colorScopeGlobalLight);
 }
 /* Domain selected */
-.domain #domain, .domain .policies {
-	background: #f8a01b;
+.domain label.domain,
+.domain .policies {
+	background: var(--colorScopeDomain);
+}
+.domain .scopes {
+	background: var(--colorScopeDomainLight);
 }
 /* Site selected */
-.site #site, .site .policies {
-	background: #31f19d;
+.site label.site,
+.site .policies {
+	background: var(--colorScopeSite);
+}
+.site .scopes {
+	background: var(--colorScopeSiteLight);
 }
 /* Page selected */
-.page #page, .page .policies {
-	background: #ffee00;
+.page label.page,
+.page .policies {
+	background: var(--colorScopePage);
+}
+.page .scopes {
+	background: var(--colorScopePageLight);
 }
 /* Block All selected */
-.blockall #blockall, .blockall .scripts, .blockall.scripts {
-	background: #26272a;
+.blockall label.blockall,
+.blockall > .scripts,
+.scripts.blockall {
+	background: var(--colorPolicyBlock);
 	color: #fff;
 }
 .blockall .js {
 	color: #fff;
 }
 /* Filtered selected */
-.filtered #filtered, .filtered .scripts, .filtered.scripts {
-	background: #73ab55;
+.filtered label.filtered,
+.filtered > .scripts,
+.scripts.filtered {
+	background: var(--colorPolicyFiltered);
 }
 /* Relaxed selected */
-.relaxed #relaxed, .relaxed .scripts, .relaxed.scripts {
-	background: #559fe6;
+.relaxed label.relaxed,
+.relaxed > .scripts,
+.scripts.relaxed {
+	background: var(--colorPolicyRelaxed);
 }
 /* Allow All selected */
-.allowall #allowall, .allowall .scripts, .allowall.scripts, .allowonce {
-	background: #d84a4a;
+.allowall label.allowall,
+.allowall > .scripts,
+.scripts.allowall
+.allowonce {
+	background: var(--colorPolicyAllow);
+}
+#frame-edit {
+	position: absolute;
+	width: 270px;
+	left: 40px;
+	box-shadow: 0 0 25px #444;
+	transition: all 500ms ease-out;
+	visibility: visible;
+	opacity: 1;
+}
+#frame-edit[data-hidden="true"] {
+	visibility: hidden;
+	opacity: 0;
+}
+#frame-edit .policies label {
+	padding-bottom: 0;
+}
+#frame-edit .policies img {
+	width: 25px;
+}
+#frame-edit .triangle {
+	overflow: hidden;
+	position: absolute;
+	top: 32px;
+	left: -20px;
+	width: 20px;
+	height: 30px;
+}
+#frame-edit .triangle .policies {
+	transform: rotate(45deg);
+	height: 30px;
+	width: 30px;
+	right: -21px;
+	position: absolute;
+	box-shadow: 0 0 10px #666;
+}
+#cancel {
+	background: url(images/closebutton.svg) center/20px var(--colorFg);
+	border-radius: 200px;
+	width: 24px;
+	height: 24px;
+	position: absolute;
+	left: -12px;
+	top: -12px;
+	transition: all 200ms ease;
+}
+#cancel:hover {
+	background-size: 26px;
+	background-color: var(--colorBgDarker)
 }

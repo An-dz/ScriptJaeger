@@ -1,0 +1,10 @@
+{
+	"settingsManageResetTooltip": {
+		"message": "There's no confirmation dialog and no going back! Export your settings if you want them!",
+		"description": "Button tooltip."
+	},
+	"settingsNumLevels": {
+		"message": "Sublevel rules",
+		"description": "Tooltip in number square. Shows how many rules for a more specific scope exist under that level. E.g. number of sub-domain specific rules exist under a domain rule."
+	}
+}

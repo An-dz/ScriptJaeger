@@ -1,61 +1,74 @@
 <!DOCTYPE html>
 <html>
-<meta charset='utf-8'>
 <head>
-	<title>ScriptJäger Preferences</title>
+	<title>ScriptJäger</title>
+	<meta charset='utf-8'>
+	<meta name='viewport' content='width=device-width'>
+	<meta name='theme-color' content='#73AB55'>
 	<link rel="icon" href="images/jaegerhut16.png">
 	<link rel="stylesheet" type="text/css" href="theme.css">
 	<link rel="stylesheet" type="text/css" href="prefs.css">
 	<script type="text/javascript" src="prefs.js"></script>
 </head>
 <body>
-	<h1><img src="images/jaegerhut48.png" alt="Jägerhut" class="logo">ScriptJäger<span class="by">by An_dz</span><a title="Open project page" class="github" href="https://github.com/An-dz/ScriptJaeger"><img alt="" src="images/GitHub-Octocat.svg"><img alt="GitHub" src="images/GitHub-Typography.svg"></a></h1>
-	<h2>Default policy</h2>
-	<label><input type="radio" name="rule" value="0">Allow All</label><br>
-	<label><input type="radio" name="rule" value="1">Relaxed</label><br>
-	<label><input type="radio" name="rule" value="2">Filtered</label><br>
-	<label><input type="radio" name="rule" value="3">Block All</label>
-	<h2>Default policy on private browsing</h2>
-	<label><input type="radio" name="private" value="0">Allow All</label><br>
-	<label><input type="radio" name="private" value="1">Relaxed</label><br>
-	<label><input type="radio" name="private" value="2">Filtered</label><br>
-	<label><input type="radio" name="private" value="3">Block All</label>
-	<h2>Whitelist &amp; Blacklist</h2>
-	<ul id="bwl">
-	</ul>
-	<h2>Rules</h2>
-	<ul id="rules"></ul>
-	<h2>Preferences Management</h2>
-	<button name="r" title="There's no confirmation dialogue and no going back! Export your preferences if you want them!">Reset</button><button name="e" class="middle" title="Preferences will be exported to the text area below">Export</button><button name="i" title="Paste your old preferences in the text area and then press this button">Import</button>
-	<textarea id="text" placeholder="(Paste preferences here to import)"></textarea>
+	<h1><img src="images/jaegerhut48.png" alt="Jägerhut" class="logo">ScriptJäger<span class="by">by An_dz</span><a title="__MSG_settingsProject__" class="github" href="https://github.com/An-dz/ScriptJaeger"><img alt="" src="images/GitHub-Octocat.svg"><img alt="GitHub" src="images/GitHub-Typography.svg"></a></h1>
+	<div class="flex">
+		<div class="half">
+			<h2>__MSG_settingsPolicy__</h2>
+			<label><input type="radio" name="rule" value="0">__MSG_policyAllowAll__</label><br>
+			<label><input type="radio" name="rule" value="1">__MSG_policyRelaxed__</label><br>
+			<label><input type="radio" name="rule" value="2">__MSG_policyFiltered__</label><br>
+			<label><input type="radio" name="rule" value="3">__MSG_policyBlockAll__</label>
+		</div>
+		<div class="half">
+			<h2>__MSG_settingsPolicyPrivate__</h2>
+			<label><input type="radio" name="private" value="0">__MSG_policyAllowAll__</label><br>
+			<label><input type="radio" name="private" value="1">__MSG_policyRelaxed__</label><br>
+			<label><input type="radio" name="private" value="2">__MSG_policyFiltered__</label><br>
+			<label><input type="radio" name="private" value="3">__MSG_policyBlockAll__</label>
+		</div>
+	</div>
+	<div class="flex">
+		<div class="half">
+			<h2>__MSG_settingsScripts__</h2>
+			<ul class="rule-box" id="bwl"></ul>
+		</div>
+		<div class="half">
+			<h2>__MSG_settingsRules__</h2>
+			<ul class="rule-box" id="rules"></ul>
+		</div>
+	</div>
+	<h2>__MSG_settingsManage__</h2>
+	<button name="r" class="manage" title="__MSG_settingsManageResetTooltip__">__MSG_settingsManageReset__</button><button name="e" class="manage middle" title="__MSG_settingsManageExportTooltip__">__MSG_settingsManageExport__</button><button name="i" class="manage" title="__MSG_settingsManageImportTooltip__">__MSG_settingsManageImport__</button>
+	<textarea id="text" placeholder="__MSG_settingsManagePlaceholder__"></textarea>
 	<div id="dropdown" class="hide">
 		<input type="radio" name="custom" id="undefined" value="-1">
 		<label for="undefined">
-			<img class="rule" src="images/undefined38.png" alt="">No Rule
+			<img class="rule" src="images/undefined38.png" alt="">__MSG_settingsRulesNone__
 		</label>
-		<input type="radio" name="custom" id="whitelist" value="1">
+		<input type="radio" name="custom" id="whitelist" value="0">
 		<label for="whitelist" class="bwl">
-			<img class="rule" src="images/whitelist38.png" alt="">Whitelisted
+			<img class="rule" src="images/whitelist38.png" alt="">__MSG_settingsRulesWhite__
 		</label>
-		<input type="radio" name="custom" id="blacklist" value="0">
+		<input type="radio" name="custom" id="blacklist" value="1">
 		<label for="blacklist" class="bwl">
-			<img class="rule" src="images/blacklist38.png" alt="">Blacklisted
+			<img class="rule" src="images/blacklist38.png" alt="">__MSG_settingsRulesBlack__
 		</label>
 		<input type="radio" name="custom" id="allowall" value="0">
 		<label for="allowall" class="policy">
-			<img class="rule" src="images/allowall38.png" alt="">Allow All
+			<img class="rule" src="images/allowall38.png" alt="">__MSG_policyAllowAll__
 		</label>
 		<input type="radio" name="custom" id="relaxed" value="1">
 		<label for="relaxed" class="policy">
-			<img class="rule" src="images/relaxed38.png" alt="">Relaxed
+			<img class="rule" src="images/relaxed38.png" alt="">__MSG_policyRelaxed__
 		</label>
 		<input type="radio" name="custom" id="filtered" value="2">
 		<label for="filtered" class="policy">
-			<img class="rule" src="images/filtered38.png" alt="">Filtered
+			<img class="rule" src="images/filtered38.png" alt="">__MSG_policyFiltered__
 		</label>
 		<input type="radio" name="custom" id="blockall" value="3">
 		<label for="blockall" class="policy">
-			<img class="rule" src="images/blockall38.png" alt="">Block All
+			<img class="rule" src="images/blockall38.png" alt="">__MSG_policyBlockAll__
 		</label>
 	</div>
 </body>

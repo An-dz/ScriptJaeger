@@ -2,12 +2,12 @@ html {
 	background: var(--colorBg);
 }
 body {
-	background: var(--colorBgLightIntense);
 	color: var(--colorFg);
 	margin: 0 80px 50px;
-	position: relative;
 }
-h1, h2, li, span {
+h1,
+h2,
+span {
 	cursor: default;
 }
 h1 {
@@ -15,7 +15,9 @@ h1 {
 	border-bottom: 1px solid var(--colorBorder);
 	padding-bottom: .2em;
 }
-body, h2, .by {
+body,
+h2,
+.by {
 	font-size: 13px;
 }
 .by {
@@ -30,6 +32,7 @@ body, h2, .by {
 	display: inline-block;
 	float: right;
 	height: 35px;
+	margin-top: 5px;
 }
 .github img {
 	height: 60%;
@@ -62,42 +65,77 @@ input[type=radio]:checked:before {
 	right: 3px;
 	bottom: 3px;
 }
-body > ul {
+.flex {
+	display: flex;
+}
+.half {
+	flex: 1;
+	margin-right: 20px;
+}
+.rule-box {
+	background: var(--colorBgDark);
 	border: 1px solid var(--colorBorder);
 	border-radius: var(--radius);
 	padding: 0;
 	height: 350px;
-	max-width: 750px;
+	width: 100%;
 	overflow-y: scroll;
 	overflow-x: hidden;
 }
+.pointer {
+	cursor: pointer;
+}
+ul.scripts {
+	background: var(--colorAccentBgLight);
+	outline: 1px solid var(--colorAccentBg);
+	border-radius: var(--radius);
+}
+ul.subrules {
+	background: var(--colorSecondaryLight);
+	outline: 1px solid var(--colorSecondary);
+	border-radius: var(--radius);
+}
 li {
 	list-style-type: none;
+}
+li.show::after {
+	content: "";
+	height: 5px;
+	display: block;
 }
 li div {
 	padding: 5px 10px;
 }
 ul li:nth-child(even) {
-	background-color: var(--colorBg);
+	background-color: var(--colorBgAlpha);
 }
 li ul {
 	display: none;
+	margin: 5px 0 0 20px;
+	padding: 0;
 }
 .show > ul {
 	display: block;
 }
 .rule {
+	cursor: pointer;
 	margin-right: 10px;
 	vertical-align: middle;
-	width: 19px;
-	height: 19px;
+	width: 22px;
+	transition: transform 200ms ease;
+}
+.rule:hover,
+#dropdown label:hover .rule,
+.rule:focus {
+	transform: scale(1.3);
+	outline-color: var(--colorAccentBg);
 }
 #dropdown {
 	background: #fff;
 	border: 1px solid var(--colorBorder);
-	box-shadow: 0 0 5px rgba(0,0,0,0.2);
-	margin-top: -7px;
-	margin-left: -11px;
+	box-shadow: 0 0 5px rgba(0,0,0,0.5);
+	margin-top: -1px; /* Compensate top border */
+	margin-left: -11px; /* Compensate left border + div padding */
 	position: absolute;
 	top: 0;
 	left: -200px;
@@ -114,24 +152,26 @@ li ul {
 	padding: 5px 10px;
 }
 #dropdown input[checked] + label {
-	background: var(--colorHighlightBgAlpha);
+	background: var(--colorHighlightBgLight);
 }
 #dropdown label:hover {
-	background: var(--colorBgAlpha) !important;
+	background: var(--colorHighlightBgDark) !important;
 }
 #dropdown input[checked] + label:hover{
 	background: var(--colorHighlightBg) !important;
 	color: var(--colorHighlightFg);
 }
-#dropdown.bwl, #dropdown.policy {
+#dropdown.bwl,
+#dropdown.policy {
 	opacity: 1;
 	visibility: visible;
 }
-#dropdown.bwl .policy, #dropdown.policy .bwl {
+#dropdown.bwl .policy,
+#dropdown.policy .bwl {
 	display: none;
 }
 .number {
-	background-color: var(--colorBgDarker);
+	background-color: var(--colorSecondary);
 	color: white;
 	border-radius: var(--radiusRounded);
 	margin-left: 5px;
@@ -140,10 +180,13 @@ li ul {
 	font-weight: bold;
 }
 .number.scripts {
-	background-color: var(--colorAccentBgFadedMore);
+	background-color: var(--colorAccentBg);
 }
 .number:empty {
 	display: none;
+}
+button {
+	cursor: pointer;
 }
 .delete {
 	opacity: 0;
@@ -151,10 +194,12 @@ li ul {
 	background-color: var(--colorBgDarker);
 	background-image: url("images/closebutton.svg");
 	border-radius: 100%;
-	height: 17px;
-	width: 17px;
+	border: none;
+	height: 19px;
+	width: 19px;
 	transition: 200ms ease-in;
 	transform: scale(0);
+	padding: 0;
 }
 .delete:hover {
 	transform: scale(1.25) !important;
@@ -166,26 +211,44 @@ li ul {
 .delete:focus {
 	border: 1px solid var(--colorBorderHighlight);
 	box-shadow: 0 0 0 1px var(--colorBorderHighlight);
+	outline: none;
 }
-div:hover .delete {
+div:hover > .delete,
+.delete:focus {
 	transform: scale(1);
 	opacity: 1;
 }
-button {
+.site {
+	position: relative;
+	padding-right: 2px;
+}
+.rule-edit {
+	position: absolute;
+	font: inherit;
+	top: 0;
+	left: -6px;
+	bottom: 0;
+	padding: 0 5px;
+	border: 1px solid var(--colorBorder);
+	width: 100%;
+	min-width: 50px;
+	outline: none;
+}
+.manage {
 	background: linear-gradient(var(--colorBgLightIntense), var(--colorBg));
 	color: var(--colorFg);
 	border: 1px solid var(--colorBorder);
 	box-shadow: 0 1px var(--colorBg);
 	padding: 6px 12px;
 }
-button.middle {
+.manage.middle {
 	border-left: 0;
 	border-right: 0;
 }
-button:hover {
+.manage:hover {
 	background: var(--colorBg);
 }
-button:active {
+.manage:active {
 	background: var(--colorBgDark);
 }
 textarea {
@@ -202,4 +265,9 @@ textarea {
 }
 textarea:focus {
 	height: 300px;
+}
+@media all and (max-width: 660px) {
+	.flex {
+		display: block;
+	}
 }

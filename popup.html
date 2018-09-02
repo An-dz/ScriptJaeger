@@ -8,25 +8,60 @@
 	<script type="text/javascript" src="popup.js"></script>
 </head>
 <body>
-	<div class="scopes">
-		<div id="page">Page</div>
-		<div id="site">Site</div>
-		<div id="domain">Domain</div>
-		<div id="global">Global</div>
-		<span id="preferences"></span>
-	</div>
-	<div class="policies">
-		<div id="blockall">Block All</div>
-		<div id="filtered">Filtered</div>
-		<div id="relaxed">Relaxed</div>
-		<div id="allowall">Allow All</div>
-		<span id="allowonce" title="Reload & Allow all once">
-			<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30">
-				<path d="M15.76,18.92h-1.4V13l-1,.44-.27-1.22,2.66-1.34Z"/>
-				<path d="M22.33,12.18V7.24L20.25,9.33a7.75,7.75,0,1,0,2.09,8.1h-1.2a6.64,6.64,0,1,1-1.69-7.29l-2.05,2.05Z"/>
-			</svg>
-		</span>
-	</div>
-	<div id="f0" class="scripts"></div>
+	<form id="settings" data-frameid="0">
+		<div class="scopes">
+			<label class="page"><input type="radio" name="scope" value="3">__MSG_scopePage__</label>
+			<label class="site"><input type="radio" name="scope" value="2">__MSG_scopeSite__</label>
+			<label class="domain"><input type="radio" name="scope" value="1">__MSG_scopeDomain__</label>
+			<label class="global"><input type="radio" name="scope" value="0">__MSG_scopeGlobal__</label>
+			<span id="preferences" title="__MSG_tooltipSettings__">
+				<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30">
+					<path d="M22.1 16.6L21 16c.1-.3.1-.6.1-1s0-.7-.1-1l1.2-.7c.4-.2.5-.7.3-1L21 9.9c-.2-.4-.7-.5-1-.3l-1.2.7c-.5-.4-1.1-.7-1.7-1V8c0-.4-.3-.7-.7-.7h-2.8c-.4 0-.7.3-.7.7v1.3c-.6.2-1.2.6-1.7 1L10 9.6c-.3-.2-.8 0-1 .3l-1.4 2.4c-.2.4-.1.8.3 1L9 14v1c0 .3 0 .7.1 1l-1.2.7c-.4.2-.5.7-.3 1L9 20.1c.2.4.7.5 1 .3l1.2-.7c.5.4 1.1.7 1.7 1V22c0 .4.3.7.7.7h2.8c.4 0 .7-.3.7-.7v-1.3c.6-.2 1.2-.6 1.7-1l1.2.7c.4.2.8.1 1-.3l1.4-2.4c.2-.4.1-.9-.3-1.1zM15 18.3c-1.8 0-3.3-1.5-3.3-3.2s1.5-3.3 3.3-3.3 3.3 1.5 3.3 3.3-1.5 3.2-3.3 3.2z"/>
+				</svg>
+			</span>
+		</div>
+		<div class="policies">
+			<label class="blockall"><input type="radio" name="policy" value="3">__MSG_policyBlockAll__</label>
+			<label class="filtered"><input type="radio" name="policy" value="2">__MSG_policyFiltered__</label>
+			<label class="relaxed"><input type="radio" name="policy" value="1">__MSG_policyRelaxed__</label>
+			<label class="allowall"><input type="radio" name="policy" value="0">__MSG_policyAllowAll__</label>
+			<span id="allowonce" title="__MSG_policyAllowOnce__">
+				<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30">
+					<path d="M15.76,18.92h-1.4V13l-1,.44-.27-1.22,2.66-1.34Z"/>
+					<path d="M22.33,12.18V7.24L20.25,9.33a7.75,7.75,0,1,0,2.09,8.1h-1.2a6.64,6.64,0,1,1-1.69-7.29l-2.05,2.05Z"/>
+				</svg>
+			</span>
+		</div>
+		<div id="f0" class="scripts"></div>
+	</form>
+	<form id="frame-edit" data-hidden="true">
+		<div class="scopes">
+			<label class="page"><input type="radio" name="scope" value="3">__MSG_scopePage__</label>
+			<label class="site"><input type="radio" name="scope" value="2">__MSG_scopeSite__</label>
+			<label class="domain"><input type="radio" name="scope" value="1">__MSG_scopeDomain__</label>
+		</div>
+		<div class="policies">
+			<label class="blockall" title="__MSG_policyBlockAll__">
+				<input type="radio" name="policy" value="3">
+				<img class="rule" src="images/blockall38.png" alt="B">
+			</label>
+			<label class="filtered" title="__MSG_policyFiltered__">
+				<input type="radio" name="policy" value="2">
+				<img class="rule" src="images/filtered38.png" alt="F">
+			</label>
+			<label class="relaxed" title="__MSG_policyRelaxed__">
+				<input type="radio" name="policy" value="1">
+				<img class="rule" src="images/relaxed38.png" alt="R">
+			</label>
+			<label class="allowall" title="__MSG_policyAllowAll__">
+				<input type="radio" name="policy" value="0">
+				<img class="rule" src="images/allowall38.png" alt="A">
+			</label>
+		</div>
+		<div class="triangle">
+			<span class="policies"></span>
+		</div>
+		<div id="cancel"></div>
+	</form>
 </body>
 </html>

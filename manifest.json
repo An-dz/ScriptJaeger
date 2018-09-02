@@ -5,7 +5,7 @@
 		"name": "André Zanghelini (An_dz)",
 		"url": "https://github.com/An-dz"
 	},
-	"description": "Die Erweiterung für den Jägermeister! Control which scripts, frames & websocket connections to load per webpage.",
+	"description": "Die Erweiterung für den Jägermeister! __MSG_sjDescription__",
 	"homepage_url": "https://github.com/An-dz/ScriptJaeger",
 
 	"icons": {
@@ -40,6 +40,8 @@
 		"webRequestBlocking",
 		"<all_urls>"
 	],
+
+	"default_locale": "en",
 
 	"manifest_version": 2
 }

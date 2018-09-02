@@ -72,7 +72,7 @@ chrome.notifications.onClicked.addListener(function (notification) {
 chrome.alarms.onAlarm.addListener(function checkUpdates() {
 	var xhr = new XMLHttpRequest();
 	xhr.onreadystatechange = function processUpdate() {
-		if (xhr.readyState != 4) {
+		if (xhr.readyState !== 4) {
 			return;
 		}
 
@@ -85,10 +85,10 @@ chrome.alarms.onAlarm.addListener(function checkUpdates() {
 
 		chrome.notifications.create({
 			type: "basic",
-			title: "ScriptJäger Update",
+			title: chrome.i18n.getMessage("updateTitle"),
 			iconUrl: "images/jaegerhut128.png",
-			message: "Version " + version + " is available\nYou are using version " + currentVersion,
-			contextMessage: "Click here to open the download page",
+			message: chrome.i18n.getMessage("updateMessage", version, currentVersion),
+			contextMessage: chrome.i18n.getMessage("updateContext"),
 			isClickable: true,
 			requireInteraction: true
 		});
