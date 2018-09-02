@@ -123,6 +123,9 @@ function openFramePolicy(e) {
 	dropdown.className = "site " + jaegerhut[policy].name;
 	dropdown.dataset.hidden = false;
 	dropdown.style = "top:" + pos + "px";
+
+	dropdown.elements.scope[1].checked = true;
+	dropdown.elements.policy[-(policy - 3)].checked = true;
 }
 
 function closeFramePolicy() {
