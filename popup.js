@@ -387,7 +387,7 @@ function enableListeners() {
 
 			// change all inputs to checked (allowed) or unchecked (blocked)
 			if (policy === 0 || policy === 3) {
-				document.querySelectorAll(".script input").forEach(function (checkbox) {
+				document.querySelectorAll("#f" + frameid + "> .script > input").forEach(function (checkbox) {
 					checkbox.checked = !policy;
 				});
 
