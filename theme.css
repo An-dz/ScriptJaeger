@@ -20,16 +20,16 @@ html {
 	--radius: 0;
 	--radiusRound: 100px;
 	--radiusRounded: 2px;
-	--colorPolicyGlobal: #ab74c2;
-	--colorPolicyDomain: #f8b11b;
-	--colorPolicySite: #18c5a1;
-	--colorPolicyPage: #e5d817;
-	--colorScopeAllow: #d84a4a;
-	--colorScopeRelaxed: #559fe6;
-	--colorScopeFiltered: #73ab55;
-	--colorScopeBlock: #26272a;
-	--colorPolicyGlobalLight: #d8c1e2;
-	--colorPolicyDomainLight: #fcde9c;
-	--colorPolicySiteLight: #9ce8d9;
-	--colorPolicyPageLight: #f9f3a3;
+	--colorScopeGlobal: #ab74c2;
+	--colorScopeDomain: #f8b11b;
+	--colorScopeSite: #18c5a1;
+	--colorScopePage: #e5d817;
+	--colorPolicyAllow: #d84a4a;
+	--colorPolicyRelaxed: #559fe6;
+	--colorPolicyFiltered: #73ab55;
+	--colorPolicyBlock: #26272a;
+	--colorScopeGlobalLight: #d8c1e2;
+	--colorScopeDomainLight: #fcde9c;
+	--colorScopeSiteLight: #9ce8d9;
+	--colorScopePageLight: #f9f3a3;
 }
