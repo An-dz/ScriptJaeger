@@ -1,8 +1,10 @@
+"use strict";
+
 /*
  * To translate the policy number to text
  */
-var scopeList = ["global", "domain", "site", "page"];
-var jaegerhut = {
+const scopeList = ["global", "domain", "site", "page"];
+const jaegerhut = {
 	0: {
 		name: "allowall",
 		text: chrome.i18n.getMessage("policyAllowAll")
@@ -29,14 +31,14 @@ var tabInfo = {};
 /*
  * Basic nodes
  */
-var nodeHost      = document.createElement("div");
-var nodeCheckbox  = document.createElement("input");
-var nodeWebsocket = document.createElement("div");
-var nodeFrames    = document.createElement("div");
-var nodeSubdomain = document.createElement("span");
-var nodeDomain    = document.createElement("span");
-var nodeNumber    = document.createElement("label");
-var nodeJS        = document.createElement("a");
+const nodeHost      = document.createElement("div");
+const nodeCheckbox  = document.createElement("input");
+const nodeWebsocket = document.createElement("div");
+const nodeFrames    = document.createElement("div");
+const nodeSubdomain = document.createElement("span");
+const nodeDomain    = document.createElement("span");
+const nodeNumber    = document.createElement("label");
+const nodeJS        = document.createElement("a");
 
 nodeHost.className      = "script blocked";
 nodeWebsocket.className = "websocket";
@@ -56,7 +58,7 @@ nodeJS.target = "_blank";
  * Set and save the exception rule for that script
  */
 function setScriptRule(e) {
-	var node = e.target.tagName;
+	const node = e.target.tagName;
 	// console.log("Node:", node);
 
 	// clicking the label for checking individual scripts should not trigger
@@ -64,21 +66,21 @@ function setScriptRule(e) {
 		return;
 	}
 
-	var div = e.target.parentNode;
+	let div = e.target.parentNode;
 	// the span element is inside another span
 	if (div.tagName === "SPAN") {
 		div = div.parentNode;
 	}
 
-	var input = div.firstElementChild;
+	const input = div.firstElementChild;
 	// not clicking over input checkbox should invert its state
 	if (node !== "INPUT") {
 		input.checked = !input.checked;
 	}
 
-	var site = [];
-	var frameid = Number(div.parentNode.id.substring(1));
-	var info = tabInfo;
+	const site = [];
+	let info = tabInfo;
+	const frameid = Number(div.parentNode.id.substring(1));
 
 	if (frameid > 0) {
 		info = tabInfo.frames[frameid];
@@ -114,10 +116,10 @@ function setScriptRule(e) {
  * Opens an overlay div to choose a new policy for the frame
  */
 function openFramePolicy(e) {
-	var frameid = e.target.parentNode.dataset.frameid;
-	var policy = Number(e.target.dataset.policy);
-	var dropdown = document.getElementById("frame-edit");
-	var pos = e.target.getBoundingClientRect().y - 30;
+	const frameid = e.target.parentNode.dataset.frameid;
+	const policy = Number(e.target.dataset.policy);
+	const dropdown = document.getElementById("frame-edit");
+	const pos = e.target.getBoundingClientRect().y - 30;
 
 	dropdown.dataset.frameid = frameid;
 	dropdown.className = "site " + jaegerhut[policy].name;
@@ -136,8 +138,8 @@ function closeFramePolicy() {
  * Build script list
  */
 function buildList(frameid) {
-	var elemMainNode = document.getElementById("f" + frameid);
-	var frame = tabInfo;
+	const elemMainNode = document.getElementById("f" + frameid);
+	let frame = tabInfo;
 
 	if (frameid > 0) {
 		frame = tabInfo.frames[frameid];
@@ -147,13 +149,13 @@ function buildList(frameid) {
 		// console.log("Domain:", domain);
 		Object.entries(domain[1]).forEach(function (subdomain) {
 			// console.log("Sub-domain:", subdomain);
-			var elemHost      = nodeHost.cloneNode(false);
-			var elemCheckbox  = nodeCheckbox.cloneNode(false);
-			var elemWebsocket = nodeWebsocket.cloneNode(false);
-			var elemFrames    = nodeFrames.cloneNode(false);
-			var elemSubdomain = nodeSubdomain.cloneNode(false);
-			var elemDomain    = nodeDomain.cloneNode(false);
-			var elemNumber    = nodeNumber.cloneNode(false);
+			const elemHost      = nodeHost.cloneNode(false);
+			const elemCheckbox  = nodeCheckbox.cloneNode(false);
+			const elemWebsocket = nodeWebsocket.cloneNode(false);
+			const elemFrames    = nodeFrames.cloneNode(false);
+			const elemSubdomain = nodeSubdomain.cloneNode(false);
+			const elemDomain    = nodeDomain.cloneNode(false);
+			const elemNumber    = nodeNumber.cloneNode(false);
 
 			elemHost.appendChild(elemCheckbox);
 			elemHost.appendChild(elemWebsocket);
@@ -184,17 +186,17 @@ function buildList(frameid) {
 			elemHost.addEventListener("click", setScriptRule, false);
 
 			// input that controls the script list visibility
-			var openList = nodeCheckbox.cloneNode(false);
+			const openList = nodeCheckbox.cloneNode(false);
 			openList.id = "list_" + subdomain[0] + domain[0] + frameid;
 			elemMainNode.appendChild(openList);
 
 			// element that holds the list of elements from that host
-			var scriptsList = document.createElement("div");
+			const scriptsList = document.createElement("div");
 			scriptsList.className = "jslist";
 			elemMainNode.appendChild(scriptsList);
 
-			var frames = 0;
-			var websockets = 0;
+			let frames = 0;
+			let websockets = 0;
 
 			// populate scripts list
 			// script can be a websocket or frame
@@ -207,8 +209,8 @@ function buildList(frameid) {
 					elemHost.className = "script";
 				}
 
-				var url = script.protocol + elemSubdomain.textContent + domain[0] + script.name + script.query;
-				var elemJS = nodeJS.cloneNode(false);
+				const url = script.protocol + elemSubdomain.textContent + domain[0] + script.name + script.query;
+				const elemJS = nodeJS.cloneNode(false);
 				elemJS.innerText = script.name.match(/[^/]*.$/);
 				elemJS.title = url;
 				elemJS.href = url;
@@ -226,22 +228,22 @@ function buildList(frameid) {
 					scriptsList.appendChild(elemJS);
 				}
 				else {
-					var policy = jaegerhut[tabInfo.frames[script.frameid].policy];
-					var elemFrameDiv = document.createElement("div");
+					const policy = jaegerhut[tabInfo.frames[script.frameid].policy];
+					const elemFrameDiv = document.createElement("div");
 					elemFrameDiv.className = "frame";
 					elemFrameDiv.dataset.frameid = script.frameid;
 
 					elemFrames.className = "frames hasframe";
 					elemFrames.title = chrome.i18n.getMessage("tooltipFrames", (++frames).toString());
 
-					var elemPolicy = document.createElement("img");
+					const elemPolicy = document.createElement("img");
 					elemPolicy.src = "/images/" + policy.name + "38.png";
 					elemPolicy.className = "frame-policy";
 					elemPolicy.title = policy.text;
 					elemPolicy.dataset.policy = tabInfo.frames[script.frameid].policy;
 					elemPolicy.addEventListener("click", openFramePolicy);
 
-					var elemNumberFrame = nodeNumber.cloneNode(false);
+					const elemNumberFrame = nodeNumber.cloneNode(false);
 					elemNumberFrame.htmlFor = "frame" + script.frameid;
 					elemNumberFrame.innerText = Object.keys(tabInfo.frames[script.frameid].scripts).length;
 
@@ -250,11 +252,11 @@ function buildList(frameid) {
 					elemFrameDiv.appendChild(elemNumberFrame);
 					scriptsList.appendChild(elemFrameDiv);
 
-					var elemCheckboxFrame = nodeCheckbox.cloneNode(false);
+					const elemCheckboxFrame = nodeCheckbox.cloneNode(false);
 					elemCheckboxFrame.id = "frame" + script.frameid;
 					scriptsList.appendChild(elemCheckboxFrame);
 
-					var scriptsListFrame = document.createElement("div");
+					const scriptsListFrame = document.createElement("div");
 					scriptsListFrame.className = "scripts jslist " + policy.name;
 					scriptsListFrame.id = "f" + script.frameid;
 					scriptsList.appendChild(scriptsListFrame);
@@ -282,7 +284,7 @@ chrome.tabs.query({currentWindow: true, active: true}, function (tabs) {
 		// not an http(s) page
 		if (typeof tab === "string") {
 			// console.log("Char codes:", tab.charCodeAt(0), tab.charCodeAt(1));
-			var msg;
+			let msg;
 			switch (tab.charCodeAt(1)) {
 				case 116: // t from ftp
 					msg = "errorFTP";
@@ -303,14 +305,14 @@ chrome.tabs.query({currentWindow: true, active: true}, function (tabs) {
 		tabInfo.tabid = tabs[0].id;
 
 		// policy button reflects current policy
-		var form = document.body.firstElementChild;
+		const form = document.body.firstElementChild;
 		form.className = "domain " + jaegerhut[tab.policy].name;
 		form.elements.scope[2].checked = true;
 		form.elements.policy[-(tab.policy - 3)].checked = true;
 
 		// Allow once is turned on, change button
 		if (tabInfo.allowonce === true) {
-			var node = document.getElementById("allowonce");
+			const node = document.getElementById("allowonce");
 			node.title = chrome.i18n.getMessage("policyAllowOnceDisable");
 			node.className = "allowonce";
 			node.innerHTML = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'><path d='M22.33,12.18V7.24L20.25,9.33a7.75,7.75,0,1,0,2.09,8.1h-1.2a6.64,6.64,0,1,1-1.69-7.29l-2,2.05Z'/><rect x='11.56' y='10.98' width='2.13' height='8.04'/><rect x='15.88' y='10.98' width='2.13' height='8.04'/></svg>";
@@ -324,13 +326,13 @@ chrome.tabs.query({currentWindow: true, active: true}, function (tabs) {
  * Send to background process to save new policy for the specific scope
  */
 function changePolicy(policy, scope, frameid) {
-	var msg = {
+	const msg = {
 		type: 2,
 		private: tabInfo.private,
 		site: []
 	};
 
-	var frame = tabInfo;
+	let frame = tabInfo;
 	if (frameid > 0) {
 		frame = tabInfo.frames[frameid];
 	}
@@ -373,17 +375,17 @@ function enableListeners() {
 	document.querySelectorAll("input").forEach(function (input) {
 		if (input.name === "scope") {
 			input.addEventListener("change", function (e) {
-				var form = e.target.form;
+				const form = e.target.form;
 				form.className = scopeList[Number(e.target.value)] + " " + form.className.split(" ")[1];
 			});
 			return;
 		}
 
 		input.addEventListener("change", function (e) {
-			var form = e.target.form;
-			var scope = Number(form.elements.scope.value);
-			var policy = Number(e.target.value);
-			var frameid = Number(form.dataset.frameid);
+			const form = e.target.form;
+			const scope = Number(form.elements.scope.value);
+			const policy = Number(e.target.value);
+			const frameid = Number(form.dataset.frameid);
 
 			form.className = scopeList[scope] + " " + jaegerhut[policy].name;
 			changePolicy(policy, scope, frameid);
@@ -417,7 +419,7 @@ function enableListeners() {
  * Build page
  */
 document.addEventListener("DOMContentLoaded", function () {
-	var template = document.body.innerHTML;
+	const template = document.body.innerHTML;
 
 	document.body.innerHTML = template.replace(/__MSG_(\w+)__/g, function (a, b) {
 		return chrome.i18n.getMessage(b);

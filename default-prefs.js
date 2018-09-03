@@ -1,3 +1,5 @@
+"use strict";
+
 /*
  * These are the default settings after first run
  */
