@@ -683,6 +683,46 @@ function getLoadingFrame(frameid, tabsite) {
 }
 
 /*
+ * Check if script is allowed when on filtered or relaxed policies
+ */
+function isScriptAllowed(block, tabsite, scriptsite, applyPolicy) {
+	// allow same domain
+	if (scriptsite.domain === tabsite.domain) {
+		block = false;
+	}
+	// relaxed policy - helper scripts also allowed
+	else if (applyPolicy === 1 && (isCommonHelpers(scriptsite) || isRelated(scriptsite.domain, tabsite.domain))) {
+		block = false;
+	}
+
+	var scriptsiteUrl = [
+		scriptsite.domain,
+		scriptsite.subdomain
+	];
+
+	var blackwhitelistObj = blackwhitelist;
+	if (tabsite.private === true) {
+		blackwhitelistObj = privateRules.blackwhitelist;
+	}
+	// whitelist & blacklist, it's one single list, rule key defines it
+	var siteRules = saveLoadRule(blackwhitelistObj, scriptsiteUrl, 0, undefined);
+
+	if (siteRules !== false && siteRules.rule !== undefined) {
+		block = siteRules.rule;
+	}
+
+	// custom rules for the domain/site/page
+	if (tabsite.rules !== undefined) {
+		siteRules = saveLoadRule(tabsite.rules, scriptsiteUrl, 0, undefined);
+		if (siteRules !== false && siteRules.rule !== undefined) {
+			block = siteRules.rule;
+		}
+	}
+
+	return block;
+}
+
+/*
  * The Script Weeder, will evaluate if the script can be downloaded
  */
 function scriptweeder(details) {
@@ -732,40 +772,7 @@ function scriptweeder(details) {
 	}
 	// relaxed or filtered policies
 	else if (applyPolicy === 1 || applyPolicy === 2) {
-		// allow same domain
-		if (scriptsite.domain === tabsite.domain) {
-			block = false;
-		}
-		// relaxed policy - helper scripts also allowed
-		else if (applyPolicy === 1) {
-			if (isCommonHelpers(scriptsite) || isRelated(scriptsite.domain, tabsite.domain)) {
-				block = false;
-			}
-		}
-
-		var scriptsiteNames = [
-			scriptsite.domain,
-			scriptsite.subdomain
-		];
-
-		var blackwhitelistObj = blackwhitelist;
-		if (tabsite.private === true) {
-			blackwhitelistObj = privateRules.blackwhitelist;
-		}
-		// whitelist & blacklist, it's one single list, rule key defines it
-		var siteRules = saveLoadRule(blackwhitelistObj, scriptsiteNames, 0, undefined);
-
-		if (siteRules !== false && siteRules.rule !== undefined) {
-			block = siteRules.rule;
-		}
-
-		// custom rules for the domain/site/page
-		if (tabsite.rules !== undefined) {
-			siteRules = saveLoadRule(tabsite.rules, scriptsiteNames, 0, undefined);
-			if (siteRules !== false && siteRules.rule !== undefined) {
-				block = siteRules.rule;
-			}
-		}
+		block = isScriptAllowed(block, tabsite, scriptsite, applyPolicy);
 	}
 
 	// set badge icon
@@ -961,5 +968,26 @@ chrome.runtime.onMessage.addListener(function (msg, src, answer) {
 	else if (msg.type === 4) {
 		tabStorage[msg.tabId].allowonce = msg.allow;
 		chrome.tabs.reload(msg.tabId, {bypassCache: !msg.allow});
+	}
+
+	// popup requests to check which scripts are blocked when on filtered or relaxed
+	else if (msg.type === 5) {
+		var scriptslist = [];
+		var frame = tabStorage[msg.tabid];
+
+		if (msg.frameid > 0) {
+			frame = frame.frames[msg.frameid];
+		}
+
+		Object.entries(frame.scripts).forEach(function (domain) {
+			Object.keys(domain[1]).forEach(function (subdomain) {
+				scriptslist.push({
+					name: subdomain + domain[0] + msg.frameid,
+					blocked: isScriptAllowed(true, frame, {domain: domain[0], subdomain: subdomain}, msg.policy)
+				});
+			});
+		});
+
+		answer({scripts: scriptslist});
 	}
 });
