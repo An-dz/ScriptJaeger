@@ -88,11 +88,11 @@
 		"description": "When a rule has no rule, rule is under a lower level."
 	},
 	"settingsRulesWhite": {
-		"message": "Erlaubt", /* erlauben */
+		"message": "Erlaubt",
 		"description": "When a rule is to whitelist."
 	},
 	"settingsRulesBlack": {
-		"message": "Verboten", /* verbieten */
+		"message": "Verboten",
 		"description": "When a rule is blacklist."
 	},
 	"settingsManage": {
