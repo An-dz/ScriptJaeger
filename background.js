@@ -242,10 +242,14 @@ const otherSecondLevelDomains = {
  * Check if we can allow from some common patterns in the url
  */
 function isCommonHelpers(site) {
-	if (site.domain.search(/apis|cdn|img/) > -1       ||
-		site.subdomain.search(/(apis?|code)\./) === 0 ||
-		site.domain === "google.com"     ||
-		site.domain === "googlecode.com" ||
+	if (site.domain.indexOf("apis") > -1      ||
+		site.domain.indexOf("cdn")  > -1      ||
+		site.domain.indexOf("img")  > -1      ||
+		site.subdomain.indexOf("api.")  === 0 ||
+		site.subdomain.indexOf("apis.") === 0 ||
+		site.subdomain.indexOf("code.") === 0 ||
+		site.domain === "google.com"          ||
+		site.domain === "googlecode.com"      ||
 		site.domain === "gstatic.com")
 	{
 		return true;
@@ -265,7 +269,7 @@ function isRelated(js, tab) {
 
 	const domain = tab.substring(0, tab.indexOf("."));
 
-	if (js.includes(domain) || (domain.length > 2 && js.slice(0, 3) === domain.slice(0, 3))) {
+	if (js.indexOf(domain) > -1 || (domain.length > 2 && js.slice(0, 3) === domain.slice(0, 3))) {
 		return true;
 	}
 
