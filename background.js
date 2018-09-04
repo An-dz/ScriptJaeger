@@ -41,9 +41,27 @@ var privateRules = {
 /*
  * Badge icons, one for each policy
  */
-const jaegerhut = ["allowall", "relaxed", "filtered", "blockall", "blockall", "blockall"];
-let colours = ["#D84A4A", "#559FE6", "#73AB55", "#26272A", "#26272A", "#26272A"];
-colours[undefined] = "#6F7072";
+const jaegerhut = {
+	0: {
+		name: "allowall",
+		colour: "#D84A4A"
+	},
+	1: {
+		name: "relaxed",
+		colour: "#559FE6"
+	},
+	2: {
+		name: "filtered",
+		colour: "#73AB55"
+	},
+	3: {
+		name: "blockall",
+		colour: "#26272A"
+	},
+	undefined: {
+		colour: "#6F7072"
+	}
+};
 
 /* ====================================================================== */
 
@@ -487,7 +505,7 @@ function addTab(tab) {
 				tabId: tab.id
 			});
 			chrome.browserAction.setBadgeBackgroundColor({
-				color: colours[0],
+				color: jaegerhut[0].colour,
 				tabId: tab.id
 			});
 		}
@@ -659,14 +677,14 @@ chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
 
 		chrome.browserAction.setIcon({
 			path: {
-				"19": "images/" + jaegerhut[applyPolicy] + "19.png",
-				"38": "images/" + jaegerhut[applyPolicy] + "38.png"
+				"19": "images/" + jaegerhut[applyPolicy].name + "19.png",
+				"38": "images/" + jaegerhut[applyPolicy].name + "38.png"
 			},
 			tabId: tabId
 		});
 
 		chrome.browserAction.setBadgeBackgroundColor({
-			color: colours[applyPolicy],
+			color: jaegerhut[applyPolicy].colour,
 			tabId: tab.id
 		});
 	}
