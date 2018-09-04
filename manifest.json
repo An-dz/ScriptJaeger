@@ -1,10 +1,7 @@
 {
 	"name": "ScriptJäger",
 	"version": "0.4.1",
-	"author": {
-		"name": "André Zanghelini (An_dz)",
-		"url": "https://github.com/An-dz"
-	},
+	"author": "André Zanghelini (An_dz)",
 	"description": "Die Erweiterung für den Jägermeister! __MSG_sjDescription__",
 	"homepage_url": "https://github.com/An-dz/ScriptJaeger",
 
@@ -13,7 +10,12 @@
 		"48": "images/jaegerhut48.png",
 		"16": "images/jaegerhut16.png"
 	},
-	"options_page": "prefs.html",
+	"options_ui": {
+		"page": "prefs.html",
+		"open_in_tab": true,
+		"browser_style": false,
+		"chrome_style": false
+	},
 
 	"background": {
 		"scripts": [
