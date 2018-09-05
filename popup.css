@@ -198,6 +198,7 @@ input:checked + .jslist {
 	position: absolute;
 	width: 270px;
 	left: 40px;
+	top: -50px;
 	box-shadow: 0 0 25px #444;
 	transition: all 500ms ease-out;
 	visibility: visible;
