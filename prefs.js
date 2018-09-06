@@ -147,7 +147,7 @@ function changePolicy(e) {
 	dropdown.querySelectorAll("input").forEach(function (n) {
 		n.removeAttribute("checked");
 	});
-	dropdown.getElementById(rule.name).setAttribute("checked", true);
+	document.getElementById(rule.name).setAttribute("checked", true);
 
 	// hide options that are not possible
 	if (levels[0] === "b" || levels.match(/r/)) {
