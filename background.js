@@ -242,16 +242,16 @@ const otherSecondLevelDomains = {
  * Check if we can allow from some common patterns in the url
  */
 function isCommonHelpers(site) {
-	if (site.domain.indexOf("apis") > -1     ||
-		site.domain.indexOf("cdn")  > -1     ||
-		site.domain.indexOf("img")  > -1     ||
-		site.subdomain.indexOf("api")  === 0 ||
-		site.subdomain.indexOf("apis") === 0 ||
-		site.subdomain.indexOf("code") === 0 ||
-		site.domain === "google.com"         ||
-		site.domain === "googlecode.com"     ||
-		site.domain === "gstatic.com")
-	{
+	if (site.subdomain !== "s"               &&
+	    site.subdomain.indexOf("tag") === -1 && (
+	    site.domain.indexOf("apis")     > -1 ||
+	    site.domain.indexOf("cdn")      > -1 ||
+	    site.domain.indexOf("img")      > -1 ||
+	    site.domain.indexOf("static")   > -1 ||
+	    site.subdomain.indexOf("login") > -1 ||
+	    site.subdomain.indexOf("code") === 0 ||
+	    site.domain === "google.com"            )
+	) {
 		return true;
 	}
 	return false;
