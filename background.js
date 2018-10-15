@@ -107,13 +107,13 @@ chrome.alarms.onAlarm.addListener(function checkUpdates() {
 			type: "basic",
 			title: chrome.i18n.getMessage("updateTitle"),
 			iconUrl: "images/jaegerhut128.png",
-			message: chrome.i18n.getMessage("updateMessage", version, currentVersion),
+			message: chrome.i18n.getMessage("updateMessage", [version, currentVersion]),
 			contextMessage: chrome.i18n.getMessage("updateContext"),
 			isClickable: true,
 			requireInteraction: true
 		});
 	};
-	xhr.open("GET", "https://raw.githubusercontent.com/An-dz/ScriptJaeger/master/manifest.json");
+	xhr.open("GET", "https://raw.githubusercontent.com/An-dz/ScriptJaeger/master/manifest.json?time=" + Date.now());
 	xhr.send();
 });
 

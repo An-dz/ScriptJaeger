@@ -186,7 +186,7 @@
 				"description": "Don't change. Replaced by version available to download."
 			},
 			"oldVersion": {
-				"content": "$1",
+				"content": "$2",
 				"description": "Don't change. Replaced by currently installed version."
 			}
 		}
