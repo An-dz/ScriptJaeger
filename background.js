@@ -292,9 +292,8 @@ function extractUrl(url) {
 	 * 0 contains the full url (because it's the match of the full regexp)
 	 * 1 contains the protocol
 	 * 2 contains the hostname (subdomain + domain)
-	 * 3 contains the directory
-	 * 4 contains the filename
-	 * 5 contains the query
+	 * 3 contains the directory + filename
+	 * 4 contains the query
 	 */
 	url = url.match(/^([^:]+:\/\/)([^/]+)([^?]+)(.*)$/);
 	const domains = url[2].split(".");
