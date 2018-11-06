@@ -55,7 +55,7 @@ input[type=radio]:focus {
 	border-color: var(--colorBorderHighlight);
 	box-shadow: 0 0 0 1px var(--colorBorderHighlight);
 }
-input[type=radio]:checked:before {
+input[type=radio]:checked::before {
 	content: "";
 	position: absolute;
 	background-color: var(--colorHighlightBg);
