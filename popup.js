@@ -1,9 +1,13 @@
 "use strict";
 
-/*
- * To translate the policy number to text
+/**
+ * @var scopeList [Array] To translate the policy number to text
  */
 const scopeList = ["global", "domain", "site", "page"];
+
+/**
+ * @var jaegerhut [Object] Badge icons, one for each policy
+ */
 const jaegerhut = {
 	0: {
 		name: "allowall",
@@ -23,13 +27,14 @@ const jaegerhut = {
 	}
 };
 
-/*
- * Holds data obtained from the background process
+/**
+ * @var tabInfo [Object] Holds data about the tab
+ * obtained from the background process
  */
-var tabInfo = {};
+let tabInfo = {};
 
 /*
- * Basic nodes
+ * Basic nodes for building the interface
  */
 const nodeHost      = document.createElement("div");
 const nodeCheckbox  = document.createElement("input");
@@ -54,12 +59,17 @@ nodeNumber.title = chrome.i18n.getMessage("seeResources");
 
 nodeJS.target = "_blank";
 
-/*
- * Set and save the exception rule for that script
+/**
+ * @brief Set and save an exception rule for that script
+ *
+ * Fired whenever the user changes the checkbox of a rule.
+ * This will set and save the rule according to what the
+ * user has chosen.
+ *
+ * @param e [Event] Event interface on the clicked script
  */
 function setScriptRule(e) {
 	const node = e.target.tagName;
-	// console.log("Node:", node);
 
 	// clicking the label for checking individual scripts should not trigger
 	if (node === "LABEL") {
@@ -78,7 +88,6 @@ function setScriptRule(e) {
 		input.checked = !input.checked;
 	}
 
-	const site = [];
 	let info = tabInfo;
 	const frameid = Number(div.parentNode.id.substring(1));
 
@@ -86,34 +95,50 @@ function setScriptRule(e) {
 		info = tabInfo.frames[frameid];
 	}
 
+	const msg = {
+		type: 1,
+		private: tabInfo.private,
+		site: [],
+		rule: {}
+	};
+
 	switch (input.form.className.charCodeAt(0)) {
 		// page
-		case 112: site[2] = info.page;
+		case 112: msg.site[2] = info.page;
 		// site - fallthrough
-		case 115: site[1] = info.subdomain;
+		case 115: msg.site[1] = info.subdomain;
 		// domain - fallthrough
-		case 100: site[0] = info.domain;
+		case 100: msg.site[0] = info.domain;
 		// global - fallthrough
 		default: break;
 	}
 
+	const domain = div.querySelector(".domain").textContent;
+	const subdomain = div.querySelector(".subdomain").textContent.slice(0, -1);
+
+	msg.rule[domain] = {
+		rule: null,
+		urls: {}
+	};
+
+	msg.rule[domain].urls[subdomain] = {
+		// in the DOM true means checked which means allow
+		// in the settings true means block
+		rule: !input.checked,
+		urls: {}
+	};
+
 	// The background script deals with it because the popup process will die on close
-	chrome.runtime.sendMessage({
-		type: 1, // save script exception
-		private: tabInfo.private,
-		site: site, // site where the script is being loaded
-		script: [ // script information
-			div.querySelector(".domain").textContent,
-			div.querySelector(".subdomain").textContent.slice(0, -1)
-		],
-		// @here: true means checked which means allow
-		// @blackwhitelist: true means block
-		rule: !input.checked
-	});
+	chrome.runtime.sendMessage(msg);
 }
 
-/*
- * Opens an overlay div to choose a new policy for the frame
+/**
+ * @brief Open dropdown to choose frame policy
+ *
+ * Opens an overlay div to choose a new policy for a frame.
+ * This is fired when clicking on a hat (Jaegerhut)
+ *
+ * @param e [Event] Event interface on the clicked Jaegerhut
  */
 function openFramePolicy(e) {
 	const frameid = e.target.parentNode.dataset.frameid;
@@ -130,12 +155,23 @@ function openFramePolicy(e) {
 	dropdown.elements.policy[-(policy - 3)].checked = true;
 }
 
+/**
+ * @brief Close frame policy dropdown
+ *
+ * Closes the overlay div where you choose a new policy for a frame.
+ */
 function closeFramePolicy() {
 	document.getElementById("frame-edit").dataset.hidden = true;
 }
 
-/*
- * Build script list
+/**
+ * @brief Build resource list in the DOM
+ *
+ * Injects nodes to display the list of resources that the page
+ * contains. Also attaches events to the elements to allow
+ * manipulation of the settings.
+ *
+ * @param frameid [Number] id of the frame being built
  */
 function buildList(frameid) {
 	const elemMainNode = document.getElementById("f" + frameid);
@@ -146,9 +182,7 @@ function buildList(frameid) {
 	}
 
 	Object.entries(frame.scripts).forEach(function (domain) {
-		// console.log("Domain:", domain);
 		Object.entries(domain[1]).forEach(function (subdomain) {
-			// console.log("Sub-domain:", subdomain);
 			const elemHost      = nodeHost.cloneNode(false);
 			const elemCheckbox  = nodeCheckbox.cloneNode(false);
 			const elemWebsocket = nodeWebsocket.cloneNode(false);
@@ -171,11 +205,6 @@ function buildList(frameid) {
 			elemSubdomain.innerHTML = "<span>" + subdomain[0] + ((subdomain[0].length > 0) ? "." : "") + "</span>";
 			elemDomain.innerHTML = "<span>" + domain[0] + "</span>";
 			elemNumber.innerText = subdomain[1].length;
-
-			/*console.log("Domain:\n\tclientWidth", elemDomain.clientWidth,
-			                   "\n\tscrollWidth", elemDomain.scrollWidth,
-			          "\nSubDomain:\n\tclientWidth", elemSubdomain.clientWidth,
-			                      "\n\tscrollWidth", elemSubdomain.scrollWidth);*/
 
 			// if the text is larger than the area, we display a tooltip
 			if (elemSubdomain.scrollWidth > elemSubdomain.clientWidth || elemDomain.scrollWidth > elemDomain.clientWidth) {
@@ -201,8 +230,6 @@ function buildList(frameid) {
 			// populate scripts list
 			// script can be a websocket or frame
 			subdomain[1].forEach(function (script) {
-				// console.log("Script:", script);
-
 				if (!script.blocked) {
 					elemCheckbox.checked = true;
 					// remove blocked class
@@ -270,20 +297,21 @@ function buildList(frameid) {
 	});
 }
 
-/*
+/**
+ * @brief Get info about tab
+ *
  * When opening the popup we request the info about the
  * page scripts and create the DOM nodes with this info
+ *
+ * @param tabs [Array] Contains info about the current tab
  */
 chrome.tabs.query({currentWindow: true, active: true}, function (tabs) {
 	chrome.runtime.sendMessage({
 		type: 0, // tab info request
 		tabid: tabs[0].id
 	}, function (tab) {
-		// console.log("Tab info", tab);
-
 		// not an http(s) page
 		if (typeof tab === "string") {
-			// console.log("Char codes:", tab.charCodeAt(0), tab.charCodeAt(1));
 			let msg;
 			switch (tab.charCodeAt(1)) {
 				case 116: // t from ftp
@@ -322,17 +350,25 @@ chrome.tabs.query({currentWindow: true, active: true}, function (tabs) {
 	});
 });
 
-/*
+/**
+ * @brief Save new policy
+ *
  * Send to background process to save new policy for the specific scope
+ *
+ * @param policy  [Number] Policy to save
+ * @param scope   [Number] Where to change rule, e.g. domain, global
+ * @param frameid [Number] Frame where the policy change is being done
  */
 function changePolicy(policy, scope, frameid) {
 	const msg = {
-		type: 2,
+		type: 1,
 		private: tabInfo.private,
-		site: []
+		site: [],
+		rule: policy
 	};
 
 	let frame = tabInfo;
+
 	if (frameid > 0) {
 		frame = tabInfo.frames[frameid];
 	}
@@ -345,14 +381,17 @@ function changePolicy(policy, scope, frameid) {
 		// domain - fallthrough
 		case 1: msg.site[0] = frame.domain;
 		// global - fallthrough
-		default: msg.policy = policy;
+		default: break;
 	}
 
 	chrome.runtime.sendMessage(msg);
 }
 
-/*
- * Enable listeners when the DOM has loaded
+/**
+ * @brief Enable listeners when the DOM has loaded
+ *
+ * When the DOM is loaded we can attach the events to manipulate
+ * the preferences.
  */
 function enableListeners() {
 	document.getElementById("settings").addEventListener("click", closeFramePolicy, true);
@@ -406,7 +445,6 @@ function enableListeners() {
 				policy: policy,
 				frameid: frameid
 			}, function (msg) {
-				// console.log(msg.scripts);
 				msg.scripts.forEach(function (domain) {
 					document.getElementById(domain.name).checked = !domain.blocked;
 				});
@@ -415,16 +453,20 @@ function enableListeners() {
 	});
 }
 
-/*
- * Build page
+/**
+ * @brief Translate and attach events
+ *
+ * This will translate the page and attach the events to the nodes.
  */
 document.addEventListener("DOMContentLoaded", function () {
 	const template = document.body.innerHTML;
 
+	// translate the page
 	document.body.innerHTML = template.replace(/__MSG_(\w+)__/g, function (a, b) {
 		return chrome.i18n.getMessage(b);
 	});
 
+	// allow resizable width on webpanel
 	if (document.location.search === "?webpanel") {
 		document.body.style = "width: 100%";
 	}

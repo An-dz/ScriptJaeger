@@ -1,45 +1,69 @@
 "use strict";
 
-/*
- * Object that holds preferences
+/**
+ * @var preferences [Object] JSON that holds preferences
  *
- * Block policy (rule key):
+ * @see default-prefs.js
+ * @see https://github.com/An-dz/ScriptJaeger/wiki/Dev:-Preferences
+ *
+ * ---
+ *
+ * Block policy (rule key)
  *
  * 0 Allowed - All scripts allowed, white(black)list doesn't run
- * 1 Relaxed - Scritps from same domain & helpers are allowed
- * 2 Filtered - Only from the same domain allowed
+ * 1 Filtered - Only from the same domain allowed
+ * 2 Relaxed - From same domain & helpers are allowed
  * 3 Blocked - All scripts blocked, white(black)list doesn't run
  * 4	Block injected - Inline script is blocked
  * 5	Pretend disabled - Pretend scripts are blocked (load noscript tags)
+ *
+ * ---
+ *
+ * Whitelist & Blacklist (rules key)
+ *
+ * true  blocked/blacklist
+ * false allowed/whitelist
  */
-var policy = {};
+let preferences = {};
 
-/*
- * Whitelist & Blacklist, rule key defines if it's white or black listed
- * false: allowed/whitelist | true: blocked/blacklist
+/**
+ * @var tabStorage [Object] Holds info about the open tabs
+ *
+ * Each tab is represented as a child object with key as tab ID
+ *
+ * Children:
+ * - protocol  [String]  Protocol part of the url
+ * - domain    [String]  Domain/Host part of the url
+ * - subdomain [String]  Subdomains part of the url
+ * - page      [String]  Page path part of the url
+ * - query     [String]  Query of the url
+ * - policy    [Number]  Policy to be applied
+ * - rules     [Object]  Blackwhitelist to be applied
+ * - private   [Boolean] If tab is in a private window
+ * - blocked   [Number]  Number of blocked scripts
+ * - scripts   [Object]  List of all scripts from the page
+ * - frames    [Object]  Info about sub-frames in the tab
  */
-var blackwhitelist = {};
+const tabStorage = {};
 
-/*
- * Objects that holds info about the open tabs
- */
-var tabStorage = {};
-
-/*
- * Holds all preferences on private browsing
+/**
+ * @var privatum [Object] Holds all preferences on private browsing
  *
  * It's only filled when required and is cleared when no longer
  *
- * windows key holds the number of open private windows and their ids
+ * - windows     [Object] Holds the number of open private windows
+ * in `length` and their ids as keys with `true` values
+ * - preferences [Object] copy of normal policy
+ *
+ * @see createPrivatePrefs()
  */
-var privateRules = {
+let privatum = {
 	windows: {length: 0},
-	policy: {},
-	blackwhitelist: {}
+	preferences: {}
 };
 
-/*
- * Badge icons, one for each policy
+/**
+ * @var jaegerhut [Object] Badge icons, one for each policy
  */
 const jaegerhut = {
 	0: {
@@ -65,18 +89,26 @@ const jaegerhut = {
 
 /* ====================================================================== */
 
-/*
- * Called when the default preferences file is loaded so they are saved
+/**
+ * @brief Called when default preferences are loaded
+ *
+ * Saves the default preferences in storage
+ *
+ * @see default-prefs.js
  */
 function defaultPreferencesLoaded() {
-	chrome.storage.local.set({policy: policy, blackwhitelist: blackwhitelist, firstRun: false});
+	chrome.storage.local.set({preferences: preferences});
 
 	// remove the injected script
 	document.head.removeChild(document.getElementById("default"));
 }
 
-/*
+/**
+ * @brief Open download page
+ *
  * Clicking on the update notification will open the GitHub releases
+ *
+ * @param notification [String] An ID of the clicked notification
  */
 chrome.notifications.onClicked.addListener(function (notification) {
 	chrome.tabs.create({
@@ -85,12 +117,15 @@ chrome.notifications.onClicked.addListener(function (notification) {
 	chrome.notifications.clear(notification);
 });
 
-/*
- * A created alarm will check for updates regularly
+/**
+ * @brief Check for updates
+ *
+ * A created alarm will check for updates regularly.
  * The manifest.json in the repository will contain the version number
  */
 chrome.alarms.onAlarm.addListener(function checkUpdates() {
 	const xhr = new XMLHttpRequest();
+
 	xhr.onreadystatechange = function processUpdate() {
 		if (xhr.readyState !== 4) {
 			return;
@@ -98,6 +133,7 @@ chrome.alarms.onAlarm.addListener(function checkUpdates() {
 
 		const currentVersion = chrome.runtime.getManifest().version;
 		const version = JSON.parse(xhr.responseText).version;
+
 		// if version is equal then we are up-to-date
 		if (version === currentVersion) {
 			return;
@@ -113,6 +149,7 @@ chrome.alarms.onAlarm.addListener(function checkUpdates() {
 			requireInteraction: true
 		});
 	};
+
 	xhr.open("GET", "https://raw.githubusercontent.com/An-dz/ScriptJaeger/master/manifest.json?time=" + Date.now());
 	xhr.send();
 });
@@ -122,14 +159,29 @@ chrome.alarms.onAlarm.addListener(function checkUpdates() {
  * ScriptWeeder https://github.com/lemonsqueeze/scriptweeder
  * ====================================================================== */
 
-/*
- * List of standard second level domains
+/**
+ * @var standardSecondLevelDomains [Object] List of common standard
+ * second level domains
+ *
+ * This is a list of top-level domains for identifying hosts and
+ * subdomains from URLs.
+ *
+ * @note This smaller list is for performance as most domains will
+ * fall under these rules.
  */
 const standardSecondLevelDomains = { "com": 1, "org": 1, "net": 1, "gov": 1, "co": 1, "info": 1, "ac": 1, "or": 1, "tm": 1, "edu": 1, "mil": 1, "sch": 1, "int": 1, "nom": 1, "biz": 1, "gob": 1, "asso": 1 };
 
-/*
- * From http://publicsuffix.org
- * The standard above and long constructions are omitted
+/**
+ * @var otherSecondLevelDomains [Object] List of top-level domains
+ *
+ * This is a list of top-level domains for identifying hosts and
+ * subdomains from URLs.
+ *
+ * @note From http://publicsuffix.org
+ *
+ * @note The standard above and long constructions are omitted
+ *
+ * @note Those are only tested if the above failed
  */
 const otherSecondLevelDomains = {
 	"aero": { "caa": 1, "club": 1, "crew": 1, "dgca": 1, "fuel": 1, "res": 1, "show": 1, "taxi": 1},
@@ -237,30 +289,43 @@ const otherSecondLevelDomains = {
 	"vn": { "name": 1, "pro": 1}
 };
 
-/*
- * Relaxed mode
- * Check if we can allow from some common patterns in the url
+/**
+ * @brief Check if URL looks 'useful'
+ *
+ * Checks if we can allow from some common patterns in the url
+ *
+ * @param site [Object] url object obtained from extractUrl()
+ *
+ * @return [Boolean] identifying if it must be allowed
+ *
+ * @note url object must contain `domain` and `subdomain` keys
  */
 function isCommonHelpers(site) {
-	if (site.subdomain !== "s"               &&
-	    site.subdomain.indexOf("tag") === -1 && (
-	    site.domain.indexOf("apis")     > -1 ||
-	    site.domain.indexOf("cdn")      > -1 ||
-	    site.domain.indexOf("img")      > -1 ||
-	    site.domain.indexOf("static")   > -1 ||
-	    site.subdomain.indexOf("login") > -1 ||
-	    site.subdomain.indexOf("code") === 0 ||
-	    site.domain === "google.com"            )
-	) {
-		return true;
-	}
-	return false;
+	return (
+		site.subdomain !== "s"               &&
+		site.subdomain.indexOf("tag") === -1 && (
+			site.domain.indexOf("cdn")      > -1 ||
+			site.domain.indexOf("img")      > -1 ||
+			site.domain.indexOf("static")   > -1 ||
+			site.subdomain.indexOf("login") > -1 ||
+			site.subdomain.indexOf("code") === 0 ||
+			site.domain === "google.com"
+		)
+	);
 }
 
-/*
- * Relaxed mode
- * Check if the domain name of the site is in the domain of the script
- * If tab domain is bigger, search for the inverse
+/**
+ * @brief Check if script url looks related to site url
+ *
+ * Checks if the domain name of the site is in the domain of the
+ * script. If tab domain is bigger, search for the inverse.
+ *
+ * @param js  [Object] url object obtained from extractUrl()
+ * @param tab [Object] url object obtained from extractUrl()
+ *
+ * @return [Boolean] identifying if it must be allowed
+ *
+ * @note url object must contain `domain` key
  */
 function isRelated(js, tab) {
 	if (tab.length > js.length) {
@@ -276,22 +341,29 @@ function isRelated(js, tab) {
 	return false;
 }
 
-/*
- * Extract the important parts of the url and returns an object with them
+/**
+ * @brief Get object with url parts
  *
- * Object children:
- * protocol = contains the protocol http or https
- * subdomain = contains the subdomain name
- * domain = contains the domain name
- * page = contains the directory & file name
- * query = contains query information
+ * Extracts the important parts of the url and returns an object with
+ * each of them in a key.
+ *
+ * @param url [String] Full url
+ *
+ * @return [Object] containing the parts of the url
+ *
+ * @note Return object children:
+ * - protocol  [String] contains the protocol (e.g. http://)
+ * - subdomain [String] contains the subdomain name (e.g. www)
+ * - domain    [String] contains the host name (e.g. github.com)
+ * - page      [String] contains the dir & file name (e.g. /index.htm)
+ * - query     [String] contains query information (e.g. ?p=a)
  */
 function extractUrl(url) {
 	/*
 	 * Obtain the important parts of the url to load settings
 	 * 0 contains the full url (because it's the match of the full regexp)
 	 * 1 contains the protocol
-	 * 2 contains the hostname (subdomain + domain)
+	 * 2 contains the full domain (subdomain + domain/host)
 	 * 3 contains the directory + filename
 	 * 4 contains the query
 	 */
@@ -327,153 +399,206 @@ function extractUrl(url) {
 
 /* ====================================================================== */
 
-/*
- * Function that *saves* or *loads* a rule in the correct place
- * 
- * subject, array to search in
- * names, array of strings to find; order like prefs (domain, site, page)
- * lvl, level of the search; the function itself may call the next levels
- * rule, the rule to save; `undefined` for loading
+/**
+ * @brief Merge `rules` keys
+ *
+ * Merges blackwhitelist rules to get correct inherit behaviour
+ *
+ * @param[in]  from [Object] To copy rules from
+ *
+ * @param[out] to   [Object] To copy rules into
  */
-const lvlName = ["domains", "sites", "pages"];
-function saveLoadRule(subject, names, lvl, rule) {
-	let level;
+function mergeRules(from, to) {
+	for (const key in from) {
+		to[key] = {
+			rule: (from[key].rule !== null ? from[key].rule : (to[key] ? to[key].rule : null)),
+			urls: (to[key] ? to[key].urls : {})
+		};
 
-	if (subject[lvlName[lvl]] !== undefined) {
-		level = subject[lvlName[lvl]].find(function (level) {
-			if (level.name === names[lvl]) {
-				return level;
-			}
-		});
+		mergeRules(from[key].urls, to[key].urls);
 	}
-
-	// only if saving
-	if (rule !== undefined) {
-		// if not in the `subject` we add it
-		if (level === undefined) {
-			level = {name: names[lvl]};
-			subject[lvlName[lvl]].push(level);
-		}
-
-		// if next name does not exist we save here
-		if (names[++lvl] === undefined) {
-			if (typeof(rule) === "object") {
-				if (level.rules === undefined) {
-					level.rules = {domains: []};
-				}
-
-				return saveLoadRule(level.rules, rule.names, 0, rule.rule);
-			}
-
-			level.rule = rule;
-			return true; // saved
-		}
-
-		// if next level does not exist we create it
-		if (level[lvlName[lvl]] === undefined) {
-			level[lvlName[lvl]] = [];
-		}
-
-		return saveLoadRule(level, names, lvl, rule);
-	}
-
-	// level does not exist
-	if (level === undefined) {
-		if (lvl === 0) {
-			return false;
-		}
-		// return previous level if not first
-		return subject;
-	}
-
-	let mergedLevel = level;
-	if (lvl > 0) {
-		mergedLevel = Object.assign({rule: subject.rule, rules: subject.rules}, level);
-	}
-
-	if (names[++lvl] !== undefined) {
-		return saveLoadRule(mergedLevel, names, lvl, rule);
-	}
-	return mergedLevel;
 }
 
-/*
- * Returns the blocking policy to be used
+/**
+ * @brief Saves the rule in the passed location
+ *
+ * Saves the rule in `tosave` at the specified site
+ *
+ * @param level  [Object] Current level in the preferences object
+ * @param sites  [Array]  Url parts, order is the order it's
+ * saved in preferences (domain, subdomain, page)
+ * @param tosave [any]    Rule to save
+ *
+ * @note It replaces whatever is passed in `tosave`
  */
-function getBlockPolicy(site) {
-	// console.log("@getBlockPolicy, site", site);
-	// begin with default policy
-	let applyPolicy = policy.rule;
+function saveRule(level, sites, tosave) {
+	const address = sites.shift();
 
-	let siteRules;
-	let applyRules;
-	const sites = [
-		site.domain,
+	// while there's an address we go on opening it
+	if (address) {
+		// create level if it does not exist
+		if (!level.urls[address]) {
+			level.urls[address] = {
+				rule: null,
+				rules: {urls: {}},
+				urls: {}
+			};
+		}
+
+		// move inside level
+		saveRule(level.urls[address], sites, tosave);
+		return;
+	}
+
+	// object is `rules` key, others (boolean/number) is `rule`
+	if (typeof tosave !== "object") {
+		level.rule = tosave;
+	}
+	else {
+		mergeRules(tosave, level.rules.urls);
+	}
+}
+
+/**
+ * @brief Load settings in the passed location
+ *
+ * Loads the policy and script rules to apply into `applyRules`
+ *
+ * @param[in] level  [Object] Current level in the preferences object
+ * @param[in] sites  [Array]  Url parts, order is the order it's
+ * saved in preferences (domain, subdomain, page)
+ *
+ * @param[out] applyRules [Object] Contains rules to apply,
+ * childs include `policy` containing policy rule and
+ * `rules` containing blackwhitelist object.
+ */
+function loadRule(level, sites, applyRules) {
+	if (level.rule !== null) {
+		applyRules.policy = level.rule;
+	}
+
+	mergeRules(level.rules.urls, applyRules.rules);
+
+	const address = sites.shift();
+
+	if (address && level.urls[address]) {
+		loadRule(level.urls[address], sites, applyRules);
+	}
+}
+
+/**
+ * @brief Get rules to apply
+ *
+ * Returns the blocking policy and blackwhitelist rules to be used
+ *
+ * @param site [Object] url object obtained from extractUrl()
+ *
+ * @return [Object] Contains rules to apply, child keys include
+ * `policy` containing policy rule and `rules` containing
+ * blackwhitelist
+ *
+ * @note url object must contain `domain`, `subdomain` and `page` keys
+ */
+function getRules(site) {
+	const urls = [
 		site.subdomain,
 		site.page
 	];
 
-	// search if setting for this site exists
-	if (site.private === true) {
-		// private windows can have a different default
-		applyPolicy = privateRules.policy.private;
-		siteRules = saveLoadRule(privateRules.policy, sites, 0, undefined);
-	}
-	else {
-		siteRules = saveLoadRule(policy, sites, 0, undefined);
+	// private windows must read from other object
+	const rulesList = (site.private ? privatum.preferences : preferences);
+
+	const applyRules = {
+		policy: rulesList.rule,
+		rules: {}
+	};
+
+	if (rulesList.urls[site.domain]) {
+		loadRule(rulesList.urls[site.domain], urls, applyRules);
 	}
 
-	if (siteRules !== false) {
-		if (siteRules.rule !== undefined) {
-			applyPolicy = siteRules.rule;
-		}
-		applyRules = siteRules.rules;
-	}
-
-	// return the policy that has to be applied & any custom rules
-	return {policy: applyPolicy, rules: applyRules};
+	return applyRules;
 }
 
 /* ====================================================================== */
 
-/*
- * When a windows is created we check if it's a private one
- * If it is and there is no other private window we create a
- * private preferences object apart from the main preferences
+/**
+ * @brief Deep clone JSON
+ *
+ * Deep clones JSON for preferences in private windows
+ *
+ * @param object [Object] JSON object to deep clone
+ *
+ * @return [Object] Cloned object
+ *
+ * @warning This does not deep clone any JS Object or JSON.
+ * This function is optimised for the specifics of the
+ * `preferences` JSON used in this project.
+ */
+function deepClone(object) {
+	// if not an object then it's a value
+	// just return it for the `for` below
+	if (object === null || typeof (object) !== "object") {
+		return object;
+	}
+
+	// if it's an object we need to initialise and copy keys
+	const temp = object.constructor();
+
+	for (const key in object) {
+		temp[key] = deepClone(object[key]);
+	}
+
+	// returns cloned object
+	return temp;
+}
+
+/**
+ * @brief Create preferences for private browsing
+ *
+ * When a windows is created we check if it's a private one.
+ * If it is and there is no other private windows we create a
+ * private preferences object separated from the main preferences.
+ *
+ * @param details, [Object] Details about the new window
  */
 function createPrivatePrefs(details) {
 	if (details.incognito === true) {
-		privateRules.windows[details.id] = true;
-		privateRules.windows.length++;
+		privatum.windows[details.id] = true;
+		privatum.windows.length++;
 
-		if (privateRules.windows.length === 1) {
-			// console.log("@createPrivatePrefs, First private window created");
-			privateRules.policy = JSON.parse(JSON.stringify(policy));
-			privateRules.blackwhitelist = JSON.parse(JSON.stringify(blackwhitelist));
+		if (privatum.windows.length === 1) {
+			privatum.preferences = deepClone(preferences);
+			// put private rule into effective rule
+			privatum.preferences.rule = privatum.preferences.private;
 		}
 	}
 }
 
-/*
- * Listener for window creation event
+/**
+ * @brief Listener for window creation event
+ *
+ * Fired whenever a new window opens
  */
 chrome.windows.onCreated.addListener(createPrivatePrefs);
 
-/*
- * When a windows is closed we check if it's the last private
+/**
+ * @brief Check if private rules should be deleted
+ *
+ * When a window is closed we check if it's the last private
  * window, if it is we delete the private preferences object
+ *
+ * @param windowid [Number] ID of the closed window
  */
 chrome.windows.onRemoved.addListener(function (windowid) {
-	if (privateRules.windows[windowid] === true) {
-		delete privateRules.windows[windowid];
-		privateRules.windows.length--;
+	if (privatum.windows[windowid] === true) {
+		delete privatum.windows[windowid];
+		privatum.windows.length--;
 
-		if (privateRules.windows.length === 0) {
-			// console.log("@windows.onRemoved, Last private window closed");
-			privateRules = {
+		if (privatum.windows.length === 0) {
+			privatum = {
 				windows: {length: 0},
-				policy: {},
-				blackwhitelist: {}
+				preferences: {}
 			};
 		}
 	}
@@ -481,13 +606,19 @@ chrome.windows.onRemoved.addListener(function (windowid) {
 
 /* ====================================================================== */
 
-/*
- * Function to save info about tab
+/**
+ * @brief Add info about tab
+ *
+ * Adds info about the tab into `tabStorage`. Can also be used to
+ * update information for pages loaded dynamically.
+ *
+ * @param tab [Object] Holds information about the tab
  */
 function addTab(tab) {
 	// console.log("@addTab, Tab info", tab);
+
 	if (tab.id === -1) {
-		// console.info("@addTab, Abort! tabid is -1");
+		// console.warn("@addTab, Abort! tabid is -1");
 		return;
 	}
 
@@ -500,34 +631,37 @@ function addTab(tab) {
 		const site = extractUrl(tab.url);
 		site.private = tab.incognito;
 
+		// allow all once
 		if (tabStore !== undefined && tabStore.allowonce === true && tabStore.subdomain === site.subdomain && tabStore.domain === site.domain) {
 			site.policy = 0;
 			site.allowonce = true;
+
 			chrome.browserAction.setBadgeText({
 				text: "T",
 				tabId: tab.id
 			});
+
 			chrome.browserAction.setBadgeBackgroundColor({
 				color: jaegerhut[0].colour,
 				tabId: tab.id
 			});
 		}
 		else {
-			const block = getBlockPolicy(site);
+			const block = getRules(site);
 			site.policy = block.policy;
 			site.rules = block.rules;
 		}
 
 		if (tabStore === undefined || tabStore.page === undefined) {
-			site.numScripts = 0;
+			site.blocked = 0;
 			site.scripts = {};
-			site.frames = {};
+			site.frames  = {};
 		}
 		// if page uses history.pushState the old scripts are still loaded
 		else {
-			site.numScripts = tabStore.numScripts;
+			site.blocked = tabStore.blocked;
 			site.scripts = tabStore.scripts;
-			site.frames = tabStore.frames;
+			site.frames  = tabStore.frames;
 		}
 
 		tabStorage[tab.id] = site;
@@ -536,10 +670,15 @@ function addTab(tab) {
 	// console.log("@addTab, Monitoring tab", tab.id, "with", tabStorage[tab.id]);
 }
 
-/*
- * Function to remove saved info about tab
+/**
+ * @brief Remove info about tab
+ *
+ * Removes all information about the tab from `tabStorage`
+ *
+ * @param tabid     [Number]  id of the removed tab
+ * @param allowonce [Boolean] if Allow Once policy is set
  */
-function removeTab(tabid, allowonce = false) {
+function removeTab(tabid, allowonce) {
 	// console.log("@removeTab, Stopped monitoring tab", tabid, "with", tabStorage[tabid]);
 	if (allowonce === true) {
 		tabStorage[tabid] = {
@@ -553,61 +692,157 @@ function removeTab(tabid, allowonce = false) {
 	delete tabStorage[tabid];
 }
 
-/*
- * When a tab is closed, stop monitoring
- */
-chrome.tabs.onRemoved.addListener(removeTab);
-
-/*
- * Obtain preferences & monitor current tabs
+/**
+ * @brief Remove tab info on close
  *
- * Fired on load
+ * When a tab is closed stop monitoring it.
+ *
+ * @param tabid [Number] ID of the tab being closed
  */
-chrome.storage.local.get(function (pref) {
-	// on first run the key does not exist
-	if (pref.firstRun === undefined) {
-		// console.log("@storage.get, First Run! Loading defaults!");
+chrome.tabs.onRemoved.addListener(function (tabid) {
+	removeTab(tabid, false);
+});
 
-		// the default preferences are in an external file for reducing the size of this background page
-		const script = document.createElement("script");
-		script.src = "default-prefs.js";
-		script.type = "text/javascript";
-		script.id = "default";
-		document.head.appendChild(script);
-
-		// alarm creates a permanent check across restarts
-		chrome.alarms.create("updateCheck", {
-			delayInMinutes: 1, // first check after 1 minute
-			periodInMinutes: 1440 // check for updates every 24 hours
-		});
-	}
-	else {
-		// not first run just load prefs
-		policy = pref.policy;
-		blackwhitelist = pref.blackwhitelist;
-		// console.log("@storage.get, Loaded preferences", {policy: policy, blackwhitelist: blackwhitelist});
-	}
-
-	// console.log("@storage.get, Initialising...");
-	chrome.tabs.query({}, function (tabs) {
-		tabs.forEach(function (tab) {
-			addTab(tab);
-		});
-	});
-
+/**
+ * @brief Obtain info about tabs and windows
+ *
+ * Goes through all windows and tabs to create the appropriate
+ * data for the extension.
+ */
+function getTabsAndWindows() {
+	// check if private preferences must be created
 	chrome.windows.getAll({populate: false}, function (windows) {
 		windows.forEach(function (details) {
 			createPrivatePrefs(details);
 		});
 	});
+
+	// get info and rules about open tabs
+	chrome.tabs.query({}, function (tabs) {
+		tabs.forEach(function (tab) {
+			addTab(tab);
+		});
+	});
+}
+
+/**
+ * @brief Converts a single level to the new format
+ *
+ * Recursively calls itself if necessary until the whole tree
+ * is converted. Data is not deleted, just created.
+ *
+ * @param[in]  domain [Object] The current level to convert
+ *
+ * @param[out] this   [Array]  Array containing two children:
+ * - [Object]  Level to write the converted object
+ * - [Boolean] If `rules` key must be included
+ */
+function convertLevel(domain) {
+	const level = domain.sites || domain.pages;
+
+	this[0].urls[domain.name] = {
+		rule: (domain.rule !== undefined ? domain.rule : null),
+		urls: {}
+	};
+
+	if (level) {
+		level.forEach(convertLevel, [this[0].urls[domain.name], this[1]]);
+	}
+
+	if (this[1]) {
+		this[0].urls[domain.name].rules = {urls: {}};
+
+		if (domain.rules) {
+			domain.rules.domains.forEach(convertLevel, [this[0].urls[domain.name].rules, false]);
+		}
+	}
+}
+
+/**
+ * @brief Convert old preferences to new format
+ *
+ * Converts the old preferences format to the new unified format.
+ * The Blackwhitelist object has already been moved inside the
+ * `rules` key of the top level `preferences` object.
+ */
+function convertPreferences() {
+	preferences.urls = {};
+	preferences.domains.forEach(convertLevel, [preferences, true]);
+	delete preferences.domains;
+
+	preferences.rules.urls = {};
+	preferences.rules.domains.forEach(convertLevel, [preferences.rules, false]);
+	delete preferences.rules.domains;
+
+	chrome.storage.local.clear();
+	chrome.storage.local.set({preferences: preferences});
+}
+
+/**
+ * @brief Load default preferences
+ *
+ * Loads the default preferences and sets an update check.
+ * Settings 
+ */
+function loadDefaultPreferences() {
+	// the default preferences are in an external file for reducing the size and overhead of this background page
+	const script = document.createElement("script");
+	script.src = "default-prefs.js";
+	script.type = "text/javascript";
+	script.id = "default";
+	document.head.appendChild(script);
+
+	// alarm creates a permanent update check across restarts
+	chrome.alarms.create("updateCheck", {
+		delayInMinutes: 1, // first check after 1 minute
+		periodInMinutes: 1440 // check for updates every 24 hours
+	});
+}
+
+/**
+ * @brief Load preferences
+ *
+ * Loads the preferences and convert them if necessary.
+ * If no preferences exist it loads defaults.
+ *
+ * @param pref [Object] Loaded preferences
+ *
+ * @note This is fired on load
+ */
+chrome.storage.local.get(function (pref) {
+	// not first run and already converted, just load prefs
+	if (pref.preferences) {
+		preferences = pref.preferences;
+	}
+
+	// key does not exist on first run
+	else if (pref.firstRun === undefined) {
+		loadDefaultPreferences();
+	}
+
+	else {
+		preferences = pref.preferences;
+		preferences.rules = pref.blackwhitelist;
+		convertPreferences();
+	}
+
+	getTabsAndWindows();
 });
 
-/*
- * Monitoring the tabs to get their urls
+/**
+ * @brief Rename tabid on replacement
+ *
+ * Under Chromium tab processes can be replaced,
+ * this moves the tab info to another id
+ *
+ * @param newId [Number] id of the new process
+ * @param oldId [Number] id of the old process
+ *
  * Based on https://github.com/Christoph142/Pin-Sites/
  */
 chrome.tabs.onReplaced.addListener(function (newId, oldId) {
 	// console.log("@tabs.onReplaced,", oldId, "replaced by", newId);
+
 	if (newId === oldId || tabStorage[oldId] === undefined) {
 		return;
 	}
@@ -616,12 +851,18 @@ chrome.tabs.onReplaced.addListener(function (newId, oldId) {
 	removeTab(oldId, false);
 });
 
-/*
- * This is only run when the content is not loaded using history.pushState
- * We reset the info when this occurs because the page was not dynamically
- * loaded and so the whole content was reloaded.
+/**
+ * @brief Update info on navigation
+ *
+ * This is only run when the content is not loaded using
+ * history.pushState
+ *
+ * We reset the info when this occurs because the page was not
+ * dynamically loaded and so the whole content was reloaded.
  *
  * This event is fired right before tabs.onUpdated
+ *
+ * @param details [Object] of the navigation
  */
 chrome.webNavigation.onBeforeNavigate.addListener(function (details) {
 	// console.log("############### onBeforeNavigate ###############\n", details);
@@ -662,11 +903,17 @@ chrome.webNavigation.onBeforeNavigate.addListener(function (details) {
 	}
 });
 
-/*
+/**
+ * @brief Update tab info and extension icon on tab loading
+ *
  * Pages that have content loaded dynamically like Facebook or YouTube
  * can't have the counter and script list reset
  *
  * onUpdated updates all info about the page
+ *
+ * @param tabId      [Number] id of the tab
+ * @param changeInfo [Object] changes to the state of the tab that was updated
+ * @param tab        [Object] details about the tab
  */
 chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
 	if (changeInfo.status === "loading") {
@@ -676,18 +923,18 @@ chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
 		addTab(tab);
 
 		// set icon according to policy
-		const applyPolicy = tabStorage[tabId].policy;
+		const policy = tabStorage[tabId].policy;
 
 		chrome.browserAction.setIcon({
 			path: {
-				"19": "images/" + jaegerhut[applyPolicy].name + "19.png",
-				"38": "images/" + jaegerhut[applyPolicy].name + "38.png"
+				"19": "images/" + jaegerhut[policy].name + "19.png",
+				"38": "images/" + jaegerhut[policy].name + "38.png"
 			},
 			tabId: tabId
 		});
 
 		chrome.browserAction.setBadgeBackgroundColor({
-			color: jaegerhut[applyPolicy].colour,
+			color: jaegerhut[policy].colour,
 			tabId: tab.id
 		});
 	}
@@ -695,11 +942,20 @@ chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
 
 // =========================================================================
 
-/*
- * Returns the frame that is loading the object
+/**
+ * @brief Returns the frame that is loading the object
  *
- * use key contains which frameid to use
- * if it does not exist then we already are in the correct place
+ * Frames don't follow the rules of the tab site, but the rules
+ * that match the frame site. This function will return that
+ * info so the resource can be analysed with the correct urls
+ *
+ * @note `use` key contains which frameid to use, if it does
+ * not exist then we already are in the correct place
+ *
+ * @param frameid [Number] id of the frame
+ * @param tabsite [Object] info about tab from `tabStorage`
+ *
+ * @return [Object] info about frame from `tabStorage`
  */
 function getLoadingFrame(frameid, tabsite) {
 	const framesite = tabsite.frames[frameid];
@@ -715,63 +971,111 @@ function getLoadingFrame(frameid, tabsite) {
 	return tabsite.frames[framesite.use];
 }
 
-/*
- * Check if script is allowed when on filtered or relaxed policies
+/**
+ * @brief Get if script is blocked
+ *
+ * Check if there's a blackwhitelist rule for that site and
+ * returns the rule.
+ *
+ * @param level [Object] where to check for the rule
+ * @param site  [Object] object containinig domain and subdomain keys
+ *
+ * @return [Null/Boolean] Rule under that level
  */
-function isScriptAllowed(block, tabsite, scriptsite, applyPolicy) {
-	// allow same domain
-	if (scriptsite.domain === tabsite.domain) {
-		block = false;
-	}
-	// relaxed policy - helper scripts also allowed
-	else if (applyPolicy === 1 && (isCommonHelpers(scriptsite) || isRelated(scriptsite.domain, tabsite.domain))) {
-		block = false;
-	}
+function getScriptRule(level, site) {
+	let block = null;
+	level = level[site.domain];
 
-	const scriptsiteUrl = [
-		scriptsite.domain,
-		scriptsite.subdomain
-	];
+	if (level) {
+		block = level.rule;
+		level = level.urls[site.subdomain];
 
-	let blackwhitelistObj = blackwhitelist;
-	if (tabsite.private === true) {
-		blackwhitelistObj = privateRules.blackwhitelist;
-	}
-	// whitelist & blacklist, it's one single list, rule key defines it
-	let siteRules = saveLoadRule(blackwhitelistObj, scriptsiteUrl, 0, undefined);
-
-	if (siteRules !== false && siteRules.rule !== undefined) {
-		block = siteRules.rule;
-	}
-
-	// custom rules for the domain/site/page
-	if (tabsite.rules !== undefined) {
-		siteRules = saveLoadRule(tabsite.rules, scriptsiteUrl, 0, undefined);
-		if (siteRules !== false && siteRules.rule !== undefined) {
-			block = siteRules.rule;
+		if (level && level.rule !== null) {
+			block = level.rule;
 		}
 	}
 
 	return block;
 }
 
-/*
- * The Script Weeder, will evaluate if the script can be downloaded
+/**
+ * @brief Check if resource is blocked
+ *
+ * Checks if script is blocked according to policy and rules
+ *
+ * @param tabsite    [Object] urls of the tab
+ * @param scriptsite [Object] urls of the loading resource
+ * @param policy     [Number] policy being applied
+ *
+ * @return [Boolean] If resource is blocked
+ */
+function isScriptAllowed(tabsite, scriptsite, policy) {
+	// allow all policy
+	if (policy === 0) {
+		return false;
+	}
+
+	// block all policy
+	if (policy === 3) {
+		return true;
+	}
+
+	// we start blocking to then check if we allow
+	let block = true;
+
+	// allow same domain
+	if (scriptsite.domain === tabsite.domain) {
+		block = false;
+	}
+	// relaxed policy - helper scripts also allowed
+	else if (policy === 1 && (isCommonHelpers(scriptsite) || isRelated(scriptsite.domain, tabsite.domain))) {
+		block = false;
+	}
+
+	// global blackwhitelist
+	const level = (tabsite.private ? privatum.preferences : preferences);
+	let blocked = getScriptRule(level.rules.urls, scriptsite);
+
+	if (blocked !== null) {
+		block = blocked;
+	}
+
+	// custom rules for the domain/site/page
+	blocked = getScriptRule(tabsite.rules, scriptsite);
+
+	if (blocked !== null) {
+		block = blocked;
+	}
+
+	return block;
+}
+
+/**
+ * @brief The Script Weeder - Evaluate if resource can be downloaded
+ *
+ * This is the main function that is run on every request made.
+ *
+ * @param details [Object] Info about the resource
+ *
+ * @return [Object] If resource must be blocked
  */
 function scriptweeder(details) {
 	// console.log("============== Script intercepted ==============");
 	// console.log(details);
 
 	const tabid = details.tabId;
+
 	if (tabStorage[tabid] === undefined) {
-		console.warn("@scriptweeder, tabStorage was not found!", tabid);
+		if (tabid !== -1) {
+			console.warn("@scriptweeder, tabStorage was not found!", tabid);
+		}
 		return {cancel: false};
 	}
 
 	const scriptsite = extractUrl(details.url);
-	let tabsite = tabStorage[tabid];
-	const frameid = details.frameId;
-	let subframe = false;
+	let tabsite      = tabStorage[tabid];
+	const frameid    = details.frameId;
+	let subframe     = false;
 
 	// if request comes from sub_frame or is a sub_frame
 	if (frameid > 0) {
@@ -795,31 +1099,20 @@ function scriptweeder(details) {
 	// console.log("@scriptweeder, Script website", scriptsite);
 	// console.log("@scriptweeder, Website loading script", tabsite);
 
-	// begin assuming it's block all
-	let block = true;
-	const applyPolicy = tabsite.policy;
-	// console.log("@scriptweeder, Block Policy:", applyPolicy);
-
-	// allow all policy
-	if (applyPolicy === 0) {
-		block = false;
-	}
-	// relaxed or filtered policies
-	else if (applyPolicy === 1 || applyPolicy === 2) {
-		block = isScriptAllowed(block, tabsite, scriptsite, applyPolicy);
-	}
+	// get if resource must be blocked or not
+	const block = isScriptAllowed(tabsite, scriptsite, tabsite.policy);
 
 	// set badge icon
 	if (block) {
-		tabsite.numScripts++;
+		tabsite.blocked++;
 
 		// no frame contains this key
 		if (tabsite.private === undefined) {
-			tabStorage[tabid].numScripts++;
+			tabStorage[tabid].blocked++;
 		}
 
 		chrome.browserAction.setBadgeText({
-			text: tabStorage[tabid].numScripts.toString(),
+			text: tabStorage[tabid].blocked.toString(),
 			tabId: tabid
 		});
 	}
@@ -846,13 +1139,13 @@ function scriptweeder(details) {
 		scriptInfo.frameid = frameid;
 
 		// save frame info in another area
-		const frameInfo = scriptsite;
+		const frameInfo    = scriptsite;
 		scriptsite.private = tabsite.private;
-		const sitePolicies = getBlockPolicy(scriptsite);
-		frameInfo.policy = sitePolicies.policy;
-		frameInfo.rules = sitePolicies.rules;
-		frameInfo.numScripts = 0;
-		frameInfo.scripts = {};
+		const sitePolicies = getRules(scriptsite);
+		frameInfo.policy   = sitePolicies.policy;
+		frameInfo.rules    = sitePolicies.rules;
+		frameInfo.blocked  = 0;
+		frameInfo.scripts  = {};
 		tabStorage[tabid].frames[frameid] = frameInfo;
 	}
 
@@ -872,9 +1165,11 @@ function scriptweeder(details) {
 	return {cancel: block};
 }
 
-/*
- * Chromium webRequest, we check before the request is made
- * We just need to check from http protocol and only scripts and frames
+/**
+ * @brief Resources and protocols to be evaluated
+ *
+ * Here we tell the webRequest API which protocols and resource types
+ * need to be evaluated by the scriptweeder before the request is made
  */
 chrome.webRequest.onBeforeRequest.addListener(
 	scriptweeder,
@@ -887,47 +1182,46 @@ chrome.webRequest.onBeforeRequest.addListener(
 
 // =========================================================================
 
-/*
- * The popup might require info or things to be executed
- * child 'type' will contain the type of the request
- * each request has different msg childs/info
+/**
+ * @brief Perform actions acording to message
+ *
+ * The popup and the preferences page might require info or things
+ * to be executed.
+ *
+ * Child 'type' will contain the type of the request
+ *
+ * @param msg    [Object]   Contains type and data for the action
+ * @param src    [Object]   Unused, required by API
+ * @param answer [Function] Solely used for replying on type 0
+ *
+ * Each request has different msg children/info
  *
  * 0 Request tab information
- *   tabid, the id of the requested tab
+ *   - tabid [Number] id of the requested tab
  * 
  * 1 Change blackwhitelist
- *   private, if it comes from private browsing
- *   rule, new script rule for that domain
- *   script [
- *     domain, of the script being allowed or blocked
- *     subdomain, of the script being allowed or blocked
- *   ]
- *   site [
- *     domain, of the page to change the rule
- *     subdomain, of the page to change the rule
- *     page, name of the page to change the rule
- *   ]
- * 
- * 2 Change policy
- *   private, if it comes from private browsing
- *   policy, the new policy rule
- *   site [
- *     domain, of the page to change the rule
- *     subdomain, of the page to change the rule
- *     page, name of the page to change the rule
- *   ]
+ *   - private [Boolean] Is private browsing?
+ *   - rule    [Boolean] If script is blocked or allowed
+ *   - rule    [Number]  New policy rule
+ *   - script  [Array]   Contains urls of the script to apply rule
+ *     - domain    [String] Host script being allowed or blocked
+ *     - subdomain [String] host script being allowed or blocked
+ *   - site    [Array]   Contains urls where to apply, all optional
+ *     - domain    [String] Host to save policy
+ *     - subdomain [String] Subdomain to save policy
+ *     - page      [String] Dir+filename to save policy
  * 
  * 3 New preferences from preferences page
- *   newPrefs, can contain either `policy` or `blackwhitelist`
+ *   - prefs [Object] New preferences
  *
  * 4 Allow all scripts once (do not save)
- *   tabId, id of the tab to allow once
- *   allow, enable/disable allow once
+ *   - tabId [Number]  id of the tab to allow once
+ *   - allow [Boolean] Enable/disable allow once
  *
  * 5 Popup requesting allowed/blocked list for relaxed/filtered
- *   policy, block policy number
- *   tabid, the id of the requested tab
- *   frameid, the id of frame that had its policy changed
+ *   - policy  [Number] Block policy
+ *   - tabid   [Number] id of the requested tab
+ *   - frameid [Number] id of frame that had its policy changed
  */
 chrome.runtime.onMessage.addListener(function (msg, src, answer) {
 	// console.log("@@@@@@@@@@@@@@@ Message Received @@@@@@@@@@@@@@@\n", msg);
@@ -937,73 +1231,20 @@ chrome.runtime.onMessage.addListener(function (msg, src, answer) {
 		answer(tabStorage[msg.tabid]);
 	}
 
-	// save individual scripts (blackwhitelist)
+	// save preferences
 	else if (msg.type === 1) {
-		// global scope, save in blackwhitelist
-		if (msg.site[0] === undefined) {
-			// console.log("@onMessage, blackwhitelist applied!", blackwhitelist)
-			if (msg.private === true) {
-				saveLoadRule(privateRules.blackwhitelist, msg.script, 0, msg.rule);
-				return;
-			}
+		const level = (msg.private ? privatum.preferences : preferences);
 
-			saveLoadRule(blackwhitelist, msg.script, 0, msg.rule);
-			chrome.storage.local.set({blackwhitelist: blackwhitelist});
-			// console.log("@onMessage, Saved blackwhitelist!");
-			return;
+		saveRule(level, msg.site, msg.rule);
+
+		if (!msg.private) {
+			chrome.storage.local.set({preferences: preferences});
 		}
-
-		const bwlist = {
-			names: msg.script,
-			rule: msg.rule
-		};
-
-		// console.log("@onMessage, b&w list was saved for", msg.site, "!");
-		if (msg.private === true) {
-			saveLoadRule(privateRules.policy, msg.site, 0, bwlist);
-			return;
-		}
-
-		saveLoadRule(policy, msg.site, 0, bwlist);
-		chrome.storage.local.set({policy: policy});
-		// console.log("@onMessage, Policy object was saved!");
 	}
 
-	// save policy preferences
-	else if (msg.type === 2) {
-		// console.log("@onMessage, Applied new policy!", policy);
-		// save global
-		if (msg.site[0] === undefined) {
-			if (msg.private === true) {
-				privateRules.policy.private = msg.policy;
-				return;
-			}
-
-			policy.rule = msg.policy;
-		}
-		else {
-			if (msg.private === true) {
-				saveLoadRule(privateRules.policy, msg.site, 0, msg.policy);
-				return;
-			}
-
-			saveLoadRule(policy, msg.site, 0, msg.policy);
-		}
-		// console.log("@onMessage, Saved new policy!");
-		chrome.storage.local.set({policy: policy});
-	}
-
-	// preferences page changes
-	else if (msg.type === 3) {	
-		if (msg.newPrefs.policy !== undefined) {
-			policy = msg.newPrefs.policy;
-			// console.log("@onMessage, Policy received from prefs page committed!\n", policy);
-		}
-
-		if (msg.newPrefs.blackwhitelist !== undefined) {
-			blackwhitelist = msg.newPrefs.blackwhitelist;
-			// console.log("@onMessage, Blackwhitelist received from prefs page committed!\n", blackwhitelist);
-		}
+	// preferences page is sending new preferences
+	else if (msg.type === 3) {
+		preferences = msg.prefs;
 	}
 
 	// allow once
@@ -1025,7 +1266,7 @@ chrome.runtime.onMessage.addListener(function (msg, src, answer) {
 			Object.keys(domain[1]).forEach(function (subdomain) {
 				scriptslist.push({
 					name: subdomain + domain[0] + msg.frameid,
-					blocked: isScriptAllowed(true, frame, {domain: domain[0], subdomain: subdomain}, msg.policy)
+					blocked: isScriptAllowed(frame, {domain: domain[0], subdomain: subdomain}, msg.policy)
 				});
 			});
 		});

@@ -1,27 +1,16 @@
 "use strict";
 
-/*
- * Object that holds preferences
+/**
+ * @var preferences [Object] JSON that holds preferences
  *
- * Block policy (rule key):
- *
- * 0 Allowed - All scripts allowed, white(black)list doesn't run
- * 1 Relaxed - Scritps from same domain & helpers are allowed
- * 2 Filtered - Only from the same domain allowed
- * 3 Blocked - All scripts blocked, white(black)list doesn't run
- * 4	Block injected - Inline script is blocked
- * 5	Pretend disabled - Pretend scripts are blocked (load noscript tags)
+ * @see background.js
+ * @see default-prefs.js
+ * @see https://github.com/An-dz/ScriptJaeger/wiki/Dev:-Preferences
  */
-var policy = {};
+let preferences = {};
 
-/*
- * Whitelist & Blacklist, rule key defines if it's white or black listed
- * false: allowed/whitelist | true: blocked/blacklist
- */
-var blackwhitelist = {};
-
-/*
- * Badge icons, one for each policy
+/**
+ * @var jaegerhut [Object] Badge icons, one for each policy
  */
 const jaegerhut = {
 	0: {
@@ -54,103 +43,77 @@ const jaegerhut = {
 		name: "whitelist",
 		text: chrome.i18n.getMessage("settingsRulesWhite")
 	},
-	undefined: {
+	null: {
 		offset: 0,
 		name: "undefined",
 		text: chrome.i18n.getMessage("settingsRulesNone")
 	}
 };
 
-/*
- * Sorts the array in alphabetical order
- */
-function sortUrls(a, b) {
-	// console.log("======== Sort ========\n", a, " <-> ", b);
-	if (a.name > b.name) {
-		return 1;
-	}
-
-	if (a.name < b.name) {
-		return -1;
-	}
-
-	return 0;
-}
-
-/*
- * Save the new setting and then send them to the background script
- * so it's aware of changes and can replace them right away
+/**
+ * @brief Save settings and tell background script about it
  *
- * As the storage API is async the saving might not be in the same
- * order as the functions are called, it also reduces the calls to
- * the background page
+ * Saves the new settings and then send them to the background
+ * script so it's aware of changes and can replace them right away
+ *
+ * As the message API is async the saving might not be in the same
+ * order as the functions are called, so a timeout is implemented to
+ * reduce the calls to the background page and the storage API.
  */
-const stateMachine = {
-	"b": false,
-	"p": false
-};
-
-function saveAndAlertBackground(save) {
+function saveAndAlertBackground() {
 	clearTimeout(window.saveDelay);
 
 	// enable if received true, keep true if received false
-	stateMachine.b = save.b || stateMachine.b;
-	stateMachine.p = save.p || stateMachine.p;
-
 	window.saveDelay = setTimeout(function () {
-		// console.log("Prefences change requested for policy:", stateMachine.p, ", blackwhitelist:", stateMachine.b);
-		const newPrefs = {};
-
-		if (stateMachine.b) {
-			newPrefs.blackwhitelist = blackwhitelist;
-		}
-
-		if (stateMachine.p) {
-			newPrefs.policy = policy;
-		}
-
 		// send message to background
 		chrome.runtime.sendMessage({
 			type: 3, // alert of preferences changes
-			newPrefs: newPrefs
+			prefs: preferences
 		});
 
 		// save preferences
-		chrome.storage.local.set(newPrefs
-			// , function () { console.log("Preferences Saved!"); }
-		);
-
-		stateMachine.b = false; // blackwhitelist was processed
-		stateMachine.p = false; // policy was processed
-	}, 1000);
+		chrome.storage.local.set({preferences: preferences});
+	}, 500);
 }
 
 /* ====================================================================== */
 
-/*
- * Event listeners
+/**
+ * @brief Open rule selector
+ *
+ * Opens a 'dropdown' to allow changing the policy on the specified
+ * level
+ *
+ * @param e [Event] Event interface on the clicked DIV
  */
-function changePolicy(e) {
+function openRuleSelector(e) {
 	const dropdown = document.getElementById("dropdown");
-	const levels = e.target.parentNode.dataset.index;
-	const rule = jaegerhut[e.target.dataset.rule];
-	const pos = e.target.parentNode.getBoundingClientRect();
+	const rule     = jaegerhut[e.target.dataset.rule];
+	const div      = e.target.parentNode;
+	const li       = div.parentNode;
+	const pos      = div.getBoundingClientRect();
 
 	pos.y = pos.y + window.scrollY - (rule.offset * document.querySelector("li").offsetHeight);
 
 	// console.log("Moving dropdown to position! X:", e.target.offsetLeft, "Y:", pos.y);
 
 	dropdown.style = "top:" + pos.y + "px;left:" + e.target.offsetLeft + "px";
+
 	// info for updating rule
-	dropdown.dataset.index = levels;
+	// rule levels
+	for (const key in li.dataset) {
+		dropdown.dataset[key] = li.dataset[key];
+	}
+
 	// highlight selected
 	dropdown.querySelectorAll("input").forEach(function (n) {
 		n.removeAttribute("checked");
 	});
+
 	document.getElementById(rule.name).setAttribute("checked", true);
 
 	// hide options that are not possible
-	if (levels[0] === "b" || levels.match(/r/)) {
+	if (li.dataset.scriptdomain) {
 		dropdown.className = "bwl";
 	}
 	else {
@@ -160,87 +123,16 @@ function changePolicy(e) {
 	e.target.id = "active";
 }
 
-function deleteObject(levels, tree) {
-	let toDelete = tree;
-	const index = levels.pop();
-
-	// iterate until last array level
-	levels.forEach(function (lvl) {
-		toDelete = toDelete[lvl];
-	});
-
-	// console.log("Index:", levels, "Index to delete:", index, "\nRule marked for deletion:", toDelete[index]);
-
-	// delete rule
-	// toDelete is a pointer to the global object
-	try {
-		toDelete.splice(index, 1);
-
-		if (toDelete.length === 0) {
-			return deleteObject(levels, tree);
-		}
-
-		return toDelete;
-	} catch(e) {
-		delete toDelete[index];
-
-		if (index === "domains") {
-			return deleteObject(levels, tree);
-		}
-
-		return false;
-	}
-}
-
-function deleteRule(e) {
-	let div = e.target.parentNode;
-
-	const levels = div.dataset.index.split(",");
-	let tree = blackwhitelist.domains;
-	let save = { b: true, p: false };
-
-	if (levels.splice(0, 1)[0] === "p") {
-		tree = policy.domains;
-		save = { b: false, p: true };
-	}
-
-	const scripts = (levels[levels.length - 3] === "rules");
-	tree = deleteObject(levels, tree);
-
-	// remove list item from DOM
-	let li = div.parentNode;
-	const ul = li.parentNode;
-	ul.innerHTML = "";
-	li = ul.parentNode;
-
-	const number = li.querySelector(".number" + (scripts ? ".scripts" : ":not(.scripts)"));
-	if (number !== null) {
-		--number.textContent;
-	}
-
-	if (tree) {
-		fillList(tree, ul, ["",""], ul.dataset.index);
-	}
-	else {
-		div = li.firstElementChild;
-		div.removeAttribute("class");
-		div.removeChild(number);
-		li.removeChild(ul);
-		li.removeAttribute("class");
-	}
-
-	// save preferences and alert the background page
-	saveAndAlertBackground(save);
-}
-
-function showSubLevel(e) {
+/**
+ * @brief Toggle sublevel rules
+ *
+ * Opens or closes the viewing of sublevel rules, like scripts or
+ * subdomain rules.
+ *
+ * @param e [Event] Event interface on the clicked DIV
+ */
+function toggleSubLevel(e) {
 	const li = e.target.parentNode;
-
-	if (!e.target.dataset.index) {
-		return;
-	}
-
-	// console.log("Toggle sub-rules called", li.hasAttribute("class"));
 
 	if (!li.hasAttribute("class")) {
 		li.className = "show";
@@ -251,6 +143,169 @@ function showSubLevel(e) {
 			node.removeAttribute("class");
 		});
 	}
+}
+
+/**
+ * @brief Delete rule
+ *
+ * Deletes the rules where the X button was pressed
+ *
+ * @param e [Event] Event interface on the clicked X button
+ */
+function deleteRule(e) {
+	// nodes
+	const div = e.target.parentNode;
+	const li  = div.parentNode;
+	const ul  = li.parentNode;
+	const liP = ul.parentNode;
+
+	// rule levels
+	const site = [
+		li.dataset.domain,
+		li.dataset.subdomain,
+		li.dataset.page
+	];
+
+	// script levels
+	const script = [
+		li.dataset.scriptdomain,
+		li.dataset.scriptsubdomain
+	];
+
+	let level = preferences;
+	let i = 0;
+
+	// walk through the levels
+	while ((script[0] && site[i] !== undefined) || site[i + 1] !== undefined) {
+		level = level.urls[site[i++]];
+	}
+
+	// if it's a script rule (rules object)
+	if (script[0]) {
+		level = level.rules;
+
+		// if script rule has a sublevel
+		if (script[1] !== undefined) {
+			delete level.urls[script[0]].urls[script[1]];
+		}
+		else {
+			delete level.urls[script[0]];
+		}
+	}
+	else {
+		delete level.urls[site[i]];
+	}
+
+	// now that the rule has been deleted time to deal with the DOM
+	const isRules = (script[0] && script[1] === undefined);
+	const number = liP.querySelector(".number" + (isRules ? ".scripts" : ":not(.scripts)"));
+
+	// update numbers
+	if (number) {
+		--number.textContent;
+
+		if (number.textContent === "0") {
+			number.parentNode.removeChild(number);
+		}
+	}
+
+	// remove elements
+	ul.removeChild(li);
+
+	// if no more li nodes exist the ul can be removed
+	if (!ul.querySelector("li")) {
+		liP.removeChild(ul);
+
+		// if no more ul nodes exist we can remove the clicking event
+		if (!liP.querySelector("ul")) {
+			liP.removeAttribute("class");
+			const divP = liP.firstChild;
+			divP.removeAttribute("class");
+			divP.removeEventListener("click", toggleSubLevel);
+		}
+	}
+
+	// save preferences and alert the background page
+	saveAndAlertBackground();
+}
+
+/**
+ * @brief Change the rule
+ *
+ * Changes the rule for the specified level on the dropdown
+ *
+ * @param e [Event] Event interface on the clicked rule
+ */
+function changeRule(e) {
+	const rule = parseInt(e.target.value, 10);
+	const dropdown = e.target.parentNode;
+
+	// rule levels
+	const site = [
+		dropdown.dataset.domain,
+		dropdown.dataset.subdomain,
+		dropdown.dataset.page
+	];
+
+	// script levels
+	const script = [
+		dropdown.dataset.scriptdomain,
+		dropdown.dataset.scriptsubdomain
+	];
+
+	let level = preferences;
+	let i = 0;
+
+	// walk through the levels
+	while (site[i] !== undefined) {
+		level = level.urls[site[i++]];
+	}
+
+	// if it's a script rule (rules object)
+	if (script[0]) {
+		level = level.rules.urls[script[0]];
+
+		// if script rule has a sublevel
+		if (script[1] !== undefined) {
+			level = level.urls[script[1]];
+		}
+	}
+
+	// save rule key
+	if (rule < 0) {
+		// -1 is for null
+		level.rule = null;
+	}
+	else if (!script[0]) {
+		// if it has no script url it's saving a policy
+		level.rule = rule;
+	}
+	else {
+		// otherwise it's a blocking rule
+		level.rule = Boolean(rule);
+	}
+
+	// change icon to reflect new rule
+	const active = document.getElementById("active");
+	active.src = "images/" + e.target.id + "38.png";
+	active.alt = jaegerhut[rule].text[0];
+	active.title = jaegerhut[rule].text;
+	active.dataset.rule = rule;
+	active.removeAttribute("id");
+
+	saveAndAlertBackground();
+}
+
+/**
+ * @brief Change toplevel policy
+ *
+ * Changes the global policy or global private policy
+ *
+ * @param e [Event] Event interface on input change
+ */
+function changePolicy(e) {
+	preferences[e.target.name] = parseInt(e.target.value, 10);
+	saveAndAlertBackground();
 }
 
 /* ====================================================================== */
@@ -272,80 +327,128 @@ delNode.title     = chrome.i18n.getMessage("settingsDelete");
 
 ruleNode.tabIndex = 0;
 
-/*
- * Fill the lists with the rules
- * Sorting must be done beforehand
- */
-function fillList(array, parentNode, url, idx) {
-	// console.log("@fillList array\n", array);
-	parentNode.dataset.index = idx;
+const htmldata = [
+	"domain",
+	"subdomain",
+	"page",
+	"scriptdomain",
+	"scriptsubdomain"
+];
 
-	array.forEach(function (item, index) {
+/**
+ * @brief Fill the list with the rules
+ *
+ * Creates and injects the DOM elements to represent the rules
+ *
+ * @param rules [Array]   Rules objects to be printed
+ * @param node  [Element] Node where to inject the generated DOM
+ * @param urls  [Array]   Parts of the URL:
+ * (domain, subdomain, page, script domain, script subdomain)
+ *
+ * @note Sorting must be done beforehand
+ */
+function fillList(rules, node, urls) {
+	rules.forEach(function (item) {
 		// main container node to add item info
 		const li  = document.createElement("li");
 		const div = document.createElement("div");
-		div.dataset.index = idx + index;
 		li.appendChild(div);
 
-		// add info about rule applied to level
+		// name to be printed
+		let siteName = "";
+		urls.push(item[0]);
+		urls.forEach(function (url, index) {
+			if (url === null) {
+				return;
+			}
+
+			// data to be used by actions/events
+			li.dataset[htmldata[index]] = url;
+
+			// build name to be printed
+			switch (index) {
+				case 1: // fallthrough
+				case 4:
+					siteName = (url === "" ? "*://" : url + ".") + siteName;
+					break;
+				case 3:
+					siteName = url;
+					break;
+				default:
+					siteName += url;
+			}
+		});
+
+		// add info about rule applied to level (Jaegerhut)
 		const ruleImg = ruleNode.cloneNode(false);
-		ruleImg.src = "images/" + jaegerhut[item.rule].name + "38.png";
-		ruleImg.alt = jaegerhut[item.rule].text[0];
-		ruleImg.title = jaegerhut[item.rule].text;
-		ruleImg.dataset.rule = item.rule;
-		ruleImg.addEventListener("click", changePolicy);
+		ruleImg.src = "images/" + jaegerhut[item[1].rule].name + "38.png";
+		ruleImg.alt = jaegerhut[item[1].rule].text[0];
+		ruleImg.title = jaegerhut[item[1].rule].text;
+		ruleImg.dataset.rule = item[1].rule;
+		ruleImg.addEventListener("click", openRuleSelector);
 		div.appendChild(ruleImg);
 
 		// add url to main node
-		const siteName = url[0] + (item.name === "" ? "://" + url[1].slice(1) : item.name + url[1]);
 		const siteUrl = document.createElement("span");
 		siteUrl.className = "site";
 		siteUrl.innerHTML = "<span>" + siteName + "</span>";
 		div.appendChild(siteUrl);
 
 		// add info about allowed and blocked scripts
-		if (item.rules) {
-			// console.log("@fillList script list\n", item.rules);
-			// add icon with the number of script rules
-			const scriptRules = numberNode.cloneNode(false);
-			scriptRules.innerText = item.rules.domains.length;
-			div.appendChild(scriptRules);
+		if (item[1].rules) {
+			const subrules = Object.entries(item[1].rules.urls).sort();
 
-			// node to hold the list
-			const ul = document.createElement("ul");
-			ul.className = "scripts";
-			// sort the list and call this same function to fill the list
-			item.rules.domains = item.rules.domains.sort(sortUrls);
-			fillList(item.rules.domains, ul, ["", ""], idx + index + ",rules,domains,");
+			if (subrules.length > 0) {
+				// indexes 1 and 2 are for subdomain and page sublevels
+				// while script rule domain and subdomains are at 3 and 4
+				// this adds nulls in indexes 1 and 2 if necessary to skip
+				// them and the correct data is written
+				while (urls[2] === undefined) {
+					urls.push(null);
+				}
 
-			// add the sub-list into the main container
-			li.appendChild(ul);
-			div.className = "pointer";
-			div.addEventListener("click", showSubLevel);
+				// add icon with the number of script rules
+				const scriptRules = numberNode.cloneNode(false);
+				scriptRules.innerText = subrules.length;
+				div.appendChild(scriptRules);
+
+				// node to hold the list
+				const ul = document.createElement("ul");
+				ul.className = "scripts";
+				// sort the list and call this same function to fill the list
+				fillList(subrules, ul, urls);
+
+				// add the sub-list into the main container
+				li.appendChild(ul);
+				div.className = "pointer";
+				div.addEventListener("click", toggleSubLevel);
+
+				// remove the null urls added before
+				while (urls[2] === null || urls[1] === null) {
+					urls.pop();
+				}
+			}
 		}
 
 		// add sub-level rules
-		let subLevel = item.sites || item.pages;
-		if (subLevel) {
+		const sublevel = Object.entries(item[1].urls).sort();
+
+		if (sublevel.length > 0) {
 			// add icon with the number of sub-domains that exist
 			const subRules = sNumberNode.cloneNode(false);
-			subRules.innerText = subLevel.length;
+			subRules.innerText = sublevel.length;
 			div.appendChild(subRules);
 
 			// node to hold the list
 			const ul = document.createElement("ul");
 			ul.className = "subrules";
 			// sort the list and call this same function to fill the list
-			subLevel = subLevel.sort(sortUrls);
-			fillList(subLevel, ul, [
-				(item.pages ? siteName : ""),
-				(item.sites ? "." + item.name : "")
-			], idx + index + (item.sites ? ",sites," : ",pages,"));
+			fillList(sublevel, ul, urls);
 
 			// add the sub-list into the main container
 			li.appendChild(ul);
 			div.className = "pointer";
-			div.addEventListener("click", showSubLevel);
+			div.addEventListener("click", toggleSubLevel);
 		}
 
 		// button to delete the rule
@@ -354,44 +457,56 @@ function fillList(array, parentNode, url, idx) {
 		div.appendChild(deleteBtn);
 
 		// add to page
-		parentNode.appendChild(li);
+		node.appendChild(li);
+
+		urls.pop();
 	});
 }
 
-/*
- * Display loaded preferences on screen
+/**
+ * @brief Display loaded preferences on screen
+ *
+ * Gets the current loaded settings and show them on the screen
  */
-function loadPreferences(pref) {
-	// console.log("loadPreferences");
-	policy = pref.policy;
-
+function showPreferences() {
 	// fill policy preferences
-	document.querySelector("input[name='rule'][value='" + policy.rule + "']").checked = true;
-	document.querySelector("input[name='private'][value='" + policy.private + "']").checked = true;
+	document.querySelector("input[name='rule'][value='" + preferences.rule + "']").checked = true;
+	document.querySelector("input[name='private'][value='" + preferences.private + "']").checked = true;
 
 	// fill global blackwhitelist
-	// sorting the domains/subdomains alphabeticaly
-	blackwhitelist.domains = pref.blackwhitelist.domains.sort(sortUrls);
-	fillList(blackwhitelist.domains, document.getElementById("bwl"), ["",""], "b,");
+	fillList(Object.entries(preferences.rules.urls).sort(), document.getElementById("bwl"), [null, null, null]);
 
 	// fill site specific settings
-	// sorting the domains/subdomains/pages alphabeticaly
-	policy.domains = policy.domains.sort(sortUrls);
-	fillList(policy.domains, document.getElementById("rules"), ["",""], "p,");
+	fillList(Object.entries(preferences.urls).sort(), document.getElementById("rules"), []);
 }
 
-/*
- * Load saved preferences and call for displaying them
+/**
+ * @brief Load preferences
+ *
+ * Loads saved preferences from storage API
+ *
+ * @note Runs immediately on page load
  */
 chrome.storage.local.get(function (pref) {
-	loadPreferences(pref);
+	preferences = pref.preferences;
+	showPreferences();
 });
 
-/*
- * Attach events when the page loads
+/**
+ * @brief Hide/close the rule selector
+ *
+ * Hides the rule selector when you click anywhere on the page
+ */
+document.addEventListener("click", function () {
+	document.getElementById("dropdown").className = "";
+}, true);
+
+/**
+ * @brief Translate and attach events
+ *
+ * This will translate the page and attach the events to the nodes.
  */
 document.addEventListener("DOMContentLoaded", function () {
-	// console.log("DOMContentLoaded");
 	// translate
 	document.title = chrome.i18n.getMessage("settingsTitle");
 
@@ -401,72 +516,13 @@ document.addEventListener("DOMContentLoaded", function () {
 		return chrome.i18n.getMessage(b);
 	});
 
-	/*
-	 * Hide/close the rule selector when you click anywhere
-	 */
-	document.addEventListener("click", function () {
-		document.getElementById("dropdown").className = "";
-	}, true);
-
-
 	// add event listeners into the first two preferences
 	document.querySelectorAll("input").forEach(function (input) {
 		if (input.id) {
-			input.addEventListener("change", function (e) {
-				let rule = parseInt(e.target.value, 10);
-				let levels = e.target.parentNode.dataset.index;
-
-				if (rule < 0) {
-					rule = undefined;
-				}
-
-				// blacklist is defined as array b in the index value
-				// blackwhitelist objects are inside rules key
-				if (rule !== undefined && (levels.charCodeAt(0) === 98 || levels.match(/r/))) {
-					// effectively converting int to bool
-					rule = !!rule;
-				}
-
-				let toChange = blackwhitelist.domains;
-				let save = { b: true, p: false };
-				levels = levels.split(",");
-
-				if (levels.splice(0, 1)[0] === "p") {
-					toChange = policy.domains;
-					save = { b: false, p: true };
-				}
-
-				// iterate until last array level
-				levels.forEach(function (lvl) {
-					toChange = toChange[lvl];
-				});
-
-				// console.log("Apply", e.target.id, "(" + rule + ") rule in", toChange);
-
-				// toChange is a pointer to the global object
-				toChange.rule = rule;
-
-				if (rule === undefined) {
-					delete toChange.rule;
-				}
-
-				const active = document.getElementById("active");
-				active.src = "images/" + e.target.id + "38.png";
-				active.alt = jaegerhut[rule].text[0];
-				active.title = jaegerhut[rule].text;
-				active.dataset.rule = rule;
-				active.removeAttribute("id");
-
-				saveAndAlertBackground(save);
-			});
+			input.addEventListener("change", changeRule);
 		}
 		else {
-			input.addEventListener("change", function (e) {
-				// console.log("Changed", e.target.name, "policy to", e.target.value);
-				policy[e.target.name] = parseInt(e.target.value, 10);
-				// console.log("New policy object\n", policy);
-				saveAndAlertBackground({b: false, p: true});
-			});
+			input.addEventListener("change", changePolicy);
 		}
 	});
 
@@ -482,35 +538,29 @@ document.addEventListener("DOMContentLoaded", function () {
 					script.type = "text/javascript";
 					script.id = "default";
 					document.head.appendChild(script);
-
-					// console.log("Default preferences injected");
 				});
 				break;
 			case "e":
 				button.addEventListener("click", function () {
-					const p = JSON.stringify(policy, null, "  ");
-					const b = JSON.stringify(blackwhitelist, null, "  ");
-
-					document.getElementById("text").value =
-					"{\"policy\": " + p +
-					",\n\"blackwhitelist\": " + b +
-					"}";
-
-					// console.log("Settings exported");
+					document.getElementById("text").value = JSON.stringify(preferences, null, "  ");
 				});
 				break;
 			case "i":
 				button.addEventListener("click", function () {
-					const text = JSON.parse(document.getElementById("text").value);
-
-					// console.log("Imported JSON:", text);
+					try {
+						JSON.parse(document.getElementById("text").value);
+					}
+					catch (error) {
+						alert(error.message);
+						return;
+					}
 
 					// clear the tables to allow the new rules to fill
 					document.getElementById("bwl").innerText = "";
 					document.getElementById("rules").innerText = "";
 
-					saveAndAlertBackground({b: true, p: true});
-					loadPreferences(text);
+					saveAndAlertBackground();
+					showPreferences();
 				});
 				break;
 			default: break;
@@ -518,16 +568,21 @@ document.addEventListener("DOMContentLoaded", function () {
 	});
 });
 
-/*
- * Called when preferences are replaced
+/**
+ * @brief Called when default preferences are loaded
+ *
+ * Updates the interface to display the new preferences and saves
+ * them.
+ *
+ * @see default-prefs.js
  */
 function defaultPreferencesLoaded() {
 	// clear the tables to allow the new rules to fill
 	document.getElementById("bwl").innerText = "";
 	document.getElementById("rules").innerText = "";
 
-	loadPreferences({policy: policy, blackwhitelist: blackwhitelist});
-	saveAndAlertBackground({b: true, p: true});
+	showPreferences();
+	saveAndAlertBackground();
 
 	// remove the injected script
 	document.head.removeChild(document.getElementById("default"));
