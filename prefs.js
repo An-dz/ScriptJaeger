@@ -205,16 +205,16 @@ function deleteRule(e) {
 		--number.textContent;
 
 		if (number.textContent === "0") {
-			number.parentNode.removeChild(number);
+			number.remove();
 		}
 	}
 
 	// remove elements
-	ul.removeChild(li);
+	li.remove();
 
 	// if no more li nodes exist the ul can be removed
 	if (!ul.querySelector("li")) {
-		liP.removeChild(ul);
+		ul.remove();
 
 		// if no more ul nodes exist we can remove the clicking event
 		if (!liP.querySelector("ul")) {
@@ -585,5 +585,5 @@ function defaultPreferencesLoaded() {
 	saveAndAlertBackground();
 
 	// remove the injected script
-	document.head.removeChild(document.getElementById("default"));
+	document.getElementById("default").remove();
 }
