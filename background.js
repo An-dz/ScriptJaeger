@@ -1051,57 +1051,19 @@ function isScriptAllowed(tabsite, scriptsite, policy) {
 }
 
 /**
- * @brief The Script Weeder - Evaluate if resource can be downloaded
+ * @brief Update the icon number
  *
- * This is the main function that is run on every request made.
+ * Updates the number in the extension icon and keeps track of all
+ * resources blocked and allowed to populate the popup when needed.
  *
- * @param details [Object] Info about the resource
- *
- * @return [Object] If resource must be blocked
+ * @param block      [Boolean] if resource was blocked
+ * @param tabsite    [Object]  urls of the tab
+ * @param scriptsite [Object]  urls of the loading resource
+ * @param tabid      [Number]  ID of the tab
+ * @param frameid    [Number]  ID of the frame
+ * @param subframe   [Boolean] if resource is a subframe
  */
-function scriptweeder(details) {
-	// console.log("============== Script intercepted ==============");
-	// console.log(details);
-
-	const tabid = details.tabId;
-
-	if (tabStorage[tabid] === undefined) {
-		if (tabid !== -1) {
-			console.warn("@scriptweeder, tabStorage was not found!", tabid);
-		}
-		return {cancel: false};
-	}
-
-	const scriptsite = extractUrl(details.url);
-	let tabsite      = tabStorage[tabid];
-	const frameid    = details.frameId;
-	let subframe     = false;
-
-	// if request comes from sub_frame or is a sub_frame
-	if (frameid > 0) {
-		// if request is a sub_frame
-		if (details.type === "sub_frame") {
-			subframe = true;
-			const pframeid = details.parentFrameId;
-
-			if (pframeid > 0) {
-				tabsite = getLoadingFrame(pframeid, tabsite);
-			}
-		}
-
-		// console.log("@scriptweeder, Is sub_frame?", subframe, "\nParent frame ID", pframeid);
-		// if request comes from a sub_frame we apply the rules from the frame site
-		if (!subframe) {
-			tabsite = getLoadingFrame(frameid, tabsite);
-		}
-	}
-
-	// console.log("@scriptweeder, Script website", scriptsite);
-	// console.log("@scriptweeder, Website loading script", tabsite);
-
-	// get if resource must be blocked or not
-	const block = isScriptAllowed(tabsite, scriptsite, tabsite.policy);
-
+function updateUI(block, tabsite, scriptsite, tabid, frameid, subframe) {
 	// set badge icon
 	if (block) {
 		tabsite.blocked++;
@@ -1153,12 +1115,68 @@ function scriptweeder(details) {
 	if (script[scriptsite.domain] === undefined) {
 		script[scriptsite.domain] = {};
 	}
+
 	if (script[scriptsite.domain][scriptsite.subdomain] === undefined) {
 		script[scriptsite.domain][scriptsite.subdomain] = [scriptInfo];
 	}
 	else {
 		script[scriptsite.domain][scriptsite.subdomain].push(scriptInfo);
 	}
+}
+
+/**
+ * @brief The Script Weeder - Evaluate if resource can be downloaded
+ *
+ * This is the main function that is run on every request made.
+ *
+ * @param details [Object] Info about the resource
+ *
+ * @return [Object] If resource must be blocked
+ */
+function scriptweeder(details) {
+	// console.log("============== ", details.type, " intercepted ==============");
+	// console.log(details);
+
+	const tabid = details.tabId;
+
+	if (tabStorage[tabid] === undefined) {
+		if (tabid !== -1) {
+			console.warn("@scriptweeder, tabStorage was not found!", tabid);
+		}
+		return {cancel: false};
+	}
+
+	const scriptsite = extractUrl(details.url);
+	let tabsite      = tabStorage[tabid];
+	const frameid    = details.frameId;
+	let subframe     = false;
+
+	// if request comes from sub_frame or is a sub_frame
+	if (frameid > 0) {
+		// if request is a sub_frame
+		if (details.type === "sub_frame") {
+			subframe = true;
+			const pframeid = details.parentFrameId;
+
+			if (pframeid > 0) {
+				tabsite = getLoadingFrame(pframeid, tabsite);
+			}
+		}
+
+		// console.log("@scriptweeder, Is sub_frame?", subframe, "\nParent frame ID", pframeid);
+		// if request comes from a sub_frame we apply the rules from the frame site
+		if (!subframe) {
+			tabsite = getLoadingFrame(frameid, tabsite);
+		}
+	}
+
+	// console.log("@scriptweeder, Script website", scriptsite);
+	// console.log("@scriptweeder, Website loading script", tabsite);
+
+	// get if resource must be blocked or not
+	const block = isScriptAllowed(tabsite, scriptsite, tabsite.policy);
+
+	updateUI(block, tabsite, scriptsite, tabid, frameid, subframe);
 
 	// console.log("@scriptweeder, Script blocked:", block);
 	// cancel: true - blocks loading, false - allows loading
