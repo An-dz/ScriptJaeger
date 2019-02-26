@@ -188,52 +188,24 @@
 		"description": "A Cancel button to cancel some dialogue box"
 	},
 	"tooltipWebsockets": {
-		"message": "Websockets: $number$",
-		"description": "Hover number or icon in popup.",
-		"placeholders": {
-			"number": {
-				"content": "$1",
-				"description": "Don't change."
-			}
-		}
+		"message": "Websockets: $1",
+		"description": "Hover number or icon in popup."
 	},
 	"tooltipFrames": {
-		"message": "Frames: $number$",
-		"description": "Hover number or icon in popup.",
-		"placeholders": {
-			"number": {
-				"content": "$1",
-				"description": "Don't change."
-			}
-		}
+		"message": "Frames: $1",
+		"description": "Hover number or icon in popup."
 	},
 	"tooltipScripts": {
-		"message": "Scripts: $number$",
-		"description": "Hover number or icon in popup.",
-		"placeholders": {
-			"number": {
-				"content": "$1",
-				"description": "Don't change."
-			}
-		}
+		"message": "Scripts: $1",
+		"description": "Hover number or icon in popup."
 	},
 	"updateTitle": {
 		"message": "ScriptJäger Update",
 		"description": "Title of the notification when an update is available."
 	},
 	"updateMessage": {
-		"message": "Version $version$ is available\nYou are using version $oldVersion$",
-		"description": "Message of the notification when an update is available.",
-		"placeholders": {
-			"version": {
-				"content": "$1",
-				"description": "Don't change. Replaced by version available to download."
-			},
-			"oldVersion": {
-				"content": "$2",
-				"description": "Don't change. Replaced by currently installed version."
-			}
-		}
+		"message": "Version $1 is available\nYou are using version $2",
+		"description": "Message of the notification when an update is available."
 	},
 	"updateContext": {
 		"message": "Click here to open the download page",
