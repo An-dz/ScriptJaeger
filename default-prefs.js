@@ -86,7 +86,7 @@ preferences = {
 			urls: {}
 		},
 		"live.com": {
-			rule: null,
+			rule: 2,
 			rules: {
 				urls: {
 					// onedrive
@@ -142,7 +142,7 @@ preferences = {
 						}
 					},
 					urls: {}
-				},
+				}
 			}
 		},
 		"microsoft.com": {
