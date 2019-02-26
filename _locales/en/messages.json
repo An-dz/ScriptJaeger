@@ -143,6 +143,50 @@
 		"message": "ScriptJäger Settings",
 		"description": "Page/tab title. Keep consistent with tooltipSettings"
 	},
+	"settingsInvalidPrefs": {
+		"message": "Invalid Preferences Object",
+		"description": "Title for an alert box telling the preferences file being imported is invalid"
+	},
+	"settingsInvalidLevel": {
+		"message": "'$1' key should not be at this level",
+		"description": "tells the user the key should not be there"
+	},
+	"settingsInvalidObject": {
+		"message": "'$1' key is not an Object",
+		"description": "tells the user the key is not a JavaScript Object"
+	},
+	"settingsInvalidNumber": {
+		"message": "'$1' key is not a Number",
+		"description": "tells the user the key is not a JavaScript Number"
+	},
+	"settingsInvalidNumberNull": {
+		"message": "'$1' key is not a Number or null",
+		"description": "tells the user the key is not a JavaScript Number or its value is null, don't translate null"
+	},
+	"settingsInvalidBooleanNull": {
+		"message": "'$1' key is not a Boolean or null",
+		"description": "tells the user the key is not a JavaScript Boolean or its value is null, don't translate null"
+	},
+	"settingsInvalidRange": {
+		"message": "'$1' key is not under the range 0-3",
+		"description": "tells the user the key value is not between 0 and 3"
+	},
+	"settingsInvalidRangeNull": {
+		"message": "'$1' key is not under the range 0-3 or null",
+		"description": "tells the user the key value is not between 0 and 3 or its value is null, don't translate null"
+	},
+	"settingsInvalidUnder": {
+		"message": "under $1",
+		"description": "Tells under which level the problem is, $1 is replaced with key name"
+	},
+	"buttonOk": {
+		"message": "OK",
+		"description": "An OK button to accept some dialogue box"
+	},
+	"buttonCancel": {
+		"message": "Cancel",
+		"description": "A Cancel button to cancel some dialogue box"
+	},
 	"tooltipWebsockets": {
 		"message": "Websockets: $number$",
 		"description": "Hover number or icon in popup.",

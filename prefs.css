@@ -7,6 +7,8 @@ body {
 }
 h1,
 h2,
+h3,
+p,
 span {
 	cursor: default;
 }
@@ -185,9 +187,6 @@ li ul {
 .number:empty {
 	display: none;
 }
-button {
-	cursor: pointer;
-}
 .delete {
 	opacity: 0;
 	float: right;
@@ -234,21 +233,22 @@ div:hover > .delete,
 	min-width: 50px;
 	outline: none;
 }
-.manage {
+button {
+	cursor: pointer;
 	background: linear-gradient(var(--colorBgLightIntense), var(--colorBg));
 	color: var(--colorFg);
 	border: 1px solid var(--colorBorder);
 	box-shadow: 0 1px var(--colorBg);
 	padding: 6px 12px;
 }
-.manage.middle {
+button.middle {
 	border-left: 0;
 	border-right: 0;
 }
-.manage:hover {
+button:hover {
 	background: var(--colorBg);
 }
-.manage:active {
+button:active {
 	background: var(--colorBgDark);
 }
 textarea {
@@ -265,6 +265,45 @@ textarea {
 }
 textarea:focus {
 	height: 300px;
+}
+#alertbox {
+	visibility: hidden;
+	opacity: 0;
+	transition: opacity 200ms ease-in;
+	background-color: var(--colorBgAlpha);
+	position: fixed;
+	display: grid;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	grid-template-rows: 1fr 1fr 1fr;
+	grid-template-columns: 1fr 1fr 1fr;
+	grid-template-areas: ". . ."
+	                     ". a ."
+	                     ". . .";
+}
+#alertbox .grid {
+	background-color: var(--colorBg);
+	border: 1px solid var(--colorBorder);
+	border-top: 2px solid var(--colorBorderHighlight);
+	border-radius: var(--radiusRounded);
+	box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+	padding: 20px;
+	grid-area: a;
+	display: grid;
+	grid-template-rows: 1fr;
+}
+#alertbox h3 {
+	margin-top: 0;
+}
+#alertbox span {
+	display: block;
+	padding-left: 20px;
+}
+.visible {
+	visibility: visible !important;
+	opacity: 1 !important;
 }
 @media all and (max-width: 660px) {
 	.flex {

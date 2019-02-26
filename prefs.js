@@ -79,6 +79,21 @@ function saveAndAlertBackground() {
 /* ====================================================================== */
 
 /**
+ * @brief Display an alert box
+ *
+ * Shows an alert box in the middle of the page
+ *
+ * @param title [String] Title of the alert box
+ * @param msg   [String] Message of the alert box (can be html)
+ */
+function showAlert(title, msg) {
+	const alertbox = document.getElementById("alertbox");
+	alertbox.className = "visible";
+	alertbox.querySelector("h3").textContent = title;
+	alertbox.querySelector("p").innerHTML = msg;
+}
+
+/**
  * @brief Open rule selector
  *
  * Opens a 'dropdown' to allow changing the policy on the specified
@@ -502,6 +517,67 @@ document.addEventListener("click", function () {
 }, true);
 
 /**
+ * @brief Validates a preferences object
+ *
+ * Validation can be done at multiple levels as long as the level
+ * contains a 'rule' key. Validation is recursive and checks the
+ * entire object.
+ *
+ * @note Unknown keys are ignored
+ *
+ * @param level   [Object]  The level in the object to validate
+ * @param isRules [Boolean] If the level is a blacklist
+ * @param at      [String]  String identifying the level
+ */
+function validate(level, isRules, at) {
+	at = chrome.i18n.getMessage("settingsInvalidUnder", at);
+
+	if (level.rule !== null) {
+		if (isRules) {
+			if (typeof level.rule !== "boolean") {
+				throw new TypeError(chrome.i18n.getMessage("settingsInvalidBooleanNull", "rule") + "<span>" + at + "</span>");
+			}
+		}
+		else {
+			if (typeof level.rule !== "number") {
+				throw new TypeError(chrome.i18n.getMessage("settingsInvalidNumberNull", "rule") + "<span>" + at + "</span>");
+			}
+
+			if (level.rule < 0 || level.rule > 3) {
+				throw new RangeError(chrome.i18n.getMessage("settingsInvalidRangeNull", "rule") + "<span>" + at + "</span>");
+			}
+		}
+	}
+
+	if (isRules) {
+		if (level.rules !== undefined) {
+			throw new SyntaxError(chrome.i18n.getMessage("settingsInvalidLevel", "rules") + "<span>" + at + "</span>");
+		}
+	}
+	else {
+		if (typeof level.rules !== "object") {
+			throw new TypeError(chrome.i18n.getMessage("settingsInvalidObject", "rules") + "<span>" + at + "</span>");
+		}
+
+		if (typeof level.rules.urls !== "object") {
+			throw new TypeError(chrome.i18n.getMessage("settingsInvalidObject", "urls") + "<span>" + chrome.i18n.getMessage("settingsInvalidUnder", "rules") + "<br>" + at + "</span>");
+		}
+
+		Object.entries(level.rules.urls).forEach(function (object) {
+			validate(object[1], true, object[0] + "<br>" + chrome.i18n.getMessage("settingsInvalidUnder", "urls") + "<br>" + chrome.i18n.getMessage("settingsInvalidUnder", "rules") + "<br>" + at);
+		});
+	}
+
+	if (typeof level.urls !== "object") {
+		throw new TypeError(chrome.i18n.getMessage("settingsInvalidObject", "urls") + "<span>" + at + "</span>");
+	}
+
+	Object.entries(level.urls).forEach(function (object) {
+		validate(object[1], isRules, object[0] + "<br>" + chrome.i18n.getMessage("settingsInvalidUnder", "urls") + "<br>" + at);
+	});
+}
+
+/**
  * @brief Translate and attach events
  *
  * This will translate the page and attach the events to the nodes.
@@ -548,10 +624,32 @@ document.addEventListener("DOMContentLoaded", function () {
 			case "i":
 				button.addEventListener("click", function () {
 					try {
-						JSON.parse(document.getElementById("text").value);
+						const prefs = JSON.parse(document.getElementById("text").value);
+
+						// extra checks not made by generic validation
+						if (typeof prefs.private !== "number") {
+							throw new TypeError(chrome.i18n.getMessage("settingsInvalidNumber", "private") + "<span>" + chrome.i18n.getMessage("settingsInvalidUnder", "root") + "</span>");
+						}
+
+						if (prefs.private < 0 || prefs.private > 3) {
+							throw new RangeError(chrome.i18n.getMessage("settingsInvalidRange", "private") + "<span>" + chrome.i18n.getMessage("settingsInvalidUnder", "root") + "</span>");
+						}
+
+						if (typeof prefs.rule !== "number") {
+							throw new TypeError(chrome.i18n.getMessage("settingsInvalidNumber", "rule") + "<span>" + chrome.i18n.getMessage("settingsInvalidUnder", "root") + "</span>");
+						}
+
+						if (prefs.rule === null) {
+							throw new TypeError(chrome.i18n.getMessage("settingsInvalidRange", "rule") + "<span>" + chrome.i18n.getMessage("settingsInvalidUnder", "root") + "</span>");
+						}
+
+						// validate preferences
+						validate(prefs, false, "root");
+						// will only be reached if no errors occured
+						preferences = prefs;
 					}
 					catch (error) {
-						alert(error.message);
+						showAlert(chrome.i18n.getMessage("settingsInvalidPrefs"), error.message);
 						return;
 					}
 
@@ -563,7 +661,11 @@ document.addEventListener("DOMContentLoaded", function () {
 					showPreferences();
 				});
 				break;
-			default: break;
+			default:
+				button.addEventListener("click", function () {
+					document.getElementById("alertbox").className = "";
+				});
+				break;
 		}
 	});
 });
