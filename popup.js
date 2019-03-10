@@ -181,8 +181,8 @@ function buildList(frameid) {
 		frame = tabInfo.frames[frameid];
 	}
 
-	Object.entries(frame.scripts).forEach(function (domain) {
-		Object.entries(domain[1]).forEach(function (subdomain) {
+	Object.entries(frame.scripts).forEach((domain) => {
+		Object.entries(domain[1]).forEach((subdomain) => {
 			const elemHost      = nodeHost.cloneNode(false);
 			const elemCheckbox  = nodeCheckbox.cloneNode(false);
 			const elemWebsocket = nodeWebsocket.cloneNode(false);
@@ -229,7 +229,7 @@ function buildList(frameid) {
 
 			// populate scripts list
 			// script can be a websocket or frame
-			subdomain[1].forEach(function (script) {
+			subdomain[1].forEach((script) => {
 				if (!script.blocked) {
 					elemCheckbox.checked = true;
 					// remove blocked class
@@ -305,11 +305,11 @@ function buildList(frameid) {
  *
  * @param tabs [Array] Contains info about the current tab
  */
-chrome.tabs.query({currentWindow: true, active: true}, function (tabs) {
+chrome.tabs.query({currentWindow: true, active: true}, (tabs) => {
 	chrome.runtime.sendMessage({
 		type: 0, // tab info request
 		tabid: tabs[0].id
-	}, function (tab) {
+	}, (tab) => {
 		// not an http(s) page
 		if (typeof tab === "string") {
 			let msg;
@@ -398,12 +398,12 @@ function enableListeners() {
 
 	document.getElementById("cancel").addEventListener("click", closeFramePolicy);
 
-	document.getElementById("preferences").addEventListener("click", function () {
+	document.getElementById("preferences").addEventListener("click", () => {
 		chrome.runtime.openOptionsPage();
 	});
 
 	// allow once
-	document.getElementById("allowonce").addEventListener("click", function () {
+	document.getElementById("allowonce").addEventListener("click", () => {
 		chrome.runtime.sendMessage({
 			type: 4,
 			tabId: tabInfo.tabid,
@@ -411,16 +411,16 @@ function enableListeners() {
 		});
 	});
 
-	document.querySelectorAll("input").forEach(function (input) {
+	document.querySelectorAll("input").forEach((input) => {
 		if (input.name === "scope") {
-			input.addEventListener("change", function (e) {
+			input.addEventListener("change", (e) => {
 				const form = e.target.form;
 				form.className = scopeList[Number(e.target.value)] + " " + form.className.split(" ")[1];
 			});
 			return;
 		}
 
-		input.addEventListener("change", function (e) {
+		input.addEventListener("change", (e) => {
 			const form = e.target.form;
 			const scope = Number(form.elements.scope.value);
 			const policy = Number(e.target.value);
@@ -431,7 +431,7 @@ function enableListeners() {
 
 			// change all inputs to checked (allowed) or unchecked (blocked)
 			if (policy === 0 || policy === 3) {
-				document.querySelectorAll("#f" + frameid + "> .script > input").forEach(function (checkbox) {
+				document.querySelectorAll("#f" + frameid + "> .script > input").forEach((checkbox) => {
 					checkbox.checked = !policy;
 				});
 
@@ -444,8 +444,8 @@ function enableListeners() {
 				tabid: tabInfo.tabid,
 				policy: policy,
 				frameid: frameid
-			}, function (msg) {
-				msg.scripts.forEach(function (domain) {
+			}, (msg) => {
+				msg.scripts.forEach((domain) => {
 					document.getElementById(domain.name).checked = !domain.blocked;
 				});
 			});
@@ -458,11 +458,11 @@ function enableListeners() {
  *
  * This will translate the page and attach the events to the nodes.
  */
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", () => {
 	const template = document.body.innerHTML;
 
 	// translate the page
-	document.body.innerHTML = template.replace(/__MSG_(\w+)__/g, function (a, b) {
+	document.body.innerHTML = template.replace(/__MSG_(\w+)__/g, (a, b) => {
 		return chrome.i18n.getMessage(b);
 	});
 

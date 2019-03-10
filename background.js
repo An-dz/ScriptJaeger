@@ -110,7 +110,7 @@ function defaultPreferencesLoaded() {
  *
  * @param notification [String] An ID of the clicked notification
  */
-chrome.notifications.onClicked.addListener(function (notification) {
+chrome.notifications.onClicked.addListener((notification) => {
 	chrome.tabs.create({
 		url: "https://github.com/An-dz/ScriptJaeger/releases"
 	});
@@ -590,7 +590,7 @@ chrome.windows.onCreated.addListener(createPrivatePrefs);
  *
  * @param windowid [Number] ID of the closed window
  */
-chrome.windows.onRemoved.addListener(function (windowid) {
+chrome.windows.onRemoved.addListener((windowid) => {
 	if (privatum.windows[windowid] === true) {
 		delete privatum.windows[windowid];
 		privatum.windows.length--;
@@ -699,7 +699,7 @@ function removeTab(tabid, allowonce) {
  *
  * @param tabid [Number] ID of the tab being closed
  */
-chrome.tabs.onRemoved.addListener(function (tabid) {
+chrome.tabs.onRemoved.addListener((tabid) => {
 	removeTab(tabid, false);
 });
 
@@ -711,15 +711,15 @@ chrome.tabs.onRemoved.addListener(function (tabid) {
  */
 function getTabsAndWindows() {
 	// check if private preferences must be created
-	chrome.windows.getAll({populate: false}, function (windows) {
-		windows.forEach(function (details) {
+	chrome.windows.getAll({populate: false}, (windows) => {
+		windows.forEach((details) => {
 			createPrivatePrefs(details);
 		});
 	});
 
 	// get info and rules about open tabs
-	chrome.tabs.query({}, function (tabs) {
-		tabs.forEach(function (tab) {
+	chrome.tabs.query({}, (tabs) => {
+		tabs.forEach((tab) => {
 			addTab(tab);
 		});
 	});
@@ -809,7 +809,7 @@ function loadDefaultPreferences() {
  *
  * @note This is fired on load
  */
-chrome.storage.local.get(function (pref) {
+chrome.storage.local.get((pref) => {
 	// not first run and already converted, just load prefs
 	if (pref.preferences) {
 		preferences = pref.preferences;
@@ -840,7 +840,7 @@ chrome.storage.local.get(function (pref) {
  *
  * Based on https://github.com/Christoph142/Pin-Sites/
  */
-chrome.tabs.onReplaced.addListener(function (newId, oldId) {
+chrome.tabs.onReplaced.addListener((newId, oldId) => {
 	// console.log("@tabs.onReplaced,", oldId, "replaced by", newId);
 
 	if (newId === oldId || tabStorage[oldId] === undefined) {
@@ -864,7 +864,7 @@ chrome.tabs.onReplaced.addListener(function (newId, oldId) {
  *
  * @param details [Object] of the navigation
  */
-chrome.webNavigation.onBeforeNavigate.addListener(function (details) {
+chrome.webNavigation.onBeforeNavigate.addListener((details) => {
 	// console.log("############### onBeforeNavigate ###############\n", details);
 	const tabid = details.tabId;
 	const frameid = details.frameId;
@@ -915,7 +915,7 @@ chrome.webNavigation.onBeforeNavigate.addListener(function (details) {
  * @param changeInfo [Object] changes to the state of the tab that was updated
  * @param tab        [Object] details about the tab
  */
-chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 	if (changeInfo.status === "loading") {
 		// console.log("@tabs.onUpdated, Loading status fired", tabId, changeInfo, tab);
 
@@ -1241,7 +1241,7 @@ chrome.webRequest.onBeforeRequest.addListener(
  *   - tabid   [Number] id of the requested tab
  *   - frameid [Number] id of frame that had its policy changed
  */
-chrome.runtime.onMessage.addListener(function (msg, src, answer) {
+chrome.runtime.onMessage.addListener((msg, src, answer) => {
 	// console.log("@@@@@@@@@@@@@@@ Message Received @@@@@@@@@@@@@@@\n", msg);
 
 	// tab data request
@@ -1280,8 +1280,8 @@ chrome.runtime.onMessage.addListener(function (msg, src, answer) {
 			frame = frame.frames[msg.frameid];
 		}
 
-		Object.entries(frame.scripts).forEach(function (domain) {
-			Object.keys(domain[1]).forEach(function (subdomain) {
+		Object.entries(frame.scripts).forEach((domain) => {
+			Object.keys(domain[1]).forEach((subdomain) => {
 				scriptslist.push({
 					name: subdomain + domain[0] + msg.frameid,
 					blocked: isScriptAllowed(frame, {domain: domain[0], subdomain: subdomain}, msg.policy)

@@ -64,7 +64,7 @@ function saveAndAlertBackground() {
 	clearTimeout(window.saveDelay);
 
 	// enable if received true, keep true if received false
-	window.saveDelay = setTimeout(function () {
+	window.saveDelay = setTimeout(() => {
 		// send message to background
 		chrome.runtime.sendMessage({
 			type: 3, // alert of preferences changes
@@ -121,7 +121,7 @@ function openRuleSelector(e) {
 	}
 
 	// highlight selected
-	dropdown.querySelectorAll("input").forEach(function (n) {
+	dropdown.querySelectorAll("input").forEach((n) => {
 		n.removeAttribute("checked");
 	});
 
@@ -154,7 +154,7 @@ function toggleSubLevel(e) {
 	}
 	else {
 		li.removeAttribute("class");
-		li.querySelectorAll("li.show").forEach(function (node) {
+		li.querySelectorAll("li.show").forEach((node) => {
 			node.removeAttribute("class");
 		});
 	}
@@ -363,7 +363,7 @@ const htmldata = [
  * @note Sorting must be done beforehand
  */
 function fillList(rules, node, urls) {
-	rules.forEach(function (item) {
+	rules.forEach((item) => {
 		// main container node to add item info
 		const li  = document.createElement("li");
 		const div = document.createElement("div");
@@ -372,7 +372,7 @@ function fillList(rules, node, urls) {
 		// name to be printed
 		let siteName = "";
 		urls.push(item[0]);
-		urls.forEach(function (url, index) {
+		urls.forEach((url, index) => {
 			if (url === null) {
 				return;
 			}
@@ -502,7 +502,7 @@ function showPreferences() {
  *
  * @note Runs immediately on page load
  */
-chrome.storage.local.get(function (pref) {
+chrome.storage.local.get((pref) => {
 	preferences = pref.preferences;
 	showPreferences();
 });
@@ -512,7 +512,7 @@ chrome.storage.local.get(function (pref) {
  *
  * Hides the rule selector when you click anywhere on the page
  */
-document.addEventListener("click", function () {
+document.addEventListener("click", () => {
 	document.getElementById("dropdown").className = "";
 }, true);
 
@@ -563,7 +563,7 @@ function validate(level, isRules, at) {
 			throw new TypeError(chrome.i18n.getMessage("settingsInvalidObject", "urls") + "<span>" + chrome.i18n.getMessage("settingsInvalidUnder", "rules") + "<br>" + at + "</span>");
 		}
 
-		Object.entries(level.rules.urls).forEach(function (object) {
+		Object.entries(level.rules.urls).forEach((object) => {
 			validate(object[1], true, object[0] + "<br>" + chrome.i18n.getMessage("settingsInvalidUnder", "urls") + "<br>" + chrome.i18n.getMessage("settingsInvalidUnder", "rules") + "<br>" + at);
 		});
 	}
@@ -572,7 +572,7 @@ function validate(level, isRules, at) {
 		throw new TypeError(chrome.i18n.getMessage("settingsInvalidObject", "urls") + "<span>" + at + "</span>");
 	}
 
-	Object.entries(level.urls).forEach(function (object) {
+	Object.entries(level.urls).forEach((object) => {
 		validate(object[1], isRules, object[0] + "<br>" + chrome.i18n.getMessage("settingsInvalidUnder", "urls") + "<br>" + at);
 	});
 }
@@ -582,18 +582,18 @@ function validate(level, isRules, at) {
  *
  * This will translate the page and attach the events to the nodes.
  */
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", () => {
 	// translate
 	document.title = chrome.i18n.getMessage("settingsTitle");
 
 	const template = document.body.innerHTML;
 
-	document.body.innerHTML = template.replace(/__MSG_(\w+)__/g, function (a, b) {
+	document.body.innerHTML = template.replace(/__MSG_(\w+)__/g, (a, b) => {
 		return chrome.i18n.getMessage(b);
 	});
 
 	// add event listeners into the first two preferences
-	document.querySelectorAll("input").forEach(function (input) {
+	document.querySelectorAll("input").forEach((input) => {
 		if (input.id) {
 			input.addEventListener("change", changeRule);
 		}
@@ -605,10 +605,10 @@ document.addEventListener("DOMContentLoaded", function () {
 	/*
 	 * Events for preferences management buttons
 	 */
-	document.querySelectorAll("button").forEach(function (button) {
+	document.querySelectorAll("button").forEach((button) => {
 		switch (button.name) {
 			case "r":
-				button.addEventListener("click", function () {
+				button.addEventListener("click", () => {
 					const script = document.createElement("script");
 					script.src = "default-prefs.js";
 					script.type = "text/javascript";
@@ -617,12 +617,12 @@ document.addEventListener("DOMContentLoaded", function () {
 				});
 				break;
 			case "e":
-				button.addEventListener("click", function () {
+				button.addEventListener("click", () => {
 					document.getElementById("text").value = JSON.stringify(preferences, null, "  ");
 				});
 				break;
 			case "i":
-				button.addEventListener("click", function () {
+				button.addEventListener("click", () => {
 					try {
 						const prefs = JSON.parse(document.getElementById("text").value);
 
@@ -662,7 +662,7 @@ document.addEventListener("DOMContentLoaded", function () {
 				});
 				break;
 			default:
-				button.addEventListener("click", function () {
+				button.addEventListener("click", () => {
 					document.getElementById("alertbox").className = "";
 				});
 				break;
