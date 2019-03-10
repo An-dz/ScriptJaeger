@@ -61,6 +61,18 @@ preferences = {
 			},
 			urls: {}
 		},
+		"fandom.com": {
+			rule: null,
+			rules: {
+				urls: {
+					"nocookie.net": {
+						rule: false,
+						urls: {}
+					}
+				}
+			},
+			urls: {}
+		},
 		"jsfiddle.net": {
 			rule: null,
 			rules: {
