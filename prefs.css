@@ -191,7 +191,7 @@ li ul {
 	opacity: 0;
 	float: right;
 	background-color: var(--colorBgDarker);
-	background-image: url("images/closebutton.svg");
+	background-image: url("images/delete.svg") !important;
 	border-radius: 100%;
 	border: none;
 	height: 19px;

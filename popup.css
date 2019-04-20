@@ -231,7 +231,7 @@ input:checked + .jslist {
 	box-shadow: 0 0 10px #666;
 }
 #cancel {
-	background: url(images/closebutton.svg) center/20px var(--colorFg);
+	background: url(images/delete.svg) center/20px var(--colorFg);
 	border-radius: 200px;
 	width: 24px;
 	height: 24px;
