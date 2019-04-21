@@ -523,57 +523,138 @@ document.addEventListener("click", () => {
  * contains a 'rule' key. Validation is recursive and checks the
  * entire object.
  *
- * @note Unknown keys are ignored
+ * @note Unknown keys are deleted
  *
- * @param level   [Object]  The level in the object to validate
- * @param isRules [Boolean] If the level is a blacklist
- * @param at      [String]  String identifying the level
+ * @note Full validation check if the whole object is a valid
+ * preferences object, it will raise errors if any object is missing.
+ * Partial only checks if the values are correct and ignores if some
+ * keys are missing, this check is for validating merging operations.
+ *
+ * @param[in] this    [Object]  The level in the object to validate
+ * @param[in] isFull  [Boolean] If validation is full or partial
+ * @param[in] isRules [Boolean] If the level is a blacklist
+ * @param[in] at      [String]  String identifying the level
+ *
+ * @param[out] warn   [Array]   Array that will contain warnings
  */
-function validate(level, isRules, at) {
+function validate(isFull, isRules, at, warn) {
+	// message containing current location in case of any error
 	at = chrome.i18n.getMessage("settingsInvalidUnder", at);
 
-	if (level.rule !== null) {
-		if (isRules) {
-			if (typeof level.rule !== "boolean") {
-				throw new TypeError(chrome.i18n.getMessage("settingsInvalidBooleanNull", "rule") + "<span>" + at + "</span>");
-			}
+	// this check is to ensure that first all necessary entries exist
+	if (isFull) {
+		if (this.rule === undefined) {
+			throw new TypeError(chrome.i18n.getMessage("settingsInvalidBooleanNull", "rule") + "<span>" + at + "</span>");
 		}
-		else {
-			if (typeof level.rule !== "number") {
+
+		if (this.urls === undefined) {
+			throw new TypeError(chrome.i18n.getMessage("settingsInvalidObject", "urls") + "<span>" + at + "</span>");
+		}
+
+		if (!isRules && this.rules === undefined) {
+			throw new TypeError(chrome.i18n.getMessage("settingsInvalidObject", "rules") + "<span>" + at + "</span>");
+		}
+	}
+
+	// validate each entry
+	Object.entries(this).forEach((entry) => {
+		const key   = entry[0];
+		const value = entry[1];
+
+		if (key === "rule") {
+			// if rule is null then it's correct, otherwise more checks are necessary
+			if (value === null) {
+				return;
+			}
+
+			// blacklist (rules key) uses boolean
+			if (isRules) {
+				if (typeof value !== "boolean") {
+					throw new TypeError(chrome.i18n.getMessage("settingsInvalidBooleanNull", "rule") + "<span>" + at + "</span>");
+				}
+
+				return;
+			}
+
+			// policy uses a number
+			if (typeof value !== "number") {
 				throw new TypeError(chrome.i18n.getMessage("settingsInvalidNumberNull", "rule") + "<span>" + at + "</span>");
 			}
 
-			if (level.rule < 0 || level.rule > 3) {
+			if (value < 0 || value > 3) {
 				throw new RangeError(chrome.i18n.getMessage("settingsInvalidRangeNull", "rule") + "<span>" + at + "</span>");
 			}
-		}
-	}
 
-	if (isRules) {
-		if (level.rules !== undefined) {
-			throw new SyntaxError(chrome.i18n.getMessage("settingsInvalidLevel", "rules") + "<span>" + at + "</span>");
-		}
-	}
-	else {
-		if (typeof level.rules !== "object") {
-			throw new TypeError(chrome.i18n.getMessage("settingsInvalidObject", "rules") + "<span>" + at + "</span>");
+			return;
 		}
 
-		if (typeof level.rules.urls !== "object") {
-			throw new TypeError(chrome.i18n.getMessage("settingsInvalidObject", "urls") + "<span>" + chrome.i18n.getMessage("settingsInvalidUnder", "rules") + "<br>" + at + "</span>");
+		if (key === "rules") {
+			if (isRules) {
+				// blacklist (rules key) doesn't contain rules subkeys, might be a typo
+				throw new SyntaxError(chrome.i18n.getMessage("settingsInvalidLevel", "rules") + "<span>" + at + "</span>");
+			}
+
+			// policy objects must contain a rules key/object
+			if (typeof value !== "object") {
+				throw new TypeError(chrome.i18n.getMessage("settingsInvalidObject", "rules") + "<span>" + at + "</span>");
+			}
+
+			// rules key/object must contain a urls key/object
+			if (typeof value.urls !== "object") {
+				throw new TypeError(chrome.i18n.getMessage("settingsInvalidObject", "urls") + "<span>" + chrome.i18n.getMessage("settingsInvalidUnder", "rules") + "<br>" + at + "</span>");
+			}
+
+			// validate the children rules
+			Object.entries(value.urls).forEach((object) => {
+				validate.call(
+					object[1],
+					isFull,
+					true,
+					object[0] + "<br>" + chrome.i18n.getMessage("settingsInvalidUnder", "urls") + "<br>" + chrome.i18n.getMessage("settingsInvalidUnder", "rules") + "<br>" + at,
+					warn
+				);
+			});
+
+			return;
 		}
 
-		Object.entries(level.rules.urls).forEach((object) => {
-			validate(object[1], true, object[0] + "<br>" + chrome.i18n.getMessage("settingsInvalidUnder", "urls") + "<br>" + chrome.i18n.getMessage("settingsInvalidUnder", "rules") + "<br>" + at);
-		});
-	}
+		if (key === "urls") {
+			// all policy and blacklist objects must contain a urls key/object
+			if (typeof value !== "object") {
+				throw new TypeError(chrome.i18n.getMessage("settingsInvalidObject", "urls") + "<span>" + at + "</span>");
+			}
 
-	if (typeof level.urls !== "object") {
-		throw new TypeError(chrome.i18n.getMessage("settingsInvalidObject", "urls") + "<span>" + at + "</span>");
-	}
+			// validate children
+			Object.entries(value).forEach((object) => {
+				validate.call(
+					object[1],
+					isFull,
+					isRules,
+					object[0] + "<br>" + chrome.i18n.getMessage("settingsInvalidUnder", "urls") + "<br>" + at,
+					warn
+				);
+			});
 
-	Object.entries(level.urls).forEach((object) => {
-		validate(object[1], isRules, object[0] + "<br>" + chrome.i18n.getMessage("settingsInvalidUnder", "urls") + "<br>" + at);
+			return;
+		}
+
+		if (key === "delete") {
+			if (isFull) {
+				throw new SyntaxError(chrome.i18n.getMessage("settingsInvalidDelete", "delete") + "<span>" + at + "</span>");
+			}
+
+			if (value !== true) {
+				throw new TypeError(chrome.i18n.getMessage("settingsInvalidValue", ["delete", "true"]) + "<span>" + at + "</span>");
+			}
+
+			return;
+		}
+
+		// private key is only used in root, root doesn't have <br>
+		if (key !== "private" || at.indexOf("<br>") > -1) {
+			warn.push(chrome.i18n.getMessage("settingsWarningText", key) + "<span>" + at + "</span>");
+			delete this[key];
+		}
 	});
 }
 
@@ -626,6 +707,10 @@ document.addEventListener("DOMContentLoaded", () => {
 					try {
 						const prefs = JSON.parse(document.getElementById("text").value);
 
+						if (typeof prefs !== "object") {
+							throw new TypeError(chrome.i18n.getMessage("settingsInvalidData"));
+						}
+
 						// extra checks not made by generic validation
 						if (typeof prefs.private !== "number") {
 							throw new TypeError(chrome.i18n.getMessage("settingsInvalidNumber", "private") + "<span>" + chrome.i18n.getMessage("settingsInvalidUnder", "root") + "</span>");
@@ -639,14 +724,16 @@ document.addEventListener("DOMContentLoaded", () => {
 							throw new TypeError(chrome.i18n.getMessage("settingsInvalidNumber", "rule") + "<span>" + chrome.i18n.getMessage("settingsInvalidUnder", "root") + "</span>");
 						}
 
-						if (prefs.rule === null) {
-							throw new TypeError(chrome.i18n.getMessage("settingsInvalidRange", "rule") + "<span>" + chrome.i18n.getMessage("settingsInvalidUnder", "root") + "</span>");
-						}
+						const warn = [];
 
 						// validate preferences
-						validate(prefs, false, "root");
+						validate.call(prefs, true, false, "root", warn);
 						// will only be reached if no errors occured
 						preferences = prefs;
+
+						if (warn.length > 0) {
+							showAlert(chrome.i18n.getMessage("settingsWarningTitle"), warn);
+						}
 					}
 					catch (error) {
 						showAlert(chrome.i18n.getMessage("settingsInvalidPrefs"), error.message);

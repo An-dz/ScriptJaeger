@@ -143,41 +143,61 @@
 		"message": "ScriptJäger Settings",
 		"description": "Page/tab title. Keep consistent with tooltipSettings"
 	},
+	"settingsWarningTitle": {
+		"message": "Unknown Keys Ignored",
+		"description": "Title for alert box warning user that some of the keys in the imported file were ignored. Key can also be translated as Parameter."
+	},
+	"settingsWarningText": {
+		"message": "Key '$1' is useless and was not imported",
+		"description": "When a key from an imported file is found to be useless it's entirely ignored by the imported and so won't make into the final imported preferences. Key can also be translated as Parameter."
+	},
 	"settingsInvalidPrefs": {
 		"message": "Invalid Preferences Object",
 		"description": "Title for an alert box telling the preferences file being imported is invalid"
 	},
+	"settingsInvalidData": {
+		"message": "The data you are trying to import is invalid. Preferences from versions before 1.0.0 can't be imported.",
+		"description": "tells the user the data is not valid and also alerts that preferences from older versions are unsupported"
+	},
+	"settingsInvalidDelete": {
+		"message": "'$1' key should not exist in your preferences file, remove it to prevent possible data loss.",
+		"description": "Some keys should not exist in some places and their existence may lead to catastrophic data loss of the preferences. Key can also be translated as Parameter."
+	},
 	"settingsInvalidLevel": {
 		"message": "'$1' key should not be at this level",
-		"description": "tells the user the key should not be there"
+		"description": "tells the user the key should not be there. Key can also be translated as Parameter."
 	},
 	"settingsInvalidObject": {
 		"message": "'$1' key is not an Object",
-		"description": "tells the user the key is not a JavaScript Object"
+		"description": "tells the user the key is not a JavaScript Object. Key can also be translated as Parameter."
 	},
 	"settingsInvalidNumber": {
 		"message": "'$1' key is not a Number",
-		"description": "tells the user the key is not a JavaScript Number"
+		"description": "tells the user the key is not a JavaScript Number. Key can also be translated as Parameter."
 	},
 	"settingsInvalidNumberNull": {
 		"message": "'$1' key is not a Number or null",
-		"description": "tells the user the key is not a JavaScript Number or its value is null, don't translate null"
+		"description": "tells the user the key is not a JavaScript Number or its value is null, don't translate null. Key can also be translated as Parameter."
 	},
 	"settingsInvalidBooleanNull": {
 		"message": "'$1' key is not a Boolean or null",
-		"description": "tells the user the key is not a JavaScript Boolean or its value is null, don't translate null"
+		"description": "tells the user the key is not a JavaScript Boolean or its value is null, don't translate null. Key can also be translated as Parameter."
 	},
 	"settingsInvalidRange": {
 		"message": "'$1' key is not under the range 0-3",
-		"description": "tells the user the key value is not between 0 and 3"
+		"description": "tells the user the key value is not between 0 and 3. Key can also be translated as Parameter."
 	},
 	"settingsInvalidRangeNull": {
 		"message": "'$1' key is not under the range 0-3 or null",
-		"description": "tells the user the key value is not between 0 and 3 or its value is null, don't translate null"
+		"description": "tells the user the key value is not between 0 and 3 or its value is null, don't translate null. Key can also be translated as Parameter."
 	},
 	"settingsInvalidUnder": {
 		"message": "under $1",
 		"description": "Tells under which level the problem is, $1 is replaced with key name"
+	},
+	"settingsInvalidValue": {
+		"message": "'$1' key must have a value of '$2'",
+		"description": "Tells that a value can only be a specific one. Key can also be translated as Parameter."
 	},
 	"buttonOk": {
 		"message": "OK",
