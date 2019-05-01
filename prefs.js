@@ -234,7 +234,7 @@ function deleteRule(e) {
 		// if no more ul nodes exist we can remove the clicking event
 		if (!liP.querySelector("ul")) {
 			liP.removeAttribute("class");
-			const divP = liP.firstChild;
+			const divP = liP.firstElementChild;
 			divP.removeAttribute("class");
 			divP.removeEventListener("click", toggleSubLevel);
 		}
@@ -436,6 +436,7 @@ function fillList(rules, node, urls) {
 				// add the sub-list into the main container
 				li.appendChild(ul);
 				div.className = "pointer";
+				div.tabIndex = 0;
 				div.addEventListener("click", toggleSubLevel);
 
 				// remove the null urls added before
@@ -463,6 +464,7 @@ function fillList(rules, node, urls) {
 			// add the sub-list into the main container
 			li.appendChild(ul);
 			div.className = "pointer";
+			div.tabIndex = 0;
 			div.addEventListener("click", toggleSubLevel);
 		}
 
