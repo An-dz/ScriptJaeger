@@ -1198,6 +1198,28 @@ chrome.webRequest.onBeforeRequest.addListener(
 	["blocking"]
 );
 
+/**
+ * @brief Redirect http://ScriptJäger urls to preferences merging
+ *
+ * Gets URLs that match `https?://ScriptJ(ä|ae)ger/.*` and redirects
+ * them to the preferences page for merging preferences.
+ *
+ * The snippet to be merged is added as the path of the URL.
+ *
+ * This redirection allows sharing preferences between any browser.
+ */
+chrome.webRequest.onBeforeRequest.addListener(
+	(details) => {
+		const url = chrome.runtime.getURL("prefs.html") + "?" + details.urls.substring(details.urls.search(/\w\//) + 2);
+		return {redirectUrl: url};
+	},
+	{
+		urls: ["http://ScriptJäger/*", "http://ScriptJaeger/*", "https://ScriptJäger/*", "https://ScriptJaeger/*"],
+		types: ["main_frame"]
+	},
+	["blocking"]
+);
+
 // =========================================================================
 
 /**

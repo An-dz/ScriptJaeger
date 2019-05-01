@@ -38,6 +38,10 @@
 		"default_popup": "popup.html"
 	},
 
+	"web_accessible_resources": [
+		"prefs.html"
+	],
+
 	"permissions": [
 		"alarms",
 		"notifications",

@@ -124,6 +124,7 @@ li ul {
 	margin-right: 10px;
 	vertical-align: middle;
 	width: 22px;
+	height: 100%;
 	transition: transform 200ms ease;
 }
 a:focus,
@@ -304,9 +305,36 @@ textarea:focus {
 #alertbox h3 {
 	margin-top: 0;
 }
-#alertbox span {
+#alertbox p {
+	max-height: 40vh;
+	overflow: auto;
+}
+#alertbox p span {
 	display: block;
 	padding-left: 20px;
+}
+#alertbox .rule-box {
+	height: auto;
+	max-height: 40vh;
+}
+#alertbox .rule-box label {
+	padding: 5px 10px;
+	cursor: pointer;
+}
+#alertbox .rule-box label input {
+	cursor: pointer;
+	height: 22px;
+	margin: 0 10px;
+}
+#alertbox .rule-box li ul {
+	display: block;
+}
+#alertbox label span {
+	cursor: pointer;
+	flex: 1;
+}
+#alertbox button:last-child {
+	margin: 0 10px;
 }
 .visible {
 	visibility: visible !important;

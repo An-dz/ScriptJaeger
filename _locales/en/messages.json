@@ -151,6 +151,18 @@
 		"message": "ScriptJäger Settings",
 		"description": "Page/tab title. Keep consistent with tooltipSettings"
 	},
+	"settingsMergeTitle": {
+		"message": "Merge Preferences",
+		"description": "Title for the popup that allows merging preferences"
+	},
+	"settingsMergeMsg": {
+		"message": "Verify below what will change in your preferences. You can also choose to not apply some of the changes by ticking the checkboxes.",
+		"description": "Text in popup explaining what merging preferences mean."
+	},
+	"settingsMergeFailMsg": {
+		"message": "There's nothing to merge, your preferences already match what you are trying to merge.",
+		"description": "Sometimes nothing can be merged so we tell the user about that."
+	},
 	"settingsWarningTitle": {
 		"message": "Unknown Keys Ignored",
 		"description": "Title for alert box warning user that some of the keys in the imported file were ignored. Key can also be translated as Parameter."
