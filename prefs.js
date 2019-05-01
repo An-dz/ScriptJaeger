@@ -692,11 +692,18 @@ document.addEventListener("DOMContentLoaded", () => {
 		switch (button.name) {
 			case "r":
 				button.addEventListener("click", () => {
-					const script = document.createElement("script");
-					script.src = "default-prefs.js";
-					script.type = "text/javascript";
-					script.id = "default";
-					document.head.appendChild(script);
+					const handle = () => {
+						document.querySelector("#alertbox button").removeEventListener("click", handle, false);
+
+						const script = document.createElement("script");
+						script.src = "default-prefs.js";
+						script.type = "text/javascript";
+						script.id = "default";
+						document.head.appendChild(script);
+					};
+
+					document.querySelector("#alertbox button").addEventListener("click", handle);
+					showAlert(chrome.i18n.getMessage("settingsManageResetTitle"), chrome.i18n.getMessage("settingsManageResetText"), true);
 				});
 				break;
 			case "e":

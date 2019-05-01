@@ -116,8 +116,16 @@
 		"description": "Button tooltip."
 	},
 	"settingsManageResetTooltip": {
-		"message": "There's no confirmation dialogue and no going back! Export your settings if you want them!",
+		"message": "Reset preferences to default",
 		"description": "Button tooltip."
+	},
+	"settingsManageResetTitle": {
+		"message": "Reset Preferences",
+		"description": "Title for the reset preferences confirmation dialogue."
+	},
+	"settingsManageResetText": {
+		"message": "Are you sure you want to reset preferences to the default? There's no going back! Export your settings if you want them!",
+		"description": "Reset preferences confirmation dialogue."
 	},
 	"settingsManageImportTooltip": {
 		"message": "Paste your old settings in the text area and then press this button.",
