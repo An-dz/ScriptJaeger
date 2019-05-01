@@ -205,7 +205,7 @@ li ul {
 	background-color: var(--colorAccentBgDark);
 }
 .delete:active {
-	background: var(--colorAccentBgDarkDark)
+	background-color: var(--colorAccentBgDarkDark)
 }
 .delete:focus {
 	border: 1px solid var(--colorBorderHighlight);
