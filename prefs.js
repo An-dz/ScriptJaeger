@@ -897,7 +897,7 @@ function buildMergeUI(node, from, to) {
  *
  * @param[in] importedRules [String] Preferences to be merged
  */
-function importPreferences(importedRules) {
+function askMergePreferences(importedRules) {
 	try {
 		importedRules = JSON.parse(importedRules);
 
@@ -984,7 +984,7 @@ function importPreferences(importedRules) {
 	};
 
 	// execute preferences merging if pressing OK
-	const okEvent = (e) => {
+	const okEvent = () => {
 
 		ul.querySelectorAll(":scope > li:not(.blacklist)").forEach((li) => {
 			removeKey(li, importedRules);
@@ -997,22 +997,69 @@ function importPreferences(importedRules) {
 		mergePreferences(importedRules.urls, preferences.urls);
 		mergePreferences(importedRules.rules.urls, preferences.rules.urls);
 
-		ul.remove();
-		history.replaceState(null, document.title, "prefs.html");
-		e.target.removeEventListener("click", okEvent);
+		document.querySelector("#alertbox button:last-child").click();
 	};
 
 	// remove query from URL if Cancel button is pressed
-	const cancelEvent = (e) => {
+	const cancelEvent = () => {
 		ul.remove();
 		history.replaceState(null, document.title, "prefs.html");
-		e.target.removeEventListener("click", cancelEvent);
+		document.querySelector("#alertbox button").removeEventListener("click", okEvent);
+		document.querySelector("#alertbox button:last-child").removeEventListener("click", cancelEvent);
 	};
 
 	document.querySelector("#alertbox button").addEventListener("click", okEvent);
 	document.querySelector("#alertbox button:last-child").addEventListener("click", cancelEvent);
 
 	showAlert(chrome.i18n.getMessage("settingsMergeTitle"), chrome.i18n.getMessage("settingsMergeMsg"), true);
+}
+
+/**
+ * @brief Replace current preferences with a new one
+ *
+ * Will try to replace the current preferences with a new one
+ * provided in the textarea of the import dialogue. The new file
+ * is validated before importing is allowed and will raise error
+ * or warning dialogues.
+ */
+function importPreferences() {
+	try {
+		const prefs = JSON.parse(document.getElementById("text").value);
+
+		if (typeof prefs !== "object") {
+			throw new TypeError(chrome.i18n.getMessage("settingsInvalidData"));
+		}
+
+		// extra checks not made by generic validation
+		if (typeof prefs.private !== "number") {
+			throw new TypeError(chrome.i18n.getMessage("settingsInvalidNumber", "private") + "<span>" + chrome.i18n.getMessage("settingsInvalidUnder", "root") + "</span>");
+		}
+
+		if (prefs.private < 0 || prefs.private > 3) {
+			throw new RangeError(chrome.i18n.getMessage("settingsInvalidRange", "private") + "<span>" + chrome.i18n.getMessage("settingsInvalidUnder", "root") + "</span>");
+		}
+
+		if (typeof prefs.rule !== "number") {
+			throw new TypeError(chrome.i18n.getMessage("settingsInvalidNumber", "rule") + "<span>" + chrome.i18n.getMessage("settingsInvalidUnder", "root") + "</span>");
+		}
+
+		const warn = [];
+
+		// validate preferences
+		validate.call(prefs, true, false, "root", warn);
+		// will only be reached if no errors occured
+		preferences = prefs;
+
+		if (warn.length > 0) {
+			showAlert(chrome.i18n.getMessage("settingsWarningTitle"), warn, false);
+		}
+	}
+	catch (error) {
+		showAlert(chrome.i18n.getMessage("settingsInvalidPrefs"), error.message, false);
+		return;
+	}
+
+	newPreferences();
 }
 
 /* ====================================================================== */
@@ -1030,7 +1077,7 @@ chrome.storage.local.get((pref) => {
 
 	// now we can try merging preferences
 	if (document.location.search.length > 0) {
-		importPreferences(decodeURIComponent(document.location.search.substring(1)));
+		askMergePreferences(decodeURIComponent(document.location.search.substring(1)));
 	}
 });
 
@@ -1076,7 +1123,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			case "r":
 				button.addEventListener("click", () => {
 					const handle = () => {
-						document.querySelector("#alertbox button").removeEventListener("click", handle, false);
+						document.querySelector("#alertbox button:last-child").click();
 
 						const script = document.createElement("script");
 						script.src = "default-prefs.js";
@@ -1085,58 +1132,51 @@ document.addEventListener("DOMContentLoaded", () => {
 						document.head.appendChild(script);
 					};
 
+					const removeHandles = () => {
+						document.querySelector("#alertbox button").removeEventListener("click", handle);
+						document.querySelector("#alertbox button:last-child").removeEventListener("click", removeHandles);
+					};
+
 					document.querySelector("#alertbox button").addEventListener("click", handle);
+					document.querySelector("#alertbox button:last-child").addEventListener("click", removeHandles);
+
 					showAlert(chrome.i18n.getMessage("settingsManageResetTitle"), chrome.i18n.getMessage("settingsManageResetText"), true);
 				});
 				break;
 			case "e":
 				button.addEventListener("click", () => {
-					document.getElementById("text").value = JSON.stringify(preferences, null, "  ");
+					const text = document.getElementById("text");
+					text.value = JSON.stringify(preferences, null, "  ");
+					text.hidden = false;
+
+					showAlert(chrome.i18n.getMessage("settingsManageExportTitle"), chrome.i18n.getMessage("settingsManageExportText"), false);
 				});
 				break;
 			case "i":
 				button.addEventListener("click", () => {
-					try {
-						const prefs = JSON.parse(document.getElementById("text").value);
+					const handle = () => {
+						importPreferences();
+						document.querySelector("#alertbox button:last-child").click();
+					};
 
-						if (typeof prefs !== "object") {
-							throw new TypeError(chrome.i18n.getMessage("settingsInvalidData"));
-						}
+					const removeHandles = () => {
+						document.querySelector("#alertbox button").removeEventListener("click", handle);
+						document.querySelector("#alertbox button:last-child").removeEventListener("click", removeHandles);
+					};
 
-						// extra checks not made by generic validation
-						if (typeof prefs.private !== "number") {
-							throw new TypeError(chrome.i18n.getMessage("settingsInvalidNumber", "private") + "<span>" + chrome.i18n.getMessage("settingsInvalidUnder", "root") + "</span>");
-						}
+					document.getElementById("text").hidden = false;
 
-						if (prefs.private < 0 || prefs.private > 3) {
-							throw new RangeError(chrome.i18n.getMessage("settingsInvalidRange", "private") + "<span>" + chrome.i18n.getMessage("settingsInvalidUnder", "root") + "</span>");
-						}
+					document.querySelector("#alertbox button").addEventListener("click", handle);
+					document.querySelector("#alertbox button:last-child").addEventListener("click", removeHandles);
 
-						if (typeof prefs.rule !== "number") {
-							throw new TypeError(chrome.i18n.getMessage("settingsInvalidNumber", "rule") + "<span>" + chrome.i18n.getMessage("settingsInvalidUnder", "root") + "</span>");
-						}
-
-						const warn = [];
-
-						// validate preferences
-						validate.call(prefs, true, false, "root", warn);
-						// will only be reached if no errors occured
-						preferences = prefs;
-
-						if (warn.length > 0) {
-							showAlert(chrome.i18n.getMessage("settingsWarningTitle"), warn, false);
-						}
-					}
-					catch (error) {
-						showAlert(chrome.i18n.getMessage("settingsInvalidPrefs"), error.message, false);
-						return;
-					}
-
-					newPreferences();
+					showAlert(chrome.i18n.getMessage("settingsManageImportTitle"), chrome.i18n.getMessage("settingsManageImportText"), true);
 				});
 				break;
 			default:
 				button.addEventListener("click", () => {
+					const text = document.getElementById("text");
+					text.hidden = true;
+					text.value = "";
 					document.getElementById("alertbox").className = "";
 				});
 				break;

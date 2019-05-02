@@ -260,19 +260,13 @@ button:active {
 	background: var(--colorBgDark);
 }
 textarea {
-	display: block;
 	border: 1px solid var(--colorBorder);
 	border-radius: var(--border);
 	background: var(--colorBgIntense);
 	color: var(--colorFg);
-	max-width: 750px;
 	width: 100%;
-	height: 50px;
-	margin-top: 20px;
-	transition: height 300ms ease;
-}
-textarea:focus {
-	height: 300px;
+	margin-bottom: 20px;
+	min-height: 7em;
 }
 #alertbox {
 	visibility: hidden;

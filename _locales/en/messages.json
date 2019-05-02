@@ -112,8 +112,16 @@
 		"description": "Button."
 	},
 	"settingsManageExportTooltip": {
-		"message": "Settings will be exported to the text area below.",
+		"message": "Export your preferences for backup or later use purposes.",
 		"description": "Button tooltip."
+	},
+	"settingsManageExportTitle": {
+		"message": "Export Preferences",
+		"description": "Title for the export preferences dialogue."
+	},
+	"settingsManageExportText": {
+		"message": "Your current preferences were exported into the text area below.",
+		"description": "Export preferences dialogue text."
 	},
 	"settingsManageResetTooltip": {
 		"message": "Reset preferences to default",
@@ -130,6 +138,14 @@
 	"settingsManageImportTooltip": {
 		"message": "Paste your old settings in the text area and then press this button.",
 		"description": "Button tooltip."
+	},
+	"settingsManageImportTitle": {
+		"message": "Import Preferences",
+		"description": "Title for the import preferences confirmation dialogue."
+	},
+	"settingsManageImportText": {
+		"message": "Paste a preferences file in the text area below and press the $1 button to import.",
+		"description": "Import preferences confirmation dialogue. $1 is replaced by the text of `buttonOk`."
 	},
 	"settingsManagePlaceholder": {
 		"message": "(Paste settings here to import)",
