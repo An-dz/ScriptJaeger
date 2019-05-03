@@ -774,6 +774,8 @@ function convertPreferences() {
 	preferences.rules.domains.forEach(convertLevel, [preferences.rules, false]);
 	delete preferences.rules.domains;
 
+	preferences.ping = false;
+
 	chrome.storage.local.clear();
 	chrome.storage.local.set({preferences: preferences});
 }
@@ -1194,6 +1196,28 @@ chrome.webRequest.onBeforeRequest.addListener(
 	{
 		urls: ["http://*/*", "https://*/*", "ws://*/*", "wss://*/*", "file://*/*"],
 		types: ["script", "sub_frame", "websocket"]
+	},
+	["blocking"]
+);
+
+/**
+ * @brief Block ping requests
+ *
+ * Block ping requests to reduce tracking.
+ *
+ * @note Ping requests are global, less branches in scriptweeder.
+ */
+chrome.webRequest.onBeforeRequest.addListener(
+	() => {
+		if (!preferences.ping) {
+			return {cancel: true};
+		}
+
+		return {cancel: false};
+	},
+	{
+		urls: ["http://*/*", "https://*/*"],
+		types: ["ping"]
 	},
 	["blocking"]
 );

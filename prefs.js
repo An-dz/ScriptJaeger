@@ -497,6 +497,7 @@ function showPreferences() {
 	// fill policy preferences
 	document.querySelector("input[name='rule'][value='" + preferences.rule + "']").checked = true;
 	document.querySelector("input[name='private'][value='" + preferences.private + "']").checked = true;
+	document.querySelector("input[type='checkbox']").checked = !preferences.ping;
 
 	// fill global blackwhitelist
 	fillList(Object.entries(preferences.rules.urls).sort(), document.getElementById("bwl"), [null, null, null]);
@@ -1106,13 +1107,18 @@ document.addEventListener("DOMContentLoaded", () => {
 	});
 
 	// add event listeners into the first two preferences
-	document.querySelectorAll("input").forEach((input) => {
+	document.querySelectorAll("input[type='radio']").forEach((input) => {
 		if (input.id) {
 			input.addEventListener("change", changeRule);
 		}
 		else {
 			input.addEventListener("change", changePolicy);
 		}
+	});
+
+	document.querySelector("input[type='checkbox']").addEventListener("change", (e) => {
+		preferences.ping = !e.target.checked;
+		saveAndAlertBackground();
 	});
 
 	/*

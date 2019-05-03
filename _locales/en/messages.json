@@ -95,6 +95,18 @@
 		"message": "Blacklisted",
 		"description": "When a rule is blacklist."
 	},
+	"settingsOthers": {
+		"message": "Other Settings",
+		"description": "Settings title."
+	},
+	"settingsPing": {
+		"message": "Disable ping",
+		"description": "Checkbox text. Ping is a W3C HTML feature, you probably don't want to translate it."
+	},
+	"settingsPingDesc": {
+		"message": "Ping is a feature used by some sites for tracking user clicks. There's no reason to actually disable this.",
+		"description": "Text below ping disabling checkbox explaining the setting."
+	},
 	"settingsManage": {
 		"message": "Settings Management",
 		"description": "Settings title. Keep consistent with tooltipSettings."

@@ -10,6 +10,7 @@
 preferences = {
 	rule: 1,
 	private: 1,
+	ping: false,
 	urls: {
 		"amazon.com": {
 			rule: null,
