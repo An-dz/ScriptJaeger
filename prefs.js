@@ -258,7 +258,7 @@ function deleteRule(e) {
  * @param e [Event] Event interface on the clicked rule
  */
 function changeRule(e) {
-	const rule = parseInt(e.target.value, 10);
+	let rule = parseInt(e.target.value, 10);
 	const dropdown = e.target.parentNode;
 
 	// rule levels
@@ -292,19 +292,17 @@ function changeRule(e) {
 		}
 	}
 
-	// save rule key
+	// -1 is for null
 	if (rule < 0) {
-		// -1 is for null
-		level.rule = null;
+		rule = null;
 	}
-	else if (!script[0]) {
-		// if it has no script url it's saving a policy
-		level.rule = rule;
+	// if it has script url it's saving a blocking rule
+	else if (script[0]) {
+		rule = Boolean(rule);
 	}
-	else {
-		// otherwise it's a blocking rule
-		level.rule = Boolean(rule);
-	}
+
+	// save rule key
+	level.rule = rule;
 
 	// change icon to reflect new rule
 	const active = document.getElementById("active");
@@ -1088,7 +1086,12 @@ chrome.storage.local.get((pref) => {
  * Hides the rule selector when you click anywhere on the page
  */
 document.addEventListener("click", () => {
-	document.getElementById("dropdown").className = "";
+	const dropdown = document.getElementById("dropdown");
+	dropdown.className = "";
+
+	for (const key in dropdown.dataset) {
+		delete dropdown.dataset[key];
+	}
 }, true);
 
 /**
