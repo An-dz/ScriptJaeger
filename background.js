@@ -637,49 +637,55 @@ function addTab(tab) {
 	// if first char not 'h' from http or https, just monitor for changes
 	if (tab.url.charCodeAt(0) !== 104) {
 		tabStorage[tab.id] = tab.url;
+		return;
 	}
-	else {
-		const tabStore = tabStorage[tab.id];
-		const site = extractUrl(tab.url);
-		site.private = tab.incognito;
 
-		// allow all once
-		if (tabStore !== undefined && tabStore.allowonce === true && tabStore.subdomain === site.subdomain && tabStore.domain === site.domain) {
-			site.policy = 0;
-			site.allowonce = true;
+	const tabStore = tabStorage[tab.id];
+	const site     = extractUrl(tab.url);
+	site.private   = tab.incognito;
+	site.window    = tab.windowId;
+	site.tabid     = tab.id;
 
-			chrome.browserAction.setBadgeText({
-				text: "T",
-				tabId: tab.id
-			});
+	const block    = getRules(site);
+	site.policy    = block.policy;
+	site.rules     = block.rules;
 
-			chrome.browserAction.setBadgeBackgroundColor({
-				color: jaegerhut[0].colour,
-				tabId: tab.id
-			});
-		}
-		else {
-			const block = getRules(site);
-			site.policy = block.policy;
-			site.rules = block.rules;
-		}
+	if (tabStore === undefined || tabStore.page === undefined) {
+		site.blocked = 0;
+		site.scripts = {};
+		site.frames  = {};
 
-		if (tabStore === undefined || tabStore.page === undefined) {
-			site.blocked = 0;
-			site.scripts = {};
-			site.frames  = {};
-		}
+		tabStorage[tab.id] = site;
+		return;
+	}
+
+	if (!tabStore.allowonce) {
 		// if page uses history.pushState the old scripts are still loaded
-		else {
-			site.blocked = tabStore.blocked;
-			site.scripts = tabStore.scripts;
-			site.frames  = tabStore.frames;
-		}
+		site.blocked = tabStore.blocked;
+		site.scripts = tabStore.scripts;
+		site.frames  = tabStore.frames;
+
+		tabStorage[tab.id] = site;
+		return;
+	}
+
+	// allow all once
+	if (tabStore.subdomain === site.subdomain && tabStore.domain === site.domain) {
+		site.policy = 0;
+		site.allowonce = true;
+
+		chrome.browserAction.setBadgeText({
+			text: "T",
+			tabId: tab.id
+		});
+
+		chrome.browserAction.setBadgeBackgroundColor({
+			color: jaegerhut[0].colour,
+			tabId: tab.id
+		});
 
 		tabStorage[tab.id] = site;
 	}
-
-	// console.log("@addTab, Monitoring tab", tab.id, "with", tabStorage[tab.id]);
 }
 
 /**
