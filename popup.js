@@ -1,29 +1,32 @@
 "use strict";
 
 /**
- * @var scopeList [Array] To translate the policy number to text
- */
-const scopeList = ["global", "domain", "site", "page"];
-
-/**
  * @var jaegerhut [Object] Badge icons, one for each policy
  */
 const jaegerhut = {
 	0: {
 		name: "allowall",
+		colour: "#D84A4A",
 		text: chrome.i18n.getMessage("policyAllowAll")
 	},
 	1: {
 		name: "relaxed",
+		colour: "#559FE6",
 		text: chrome.i18n.getMessage("policyRelaxed")
 	},
 	2: {
 		name: "filtered",
+		colour: "#73AB55",
 		text: chrome.i18n.getMessage("policyFiltered")
 	},
 	3: {
 		name: "blockall",
+		colour: "#26272A",
 		text: chrome.i18n.getMessage("policyBlockAll")
+	},
+	undefined: {
+		name: "undefined",
+		colour: "#6F7072"
 	}
 };
 
@@ -33,31 +36,42 @@ const jaegerhut = {
  */
 let tabInfo = {};
 
+/**
+ * @var port [Object] A connection Port that allows message exchanging
+ */
+let port;
+
 /*
  * Basic nodes for building the interface
  */
 const nodeHost      = document.createElement("div");
 const nodeCheckbox  = document.createElement("input");
+const nodeDetails   = document.createElement("label");
 const nodeWebsocket = document.createElement("div");
 const nodeFrames    = document.createElement("div");
 const nodeSubdomain = document.createElement("span");
 const nodeDomain    = document.createElement("span");
 const nodeNumber    = document.createElement("label");
-const nodeJS        = document.createElement("a");
+const nodeResource  = document.createElement("a");
+const nodeHostsList = document.createElement("div");
 
-nodeHost.className      = "script blocked";
+nodeHost.className      = "host blocked";
+nodeDetails.className   = "details";
 nodeWebsocket.className = "websocket";
 nodeFrames.className    = "frames";
 nodeSubdomain.className = "subdomain";
 nodeDomain.className    = "domain";
 nodeNumber.className    = "number";
-nodeJS.className        = "js";
+nodeResource.className  = "resource";
+nodeHostsList.className = "hosts";
+
+nodeHostsList.id = "f0";
 
 nodeCheckbox.type = "checkbox";
 
 nodeNumber.title = chrome.i18n.getMessage("seeResources");
 
-nodeJS.target = "_blank";
+nodeResource.target = "_blank";
 
 /**
  * @brief Set and save an exception rule for that script
@@ -66,55 +80,38 @@ nodeJS.target = "_blank";
  * This will set and save the rule according to what the
  * user has chosen.
  *
- * @param e [Event] Event interface on the clicked script
+ * @param e [Event] Event interface on the checkbox change event
  */
 function setScriptRule(e) {
-	const node = e.target.tagName;
-
-	// clicking the label for checking individual scripts should not trigger
-	if (node === "LABEL") {
-		return;
-	}
-
-	let div = e.target.parentNode;
-	// the span element is inside another span
-	if (div.tagName === "SPAN") {
-		div = div.parentNode;
-	}
-
-	const input = div.firstElementChild;
-	// not clicking over input checkbox should invert its state
-	if (node !== "INPUT") {
-		input.checked = !input.checked;
-	}
+	const input = e.target;
 
 	let info = tabInfo;
-	const frameid = Number(div.parentNode.id.substring(1));
+	const frameID = parseInt(input.dataset.frameid, 10);
 
-	if (frameid > 0) {
-		info = tabInfo.frames[frameid];
+	if (frameID > 0) {
+		info = tabInfo.frames[frameID];
 	}
 
 	const msg = {
-		type: 1,
+		type: 0,
 		private: tabInfo.private,
 		site: [],
 		rule: {}
 	};
 
-	switch (input.form.className.charCodeAt(0)) {
+	switch (parseInt(document.getElementById("settings").dataset.scope, 10)) {
 		// page
-		case 112: msg.site[2] = info.page;
+		case 3: msg.site[2] = info.page;
 		// site - fallthrough
-		case 115: msg.site[1] = info.subdomain;
+		case 2: msg.site[1] = info.subdomain;
 		// domain - fallthrough
-		case 100: msg.site[0] = info.domain;
+		case 1: msg.site[0] = info.domain;
 		// global - fallthrough
-		default: break;
+		default:
 	}
 
-	const domain = div.querySelector(".domain").textContent;
-	const subdomain = div.querySelector(".subdomain").textContent.slice(0, -1);
+	const domain = input.dataset.domain;
+	const subdomain = input.dataset.subdomain;
 
 	msg.rule[domain] = {
 		rule: null,
@@ -129,7 +126,7 @@ function setScriptRule(e) {
 	};
 
 	// The background script deals with it because the popup process will die on close
-	chrome.runtime.sendMessage(msg);
+	port.postMessage(msg);
 }
 
 /**
@@ -142,17 +139,16 @@ function setScriptRule(e) {
  */
 function openFramePolicy(e) {
 	const frameid = e.target.parentNode.dataset.frameid;
-	const policy = Number(e.target.dataset.policy);
+	const policy = parseInt(e.target.dataset.policy, 10);
 	const dropdown = document.getElementById("frame-edit");
 	const pos = e.target.getBoundingClientRect().y - 30;
 
 	dropdown.dataset.frameid = frameid;
-	dropdown.className = `site ${jaegerhut[policy].name}`;
 	dropdown.dataset.hidden = false;
 	dropdown.style = `top:${pos}px`;
 
-	dropdown.elements.scope[1].checked = true;
-	dropdown.elements.policy[-(policy - 3)].checked = true;
+	dropdown.dataset.scope = 1;
+	dropdown.dataset.policy = policy;
 }
 
 /**
@@ -181,39 +177,51 @@ function buildList(frameID) {
 		frame = tabInfo.frames[frameID];
 	}
 
-	Object.entries(frame.scripts).forEach((domain) => {
-		Object.entries(domain[1]).forEach((subdomain) => {
+	Object.entries(frame.scripts).sort().forEach((domainData) => {
+		const domain = domainData[0];
+
+		Object.entries(domainData[1]).sort().forEach((subdomainData) => {
+			const subdomain = subdomainData[0];
+			const resources = subdomainData[1];
+
 			const elemHost      = nodeHost.cloneNode(false);
 			const elemCheckbox  = nodeCheckbox.cloneNode(false);
+			const elemDetails   = nodeDetails.cloneNode(false);
 			const elemWebsocket = nodeWebsocket.cloneNode(false);
 			const elemFrames    = nodeFrames.cloneNode(false);
 			const elemSubdomain = nodeSubdomain.cloneNode(false);
 			const elemDomain    = nodeDomain.cloneNode(false);
 			const elemNumber    = nodeNumber.cloneNode(false);
 
+			elemDetails.appendChild(elemWebsocket);
+			elemDetails.appendChild(elemFrames);
+			elemDetails.appendChild(elemSubdomain);
+			elemDetails.appendChild(elemDomain);
 			elemHost.appendChild(elemCheckbox);
-			elemHost.appendChild(elemWebsocket);
-			elemHost.appendChild(elemFrames);
-			elemHost.appendChild(elemSubdomain);
-			elemHost.appendChild(elemDomain);
+			elemHost.appendChild(elemDetails);
 			elemHost.appendChild(elemNumber);
 			elemMainNode.appendChild(elemHost);
 
-			const hostID = `${subdomain[0]}${domain[0]}${frameID}`;
+			const hostID = `${subdomain}${domain}${frameID}`;
 
 			elemCheckbox.id = hostID;
+			elemDetails.htmlFor = hostID;
 
-			elemSubdomain.innerHTML = `<span>${subdomain[0]}${((subdomain[0].length > 0) ? "." : "")}</span>`;
-			elemDomain.innerHTML = `<span>${domain[0]}</span>`;
-			elemNumber.innerText = subdomain[1].length;
+			elemSubdomain.innerHTML = `<span>${subdomain}${((subdomain.length > 0) ? "." : "")}</span>`;
+			elemDomain.innerHTML = `<span>${domain}</span>`;
+			elemNumber.innerText = resources.length;
 
 			// if the text is larger than the area, we display a tooltip
 			if (elemSubdomain.scrollWidth > elemSubdomain.clientWidth || elemDomain.scrollWidth > elemDomain.clientWidth) {
-				elemHost.title = `${elemSubdomain.textContent}${domain[0]}`;
+				elemHost.title = `${elemSubdomain.textContent}${domain}`;
 			}
 
 			// save script exception
-			elemHost.addEventListener("click", setScriptRule, false);
+			elemCheckbox.addEventListener("change", setScriptRule, false);
+			// add data to checkbox
+			elemCheckbox.dataset.frameid = frameID;
+			elemCheckbox.dataset.domain = domain;
+			elemCheckbox.dataset.subdomain = subdomain;
 
 			// input that controls the script list visibility
 			const openList = nodeCheckbox.cloneNode(false);
@@ -222,31 +230,31 @@ function buildList(frameID) {
 			elemMainNode.appendChild(openList);
 
 			// element that holds the list of elements from that host
-			const scriptsList = document.createElement("div");
-			scriptsList.className = "jslist";
-			elemMainNode.appendChild(scriptsList);
+			const resourcesList = document.createElement("div");
+			resourcesList.className = "resources";
+			elemMainNode.appendChild(resourcesList);
 
 			let frames = 0;
 			let websockets = 0;
 
 			// populate scripts list
 			// script can be a websocket or frame
-			subdomain[1].forEach((script) => {
+			resources.forEach((script) => {
 				if (!script.blocked) {
 					elemCheckbox.checked = true;
 					// remove blocked class
-					elemHost.className = "script";
+					elemHost.className = "host";
 				}
 
-				const url = `${script.protocol}${elemSubdomain.textContent}${domain[0]}${script.name}${script.query}`;
-				const elemJS = nodeJS.cloneNode(false);
-				elemJS.innerText = script.name.match(/[^/]*.$/);
-				elemJS.title = url;
-				elemJS.href = url;
+				const url = `${script.protocol}${elemSubdomain.textContent}${domain}${script.name}${script.query}`;
+				const elemResource = nodeResource.cloneNode(false);
+				elemResource.innerText = script.name.match(/[^/]*.$/);
+				elemResource.title = url;
+				elemResource.href = url;
 
 				// websocket
 				if (script.protocol === "wss://" || script.protocol === "ws://") {
-					elemJS.className = "js haswebsocket";
+					elemResource.className = "resource haswebsocket";
 					elemWebsocket.className = "websocket haswebsocket";
 					elemWebsocket.title = `\n${chrome.i18n.getMessage("tooltipWebsockets", (++websockets).toString())}`;
 				}
@@ -254,7 +262,7 @@ function buildList(frameID) {
 				// if frameid exists it's a frame
 				// otherwise it's a normal script/websocket
 				if (script.frameid === undefined) {
-					scriptsList.appendChild(elemJS);
+					resourcesList.appendChild(elemResource);
 				}
 				else {
 					const policy = jaegerhut[tabInfo.frames[script.frameid].policy];
@@ -277,18 +285,18 @@ function buildList(frameID) {
 					elemNumberFrame.innerText = Object.keys(tabInfo.frames[script.frameid].scripts).length;
 
 					elemFrameDiv.appendChild(elemPolicy);
-					elemFrameDiv.appendChild(elemJS);
+					elemFrameDiv.appendChild(elemResource);
 					elemFrameDiv.appendChild(elemNumberFrame);
-					scriptsList.appendChild(elemFrameDiv);
+					resourcesList.appendChild(elemFrameDiv);
 
 					const elemCheckboxFrame = nodeCheckbox.cloneNode(false);
 					elemCheckboxFrame.id = `frame${script.frameid}`;
-					scriptsList.appendChild(elemCheckboxFrame);
+					resourcesList.appendChild(elemCheckboxFrame);
 
-					const scriptsListFrame = document.createElement("div");
-					scriptsListFrame.className = `scripts jslist ${policy.name}`;
-					scriptsListFrame.id = `f${script.frameid}`;
-					scriptsList.appendChild(scriptsListFrame);
+					const resourcesListFrame = document.createElement("div");
+					resourcesListFrame.className = `resources ${policy.name}`;
+					resourcesListFrame.id = `f${script.frameid}`;
+					resourcesList.appendChild(resourcesListFrame);
 
 					buildList(script.frameid);
 				}
@@ -300,6 +308,72 @@ function buildList(frameID) {
 }
 
 /**
+ * @brief Sets and build the popup UI
+ *
+ * Define main classes and then call the script list builder.
+ */
+function startUI() {
+	const error = document.getElementById("error");
+	const settings = document.getElementById("settings");
+
+	settings.replaceChild(nodeHostsList.cloneNode(false), document.getElementById("f0"));
+	settings.removeAttribute("hidden");
+	error.hidden = true;
+
+	const blocked = tabInfo.policy ? tabInfo.allowonce ? "(T) " : `(${tabInfo.blocked}) ` : "";
+
+	document.title = `${blocked}ScriptJäger`;
+	document.getElementById("jaegerhut").href = `images/${jaegerhut[tabInfo.policy].name}38.png`;
+	document.getElementById("jaegerfarbe").content = jaegerhut[tabInfo.policy].colour;
+
+	let skip = false;
+
+	switch (tabInfo.protocol) {
+		case "https://":
+		case "http://":
+			break;
+		case "chrome://":
+		case "chrome-extension://":
+			skip = "errorInternal";
+			break;
+		case "file://":
+			if (!tabInfo.policy) {
+				skip = "errorFile";
+			}
+			break;
+		default:
+			skip = "errorInternal";
+	}
+
+	document.body.className = jaegerhut[tabInfo.policy].name;
+
+	if (skip !== false) {
+		error.innerText = chrome.i18n.getMessage(skip);
+		error.removeAttribute("hidden");
+		settings.hidden = true;
+		return;
+	}
+
+	// policy button reflects current policy
+	settings.dataset.policy = tabInfo.policy;
+
+	const allowonce = document.getElementById("allowonce");
+
+	// Allow once is turned on
+	if (tabInfo.allowonce === true) {
+		allowonce.title = chrome.i18n.getMessage("policyAllowOnceDisable");
+		allowonce.className = "allowonce";
+	}
+	// Allow once is turned off
+	else {
+		allowonce.title = chrome.i18n.getMessage("policyAllowOnce");
+		allowonce.className = "";
+	}
+
+	buildList(0);
+}
+
+/**
  * @brief Get info about tab
  *
  * When opening the popup we request the info about the
@@ -308,47 +382,51 @@ function buildList(frameID) {
  * @param tabs [Array] Contains info about the current tab
  */
 chrome.tabs.query({currentWindow: true, active: true}, (tabs) => {
-	chrome.runtime.sendMessage({
-		type: 0, // tab info request
-		tabid: tabs[0].id
-	}, (tab) => {
-		// not an http(s) page
-		if (typeof tab === "string") {
-			let msg;
-			switch (tab.charCodeAt(1)) {
-				case 116: // t from ftp
-					msg = "errorFTP";
-					// fallthrough
-				case 105: // i from file
-					msg = "errorFile";
-					// fallthrough
-				default:
-					msg = "errorInternal";
-			}
+	port = chrome.runtime.connect({name: tabs[0].id.toString(10)});
 
-			document.body.innerHTML = `<p>${chrome.i18n.getMessage(msg)}</p>`;
+	/**
+	 * @brief Perform actions acording to message
+	 *
+	 * The background script will send the info we need
+	 *
+	 * Child 'type' will contain the type of the request
+	 *
+	 * @param msg [Object] Contains type and data for the action
+	 *
+	 * @note Each request has different msg children/info
+	 *
+	 * 0 (Re)Build UI - Whenever the UI has to be completely updated
+	 *   - data [Object] Tab info, a children of background tabStorage
+	 * 
+	 * 1 Update interface
+	 *
+	 * 2 Response of allowed/blocked list for relaxed/filtered
+	 *   - tabid   [Number] id of the requested tab
+	 *   - scripts [Array]  Contains the url and the rule
+	 *     - name    [String]  DOM ID of the script
+	 *     - blocked [Boolean] Whether that level will be blocked
+	 */
+	port.onMessage.addListener((msg) => {
+		console.log(msg);
+
+		if (msg.type === 0) {
+			// save tab info in variable
+			tabInfo = msg.data;
+			startUI();
 			return;
 		}
 
-		// save tab info in variable
-		tabInfo = tab;
-		tabInfo.tabid = tabs[0].id;
-
-		// policy button reflects current policy
-		const form = document.body.firstElementChild;
-		form.className = `domain ${jaegerhut[tab.policy].name}`;
-		form.elements.scope[2].checked = true;
-		form.elements.policy[-(tab.policy - 3)].checked = true;
-
-		// Allow once is turned on, change button
-		if (tabInfo.allowonce === true) {
-			const node = document.getElementById("allowonce");
-			node.title = chrome.i18n.getMessage("policyAllowOnceDisable");
-			node.className = "allowonce";
-			node.innerHTML = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'><path d='M22.33,12.18V7.24L20.25,9.33a7.75,7.75,0,1,0,2.09,8.1h-1.2a6.64,6.64,0,1,1-1.69-7.29l-2,2.05Z'/><rect x='11.56' y='10.98' width='2.13' height='8.04'/><rect x='15.88' y='10.98' width='2.13' height='8.04'/></svg>";
+		if (msg.type === 1) {
+			return;
 		}
 
-		buildList(0);
+		// msg.type === 2
+		// check if the user has not changed tab
+		if (msg.tabid === tabInfo.tabid) {
+			msg.scripts.forEach((domain) => {
+				document.getElementById(domain.name).checked = !domain.blocked;
+			});
+		}
 	});
 });
 
@@ -363,7 +441,7 @@ chrome.tabs.query({currentWindow: true, active: true}, (tabs) => {
  */
 function changePolicy(policy, scope, frameid) {
 	const msg = {
-		type: 1,
+		type: 0,
 		private: tabInfo.private,
 		site: [],
 		rule: policy
@@ -383,10 +461,10 @@ function changePolicy(policy, scope, frameid) {
 		// domain - fallthrough
 		case 1: msg.site[0] = frame.domain;
 		// global - fallthrough
-		default: break;
+		default:
 	}
 
-	chrome.runtime.sendMessage(msg);
+	port.postMessage(msg);
 }
 
 /**
@@ -400,40 +478,48 @@ function enableListeners() {
 
 	document.getElementById("cancel").addEventListener("click", closeFramePolicy);
 
-	document.getElementById("preferences").addEventListener("click", () => {
+	document.getElementById("preferences").addEventListener("click", (e) => {
+		e.stopPropagation();
 		chrome.runtime.openOptionsPage();
 	});
 
 	// allow once
-	document.getElementById("allowonce").addEventListener("click", () => {
-		chrome.runtime.sendMessage({
-			type: 4,
+	document.getElementById("allowonce").addEventListener("click", (e) => {
+		e.stopPropagation();
+		port.postMessage({
+			type: 1,
 			tabId: tabInfo.tabid,
 			allow: !tabInfo.allowonce
 		});
 	});
 
-	document.querySelectorAll("input").forEach((input) => {
-		if (input.name === "scope") {
-			input.addEventListener("change", (e) => {
-				const form = e.target.form;
-				form.className = `${scopeList[Number(e.target.value)]} ${form.className.split(" ")[1]}`;
-			});
-			return;
-		}
+	document.querySelectorAll(".scopes").forEach((scopes) => {
+		scopes.addEventListener("click", (e) => {
+			e.target.parentNode.parentNode.dataset.scope = e.target.dataset.value;
+		});
+	});
 
-		input.addEventListener("change", (e) => {
-			const form = e.target.form;
-			const scope = Number(form.elements.scope.value);
-			const policy = Number(e.target.value);
-			const frameid = Number(form.dataset.frameid);
+	document.querySelectorAll(".policies").forEach((policies) => {
+		policies.addEventListener("click", (e) => {
+			const target = (e.target.tagName === "IMG") ? e.target.parentNode : e.target;
 
-			form.className = `${scopeList[scope]} ${jaegerhut[policy].name}`;
-			changePolicy(policy, scope, frameid);
+			const frame = target.parentNode.parentNode.dataset;
+			const policy = parseInt(target.dataset.value, 10);
+			const scope = parseInt(frame.scope, 10);
+
+			frame.policy = policy;
+
+			changePolicy(policy, scope, frame.frameid);
+
+			if (frame.frameid > 0) {
+				document.getElementById(`f${frame.frameid}`).className = `resources ${jaegerhut[frame.policy].name}`;
+			} else {
+				document.body.className = jaegerhut[frame.policy].name;
+			}
 
 			// change all inputs to checked (allowed) or unchecked (blocked)
 			if (policy === 0 || policy === 3) {
-				document.querySelectorAll(`#f${frameid} > .script > input`).forEach((checkbox) => {
+				document.querySelectorAll(`#f${frame.frameid} > .script > input`).forEach((checkbox) => {
 					checkbox.checked = !policy;
 				});
 
@@ -441,15 +527,12 @@ function enableListeners() {
 			}
 
 			// request list of blocked and allowed scripts from background script
-			chrome.runtime.sendMessage({
-				type: 5,
-				tabid: tabInfo.tabid,
+			port.postMessage({
+				type: 2,
 				policy: policy,
-				frameid: frameid
-			}, (msg) => {
-				msg.scripts.forEach((domain) => {
-					document.getElementById(domain.name).checked = !domain.blocked;
-				});
+				tabid: tabInfo.tabid,
+				frameid: frame.frameid,
+				window: tabInfo.window,
 			});
 		});
 	});

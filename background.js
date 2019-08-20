@@ -47,6 +47,18 @@ let preferences = {};
 const tabStorage = {};
 
 /**
+ * @var ports [Object] This object keeps track of all open
+ * communication ports with popup interfaces.
+ *
+ * The keys are the ID of the window the popup belongs to and the
+ * values are the runtime.Port interfaces.
+ *
+ * @note These ports might be used on many parts of the code to
+ * update the popup in realtime.
+ */
+const ports = {};
+
+/**
  * @var privatum [Object] Holds all preferences on private browsing
  *
  * It's only filled when required and is cleared when no longer
@@ -1254,16 +1266,11 @@ chrome.webRequest.onBeforeRequest.addListener(
  *
  * Child 'type' will contain the type of the request
  *
- * @param msg    [Object]   Contains type and data for the action
- * @param src    [Object]   Unused, required by API
- * @param answer [Function] Solely used for replying on type 0
+ * @param msg [Object] Contains type and data for the action
  *
- * Each request has different msg children/info
+ * @note Each request has different msg children/info
  *
- * 0 Request tab information
- *   - tabid [Number] id of the requested tab
- * 
- * 1 Change blackwhitelist
+ * 0 Change blackwhitelist
  *   - private [Boolean] Is private browsing?
  *   - rule    [Boolean] If script is blocked or allowed
  *   - rule    [Number]  New policy rule
@@ -1275,66 +1282,126 @@ chrome.webRequest.onBeforeRequest.addListener(
  *     - subdomain [String] Subdomain to save policy
  *     - page      [String] Dir+filename to save policy
  * 
- * 3 New preferences from preferences page
- *   - prefs [Object] New preferences
- *
- * 4 Allow all scripts once (do not save)
+ * 1 Allow all scripts once (do not save)
  *   - tabId [Number]  id of the tab to allow once
  *   - allow [Boolean] Enable/disable allow once
  *
- * 5 Popup requesting allowed/blocked list for relaxed/filtered
+ * 2 Popup requesting allowed/blocked list for relaxed/filtered
  *   - policy  [Number] Block policy
  *   - tabid   [Number] id of the requested tab
  *   - frameid [Number] id of frame that had its policy changed
+ *   - window  [Number] id of the window the tab is from
+ *
+ * 3 New preferences from preferences page
+ *   - prefs [Object] New preferences
  */
-chrome.runtime.onMessage.addListener((msg, src, answer) => {
-	// console.log("@@@@@@@@@@@@@@@ Message Received @@@@@@@@@@@@@@@\n", msg);
+function processMessage(msg) {
+	console.log("@@@@@@@@@@@@@@@ Message Received @@@@@@@@@@@@@@@\n", msg);
 
-	// tab data request
-	if (msg.type === 0) {
-		answer(tabStorage[msg.tabid]);
-	}
+	switch (msg.type) {
+		// save a rule
+		case 0: {
+			const level = (msg.private ? privatum.preferences : preferences);
 
-	// save preferences
-	else if (msg.type === 1) {
-		const level = (msg.private ? privatum.preferences : preferences);
+			saveRule(level, msg.site, msg.rule);
 
-		saveRule(level, msg.site, msg.rule);
-
-		if (!msg.private) {
-			chrome.storage.local.set({preferences: preferences});
-		}
-	}
-
-	// preferences page is sending new preferences
-	else if (msg.type === 3) {
-		preferences = msg.prefs;
-	}
-
-	// allow once
-	else if (msg.type === 4) {
-		tabStorage[msg.tabId].allowonce = msg.allow;
-		chrome.tabs.reload(msg.tabId, {bypassCache: !msg.allow});
-	}
-
-	// popup requests to check which scripts are blocked when on filtered or relaxed
-	else if (msg.type === 5) {
-		const scriptslist = [];
-		let frame = tabStorage[msg.tabid];
-
-		if (msg.frameid > 0) {
-			frame = frame.frames[msg.frameid];
+			if (!msg.private) {
+				chrome.storage.local.set({preferences: preferences});
+			}
+			break;
 		}
 
-		Object.entries(frame.scripts).forEach((domain) => {
-			Object.keys(domain[1]).forEach((subdomain) => {
-				scriptslist.push({
-					name: `${subdomain}${domain[0]}${msg.frameid}`,
-					blocked: isScriptAllowed(frame, {domain: domain[0], subdomain: subdomain}, msg.policy)
+		// allow once
+		case 1: {
+			tabStorage[msg.tabId].allowonce = msg.allow;
+			chrome.tabs.reload(msg.tabId, {bypassCache: !msg.allow});
+			break;
+		}
+
+		// popup requests to check which scripts are blocked when on filtered or relaxed
+		case 2: {
+			const scriptslist = [];
+			let frame = tabStorage[msg.tabid];
+
+			if (msg.frameid > 0) {
+				frame = frame.frames[msg.frameid];
+			}
+
+			Object.entries(frame.scripts).forEach((domain) => {
+				Object.keys(domain[1]).forEach((subdomain) => {
+					scriptslist.push({
+						name: `${subdomain}${domain[0]}${msg.frameid}`,
+						blocked: isScriptAllowed(frame, {domain: domain[0], subdomain: subdomain}, msg.policy)
+					});
 				});
 			});
-		});
 
-		answer({scripts: scriptslist});
+			ports[msg.window].postMessage({
+				type: 2,
+				tabid: msg.tabid,
+				scripts: scriptslist
+			});
+			break;
+		}
+
+		case 3: {
+			preferences = msg.prefs;
+			break;
+		}
+
+		default:
 	}
+}
+
+/**
+ * @brief Listener for normal messages
+ *
+ * Fired only from preferences page sending the new modified settings
+ */
+chrome.runtime.onMessage.addListener(processMessage);
+
+/**
+ * @brief Exchange information with popup page
+ *
+ * We keep a channel open with the popup page so we can update it on
+ * realtime.
+ */
+chrome.runtime.onConnect.addListener((port) => {
+	port.postMessage({
+		type: 0,
+		data: tabStorage[port.name]
+	});
+
+	const windowid = tabStorage[port.name].window;
+	ports[windowid] = port;
+
+	port.onDisconnect.addListener(() => {
+		delete ports[windowid];
+	});
+
+	port.onMessage.addListener(processMessage);
+});
+
+/**
+ * @brief Update popup on changing tabs
+ *
+ * When the active tab is changed this function is fired.
+ * If a port is open it means some popup interface is running,
+ * in this case we send the information about the tab to it.
+ *
+ * The message sent has a key `type` with value `0`, key `data`
+ * contains `tabStorage` data.
+ */
+chrome.tabs.onActivated.addListener((active) => {
+	const port = ports[active.windowId];
+
+	// don't send if no ports are open
+	if (port === undefined) {
+		return;
+	}
+
+	port.postMessage({
+		type: 0,
+		data: tabStorage[active.tabId]
+	});
 });
