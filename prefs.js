@@ -118,7 +118,7 @@ function openRuleSelector(e) {
 
 	// console.log("Moving dropdown to position! X:", e.target.offsetLeft, "Y:", pos.y);
 
-	dropdown.style = "top:" + pos.y + "px;left:" + e.target.offsetLeft + "px";
+	dropdown.style = `top:${pos.y}px;left:${e.target.offsetLeft}px`;
 
 	// info for updating rule
 	// rule levels
@@ -219,7 +219,7 @@ function deleteRule(e) {
 
 	// now that the rule has been deleted time to deal with the DOM
 	const isRules = (script[0] && script[1] === undefined);
-	const number = liP.querySelector(".number" + (isRules ? ".scripts" : ":not(.scripts)"));
+	const number = liP.querySelector(`.number${(isRules ? ".scripts" : ":not(.scripts)")}`);
 
 	// update numbers
 	if (number) {
@@ -306,7 +306,7 @@ function changeRule(e) {
 
 	// change icon to reflect new rule
 	const active = document.getElementById("active");
-	active.src = "images/" + e.target.id + "38.png";
+	active.src = `images/${e.target.id}38.png`;
 	active.alt = jaegerhut[rule].text[0];
 	active.title = jaegerhut[rule].text;
 	active.dataset.rule = rule;
@@ -390,19 +390,19 @@ function fillList(rules, node, urls) {
 			switch (index) {
 				case 1: // fallthrough
 				case 4:
-					siteName = (url === "" ? "*://" : url + ".") + siteName;
+					siteName = `${(url === "" ? "*://" : `${url}.`)}${siteName}`;
 					break;
 				case 3:
 					siteName = url;
 					break;
 				default:
-					siteName += url;
+					siteName = `${siteName}${url}`;
 			}
 		});
 
 		// add info about rule applied to level (Jaegerhut)
 		const ruleImg = ruleNode.cloneNode(false);
-		ruleImg.src = "images/" + jaegerhut[item[1].rule].name + "38.png";
+		ruleImg.src = `images/${jaegerhut[item[1].rule].name}38.png`;
 		ruleImg.alt = jaegerhut[item[1].rule].text[0];
 		ruleImg.title = jaegerhut[item[1].rule].text;
 		ruleImg.dataset.rule = item[1].rule;
@@ -412,7 +412,7 @@ function fillList(rules, node, urls) {
 		// add url to main node
 		const siteUrl = document.createElement("span");
 		siteUrl.className = "site";
-		siteUrl.innerHTML = "<span>" + siteName + "</span>";
+		siteUrl.innerHTML = `<span>${siteName}</span>`;
 		div.appendChild(siteUrl);
 
 		// add info about allowed and blocked scripts
@@ -493,8 +493,8 @@ function fillList(rules, node, urls) {
  */
 function showPreferences() {
 	// fill policy preferences
-	document.querySelector("input[name='rule'][value='" + preferences.rule + "']").checked = true;
-	document.querySelector("input[name='private'][value='" + preferences.private + "']").checked = true;
+	document.querySelector(`input[name='rule'][value='${preferences.rule}']`).checked = true;
+	document.querySelector(`input[name='private'][value='${preferences.private}']`).checked = true;
 	document.querySelector("input[type='checkbox']").checked = !preferences.ping;
 
 	// fill global blackwhitelist
@@ -549,15 +549,15 @@ function validate(isFull, isRules, at, warn) {
 	// this check is to ensure that first all necessary entries exist
 	if (isFull) {
 		if (this.rule === undefined) {
-			throw new TypeError(chrome.i18n.getMessage("settingsInvalidBooleanNull", "rule") + "<span>" + at + "</span>");
+			throw new TypeError(`${chrome.i18n.getMessage("settingsInvalidBooleanNull", "rule")}<span>${at}</span>`);
 		}
 
 		if (this.urls === undefined) {
-			throw new TypeError(chrome.i18n.getMessage("settingsInvalidObject", "urls") + "<span>" + at + "</span>");
+			throw new TypeError(`${chrome.i18n.getMessage("settingsInvalidObject", "urls")}<span>${at}</span>`);
 		}
 
 		if (!isRules && this.rules === undefined) {
-			throw new TypeError(chrome.i18n.getMessage("settingsInvalidObject", "rules") + "<span>" + at + "</span>");
+			throw new TypeError(`${chrome.i18n.getMessage("settingsInvalidObject", "rules")}<span>${at}</span>`);
 		}
 	}
 
@@ -575,7 +575,7 @@ function validate(isFull, isRules, at, warn) {
 			// blacklist (rules key) uses boolean
 			if (isRules) {
 				if (typeof value !== "boolean") {
-					throw new TypeError(chrome.i18n.getMessage("settingsInvalidBooleanNull", "rule") + "<span>" + at + "</span>");
+					throw new TypeError(`${chrome.i18n.getMessage("settingsInvalidBooleanNull", "rule")}<span>${at}</span>`);
 				}
 
 				return;
@@ -583,11 +583,11 @@ function validate(isFull, isRules, at, warn) {
 
 			// policy uses a number
 			if (typeof value !== "number") {
-				throw new TypeError(chrome.i18n.getMessage("settingsInvalidNumberNull", "rule") + "<span>" + at + "</span>");
+				throw new TypeError(`${chrome.i18n.getMessage("settingsInvalidNumberNull", "rule")}<span>${at}</span>`);
 			}
 
 			if (value < 0 || value > 3) {
-				throw new RangeError(chrome.i18n.getMessage("settingsInvalidRangeNull", "rule") + "<span>" + at + "</span>");
+				throw new RangeError(`${chrome.i18n.getMessage("settingsInvalidRangeNull", "rule")}<span>${at}</span>`);
 			}
 
 			return;
@@ -596,17 +596,17 @@ function validate(isFull, isRules, at, warn) {
 		if (key === "rules") {
 			if (isRules) {
 				// blacklist (rules key) doesn't contain rules subkeys, might be a typo
-				throw new SyntaxError(chrome.i18n.getMessage("settingsInvalidLevel", "rules") + "<span>" + at + "</span>");
+				throw new SyntaxError(`${chrome.i18n.getMessage("settingsInvalidLevel", "rules")}<span>${at}</span>`);
 			}
 
 			// policy objects must contain a rules key/object
 			if (typeof value !== "object") {
-				throw new TypeError(chrome.i18n.getMessage("settingsInvalidObject", "rules") + "<span>" + at + "</span>");
+				throw new TypeError(`${chrome.i18n.getMessage("settingsInvalidObject", "rules")}<span>${at}</span>`);
 			}
 
 			// rules key/object must contain a urls key/object
 			if (typeof value.urls !== "object") {
-				throw new TypeError(chrome.i18n.getMessage("settingsInvalidObject", "urls") + "<span>" + chrome.i18n.getMessage("settingsInvalidUnder", "rules") + "<br>" + at + "</span>");
+				throw new TypeError(`${chrome.i18n.getMessage("settingsInvalidObject", "urls")}<span>${chrome.i18n.getMessage("settingsInvalidUnder", "rules")}<br>${at}</span>`);
 			}
 
 			// validate the children rules
@@ -615,7 +615,7 @@ function validate(isFull, isRules, at, warn) {
 					object[1],
 					isFull,
 					true,
-					object[0] + "<br>" + chrome.i18n.getMessage("settingsInvalidUnder", "urls") + "<br>" + chrome.i18n.getMessage("settingsInvalidUnder", "rules") + "<br>" + at,
+					`${object[0]}<br>${chrome.i18n.getMessage("settingsInvalidUnder", "urls")}<br>${chrome.i18n.getMessage("settingsInvalidUnder", "rules")}<br>${at}`,
 					warn
 				);
 			});
@@ -626,7 +626,7 @@ function validate(isFull, isRules, at, warn) {
 		if (key === "urls") {
 			// all policy and blacklist objects must contain a urls key/object
 			if (typeof value !== "object") {
-				throw new TypeError(chrome.i18n.getMessage("settingsInvalidObject", "urls") + "<span>" + at + "</span>");
+				throw new TypeError(`${chrome.i18n.getMessage("settingsInvalidObject", "urls")}<span>${at}</span>`);
 			}
 
 			// validate children
@@ -635,7 +635,7 @@ function validate(isFull, isRules, at, warn) {
 					object[1],
 					isFull,
 					isRules,
-					object[0] + "<br>" + chrome.i18n.getMessage("settingsInvalidUnder", "urls") + "<br>" + at,
+					`${object[0]}<br>${chrome.i18n.getMessage("settingsInvalidUnder", "urls")}<br>${at}`,
 					warn
 				);
 			});
@@ -645,11 +645,11 @@ function validate(isFull, isRules, at, warn) {
 
 		if (key === "delete") {
 			if (isFull) {
-				throw new SyntaxError(chrome.i18n.getMessage("settingsInvalidDelete", "delete") + "<span>" + at + "</span>");
+				throw new SyntaxError(`${chrome.i18n.getMessage("settingsInvalidDelete", "delete")}<span>${at}</span>`);
 			}
 
 			if (value !== true) {
-				throw new TypeError(chrome.i18n.getMessage("settingsInvalidValue", ["delete", "true"]) + "<span>" + at + "</span>");
+				throw new TypeError(`${chrome.i18n.getMessage("settingsInvalidValue", ["delete", "true"])}<span>${at}</span>`);
 			}
 
 			return;
@@ -657,7 +657,7 @@ function validate(isFull, isRules, at, warn) {
 
 		// private key is only used in root, root doesn't have <br>
 		if (key !== "private" || at.indexOf("<br>") > -1) {
-			warn.push(chrome.i18n.getMessage("settingsWarningText", key) + "<span>" + at + "</span>");
+			warn.push(`${chrome.i18n.getMessage("settingsWarningText", key)}<span>${at}</span>`);
 			delete this[key];
 		}
 	});
@@ -739,13 +739,13 @@ function appendMergeList(ul, url, current, change) {
 
 	const currentImg = document.createElement("img");
 	currentImg.className = "rule";
-	currentImg.src = "images/" + jaegerhut[current].name + "38.png";
+	currentImg.src = `images/${jaegerhut[current].name}38.png`;
 	currentImg.alt = jaegerhut[current].text[0];
 	currentImg.title = jaegerhut[current].text;
 
 	const changeImg = document.createElement("img");
 	changeImg.className = "rule";
-	changeImg.src = "images/" + jaegerhut[change].name + "38.png";
+	changeImg.src = `images/${jaegerhut[change].name}38.png`;
 	changeImg.alt = jaegerhut[change].text[0];
 	changeImg.title = jaegerhut[change].text;
 
@@ -1031,15 +1031,15 @@ function importPreferences() {
 
 		// extra checks not made by generic validation
 		if (typeof prefs.private !== "number") {
-			throw new TypeError(chrome.i18n.getMessage("settingsInvalidNumber", "private") + "<span>" + chrome.i18n.getMessage("settingsInvalidUnder", "root") + "</span>");
+			throw new TypeError(`${chrome.i18n.getMessage("settingsInvalidNumber", "private")}<span>${chrome.i18n.getMessage("settingsInvalidUnder", "root")}</span>`);
 		}
 
 		if (prefs.private < 0 || prefs.private > 3) {
-			throw new RangeError(chrome.i18n.getMessage("settingsInvalidRange", "private") + "<span>" + chrome.i18n.getMessage("settingsInvalidUnder", "root") + "</span>");
+			throw new RangeError(`${chrome.i18n.getMessage("settingsInvalidRange", "private")}<span>${chrome.i18n.getMessage("settingsInvalidUnder", "root")}</span>`);
 		}
 
 		if (typeof prefs.rule !== "number") {
-			throw new TypeError(chrome.i18n.getMessage("settingsInvalidNumber", "rule") + "<span>" + chrome.i18n.getMessage("settingsInvalidUnder", "root") + "</span>");
+			throw new TypeError(`${chrome.i18n.getMessage("settingsInvalidNumber", "rule")}<span>${chrome.i18n.getMessage("settingsInvalidUnder", "root")}</span>`);
 		}
 
 		const warn = [];

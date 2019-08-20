@@ -147,9 +147,9 @@ function openFramePolicy(e) {
 	const pos = e.target.getBoundingClientRect().y - 30;
 
 	dropdown.dataset.frameid = frameid;
-	dropdown.className = "site " + jaegerhut[policy].name;
+	dropdown.className = `site ${jaegerhut[policy].name}`;
 	dropdown.dataset.hidden = false;
-	dropdown.style = "top:" + pos + "px";
+	dropdown.style = `top:${pos}px`;
 
 	dropdown.elements.scope[1].checked = true;
 	dropdown.elements.policy[-(policy - 3)].checked = true;
@@ -173,12 +173,12 @@ function closeFramePolicy() {
  *
  * @param frameid [Number] id of the frame being built
  */
-function buildList(frameid) {
-	const elemMainNode = document.getElementById("f" + frameid);
+function buildList(frameID) {
+	const elemMainNode = document.getElementById(`f${frameID}`);
 	let frame = tabInfo;
 
-	if (frameid > 0) {
-		frame = tabInfo.frames[frameid];
+	if (frameID > 0) {
+		frame = tabInfo.frames[frameID];
 	}
 
 	Object.entries(frame.scripts).forEach((domain) => {
@@ -199,16 +199,17 @@ function buildList(frameid) {
 			elemHost.appendChild(elemNumber);
 			elemMainNode.appendChild(elemHost);
 
-			elemCheckbox.id = subdomain[0] + domain[0] + frameid;
-			elemNumber.htmlFor = "list_" + subdomain[0] + domain[0] + frameid;
+			const hostID = `${subdomain[0]}${domain[0]}${frameID}`;
 
-			elemSubdomain.innerHTML = "<span>" + subdomain[0] + ((subdomain[0].length > 0) ? "." : "") + "</span>";
-			elemDomain.innerHTML = "<span>" + domain[0] + "</span>";
+			elemCheckbox.id = hostID;
+
+			elemSubdomain.innerHTML = `<span>${subdomain[0]}${((subdomain[0].length > 0) ? "." : "")}</span>`;
+			elemDomain.innerHTML = `<span>${domain[0]}</span>`;
 			elemNumber.innerText = subdomain[1].length;
 
 			// if the text is larger than the area, we display a tooltip
 			if (elemSubdomain.scrollWidth > elemSubdomain.clientWidth || elemDomain.scrollWidth > elemDomain.clientWidth) {
-				elemHost.title = elemSubdomain.textContent + domain[0];
+				elemHost.title = `${elemSubdomain.textContent}${domain[0]}`;
 			}
 
 			// save script exception
@@ -216,7 +217,8 @@ function buildList(frameid) {
 
 			// input that controls the script list visibility
 			const openList = nodeCheckbox.cloneNode(false);
-			openList.id = "list_" + subdomain[0] + domain[0] + frameid;
+			openList.id = `list_${hostID}`;
+			elemNumber.htmlFor = `list_${hostID}`;
 			elemMainNode.appendChild(openList);
 
 			// element that holds the list of elements from that host
@@ -236,7 +238,7 @@ function buildList(frameid) {
 					elemHost.className = "script";
 				}
 
-				const url = script.protocol + elemSubdomain.textContent + domain[0] + script.name + script.query;
+				const url = `${script.protocol}${elemSubdomain.textContent}${domain[0]}${script.name}${script.query}`;
 				const elemJS = nodeJS.cloneNode(false);
 				elemJS.innerText = script.name.match(/[^/]*.$/);
 				elemJS.title = url;
@@ -246,7 +248,7 @@ function buildList(frameid) {
 				if (script.protocol === "wss://" || script.protocol === "ws://") {
 					elemJS.className = "js haswebsocket";
 					elemWebsocket.className = "websocket haswebsocket";
-					elemWebsocket.title = "\n" + chrome.i18n.getMessage("tooltipWebsockets", (++websockets).toString());
+					elemWebsocket.title = `\n${chrome.i18n.getMessage("tooltipWebsockets", (++websockets).toString())}`;
 				}
 
 				// if frameid exists it's a frame
@@ -264,14 +266,14 @@ function buildList(frameid) {
 					elemFrames.title = chrome.i18n.getMessage("tooltipFrames", (++frames).toString());
 
 					const elemPolicy = document.createElement("img");
-					elemPolicy.src = "/images/" + policy.name + "38.png";
+					elemPolicy.src = `/images/${policy.name}38.png`;
 					elemPolicy.className = "frame-policy";
 					elemPolicy.title = policy.text;
 					elemPolicy.dataset.policy = tabInfo.frames[script.frameid].policy;
 					elemPolicy.addEventListener("click", openFramePolicy);
 
 					const elemNumberFrame = nodeNumber.cloneNode(false);
-					elemNumberFrame.htmlFor = "frame" + script.frameid;
+					elemNumberFrame.htmlFor = `frame${script.frameid}`;
 					elemNumberFrame.innerText = Object.keys(tabInfo.frames[script.frameid].scripts).length;
 
 					elemFrameDiv.appendChild(elemPolicy);
@@ -280,18 +282,18 @@ function buildList(frameid) {
 					scriptsList.appendChild(elemFrameDiv);
 
 					const elemCheckboxFrame = nodeCheckbox.cloneNode(false);
-					elemCheckboxFrame.id = "frame" + script.frameid;
+					elemCheckboxFrame.id = `frame${script.frameid}`;
 					scriptsList.appendChild(elemCheckboxFrame);
 
 					const scriptsListFrame = document.createElement("div");
-					scriptsListFrame.className = "scripts jslist " + policy.name;
-					scriptsListFrame.id = "f" + script.frameid;
+					scriptsListFrame.className = `scripts jslist ${policy.name}`;
+					scriptsListFrame.id = `f${script.frameid}`;
 					scriptsList.appendChild(scriptsListFrame);
 
 					buildList(script.frameid);
 				}
 
-				elemFrames.title = elemFrames.title + elemWebsocket.title;
+				elemFrames.title = `${elemFrames.title}${elemWebsocket.title}`;
 			});
 		});
 	});
@@ -324,7 +326,7 @@ chrome.tabs.query({currentWindow: true, active: true}, (tabs) => {
 					msg = "errorInternal";
 			}
 
-			document.body.innerHTML = "<p>" + chrome.i18n.getMessage(msg) + "</p>";
+			document.body.innerHTML = `<p>${chrome.i18n.getMessage(msg)}</p>`;
 			return;
 		}
 
@@ -334,7 +336,7 @@ chrome.tabs.query({currentWindow: true, active: true}, (tabs) => {
 
 		// policy button reflects current policy
 		const form = document.body.firstElementChild;
-		form.className = "domain " + jaegerhut[tab.policy].name;
+		form.className = `domain ${jaegerhut[tab.policy].name}`;
 		form.elements.scope[2].checked = true;
 		form.elements.policy[-(tab.policy - 3)].checked = true;
 
@@ -415,7 +417,7 @@ function enableListeners() {
 		if (input.name === "scope") {
 			input.addEventListener("change", (e) => {
 				const form = e.target.form;
-				form.className = scopeList[Number(e.target.value)] + " " + form.className.split(" ")[1];
+				form.className = `${scopeList[Number(e.target.value)]} ${form.className.split(" ")[1]}`;
 			});
 			return;
 		}
@@ -426,12 +428,12 @@ function enableListeners() {
 			const policy = Number(e.target.value);
 			const frameid = Number(form.dataset.frameid);
 
-			form.className = scopeList[scope] + " " + jaegerhut[policy].name;
+			form.className = `${scopeList[scope]} ${jaegerhut[policy].name}`;
 			changePolicy(policy, scope, frameid);
 
 			// change all inputs to checked (allowed) or unchecked (blocked)
 			if (policy === 0 || policy === 3) {
-				document.querySelectorAll("#f" + frameid + "> .script > input").forEach((checkbox) => {
+				document.querySelectorAll(`#f${frameid} > .script > input`).forEach((checkbox) => {
 					checkbox.checked = !policy;
 				});
 

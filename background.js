@@ -150,7 +150,7 @@ chrome.alarms.onAlarm.addListener(function checkUpdates() {
 		});
 	};
 
-	xhr.open("GET", "https://raw.githubusercontent.com/An-dz/ScriptJaeger/master/manifest.json?time=" + Date.now());
+	xhr.open("GET", `https://raw.githubusercontent.com/An-dz/ScriptJaeger/master/manifest.json?time=${Date.now()}`);
 	xhr.send();
 });
 
@@ -929,8 +929,8 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
 		chrome.browserAction.setIcon({
 			path: {
-				"19": "images/" + jaegerhut[policy].name + "19.png",
-				"38": "images/" + jaegerhut[policy].name + "38.png"
+				"19": `images/${jaegerhut[policy].name}19.png`,
+				"38": `images/${jaegerhut[policy].name}38.png`
 			},
 			tabId: tabId
 		});
@@ -1234,7 +1234,7 @@ chrome.webRequest.onBeforeRequest.addListener(
  */
 chrome.webRequest.onBeforeRequest.addListener(
 	(details) => {
-		const url = chrome.runtime.getURL("prefs.html") + "?" + details.urls.substring(details.urls.search(/\w\//) + 2);
+		const url = `${chrome.runtime.getURL("prefs.html")}?${details.urls.substring(details.urls.search(/\w\//) + 2)}`;
 		return {redirectUrl: url};
 	},
 	{
@@ -1329,7 +1329,7 @@ chrome.runtime.onMessage.addListener((msg, src, answer) => {
 		Object.entries(frame.scripts).forEach((domain) => {
 			Object.keys(domain[1]).forEach((subdomain) => {
 				scriptslist.push({
-					name: subdomain + domain[0] + msg.frameid,
+					name: `${subdomain}${domain[0]}${msg.frameid}`,
 					blocked: isScriptAllowed(frame, {domain: domain[0], subdomain: subdomain}, msg.policy)
 				});
 			});
