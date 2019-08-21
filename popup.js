@@ -322,7 +322,7 @@ function startUI() {
 
 	const blocked = tabInfo.policy ? tabInfo.allowonce ? "(T) " : `(${tabInfo.blocked}) ` : "";
 
-	document.title = `${blocked}ScriptJäger`;
+	document.title = `${blocked}ScriptJÃ¤ger`;
 	document.getElementById("jaegerhut").href = `images/${jaegerhut[tabInfo.policy].name}38.png`;
 	document.getElementById("jaegerfarbe").content = jaegerhut[tabInfo.policy].colour;
 
