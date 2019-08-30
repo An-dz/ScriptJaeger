@@ -1223,11 +1223,7 @@ chrome.webRequest.onBeforeRequest.addListener(
  */
 chrome.webRequest.onBeforeRequest.addListener(
 	() => {
-		if (!preferences.ping) {
-			return {cancel: true};
-		}
-
-		return {cancel: false};
+		return {cancel: preferences.ping !== true};
 	},
 	{
 		urls: ["http://*/*", "https://*/*"],
