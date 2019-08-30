@@ -551,14 +551,14 @@ function deepClone(object) {
 	}
 
 	// if it's an object we need to initialise and copy keys
-	const temp = object.constructor();
+	const clone = object.constructor();
 
 	for (const key in object) {
-		temp[key] = deepClone(object[key]);
+		clone[key] = deepClone(object[key]);
 	}
 
 	// returns cloned object
-	return temp;
+	return clone;
 }
 
 /**
