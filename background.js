@@ -306,7 +306,7 @@ const otherSecondLevelDomains = {
  *
  * Checks if we can allow from some common patterns in the url
  *
- * @param site [Object] url object obtained from extractUrl()
+ * @param site [Object] url object obtained from `extractUrl()`
  *
  * @return [Boolean] identifying if it must be allowed
  *
@@ -332,12 +332,10 @@ function isCommonHelpers(site) {
  * Checks if the domain name of the site is in the domain of the
  * script. If tab domain is bigger, search for the inverse.
  *
- * @param js  [Object] url object obtained from extractUrl()
- * @param tab [Object] url object obtained from extractUrl()
+ * @param js  [String] domain obtained from `extractUrl()`
+ * @param tab [String] domain obtained from `extractUrl()`
  *
  * @return [Boolean] identifying if it must be allowed
- *
- * @note url object must contain `domain` key
  */
 function isRelated(js, tab) {
 	if (tab.length > js.length) {
@@ -508,8 +506,6 @@ function loadRule(level, sites, applyRules) {
  * @return [Object] Contains rules to apply, child keys include
  * `policy` containing policy rule and `rules` containing
  * blackwhitelist
- *
- * @note url object must contain `domain`, `subdomain` and `page` keys
  */
 function getRules(site) {
 	const urls = [
