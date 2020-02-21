@@ -826,18 +826,20 @@ function loadDefaultPreferences() {
  * @note This is fired on load
  */
 chrome.storage.local.get((pref) => {
-	// not first run and already converted, just load prefs
-	if (pref.preferences) {
+	// just load prefs if not first run and already converted
+	if (pref.preferences !== undefined) {
 		preferences = pref.preferences;
 	}
 
-	// key does not exist on first run
+	// this key only exists in the old preferences
+	// if not here then it's first run
 	else if (pref.firstRun === undefined) {
 		loadDefaultPreferences();
 	}
 
+	// if not converted and there's a firstRun key we begin upgrade
 	else {
-		preferences = pref.preferences;
+		preferences = pref.policy;
 		preferences.rules = pref.blackwhitelist;
 		convertPreferences();
 	}
