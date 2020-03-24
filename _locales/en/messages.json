@@ -52,7 +52,7 @@
 		"description": "Error message when opening the popup from an invalid page. Reason: No support yet."
 	},
 	"errorInternal": {
-		"message": "Internal pages are not scanned",
+		"message": "Internal pages cannot be scanned",
 		"description": "Error message when opening the popup from an invalid page. Reason: Internal pages can't be accessed by the API."
 	},
 	"seeResources": {
@@ -124,7 +124,7 @@
 		"description": "Button."
 	},
 	"settingsManageExportTooltip": {
-		"message": "Export your preferences for backup or later use purposes.",
+		"message": "Export your preferences for backup.",
 		"description": "Button tooltip."
 	},
 	"settingsManageExportTitle": {
@@ -136,7 +136,7 @@
 		"description": "Export preferences dialogue text."
 	},
 	"settingsManageResetTooltip": {
-		"message": "Reset preferences to default",
+		"message": "Reset preferences to default.",
 		"description": "Button tooltip."
 	},
 	"settingsManageResetTitle": {
@@ -148,7 +148,7 @@
 		"description": "Reset preferences confirmation dialogue."
 	},
 	"settingsManageImportTooltip": {
-		"message": "Paste your old settings in the text area and then press this button.",
+		"message": "Replace your preferences from a backup.",
 		"description": "Button tooltip."
 	},
 	"settingsManageImportTitle": {
@@ -241,7 +241,7 @@
 	},
 	"settingsInvalidUnder": {
 		"message": "under $1",
-		"description": "Tells under which level the problem is, $1 is replaced with key name"
+		"description": "Used on settings validation. Tells under which level the problem is, $1 is replaced with the key name. It gets repeated to show the person where's the problem in the JSON."
 	},
 	"settingsInvalidValue": {
 		"message": "'$1' key must have a value of '$2'",
