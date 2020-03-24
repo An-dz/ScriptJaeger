@@ -12,6 +12,7 @@ preferences = {
 	private: 1,
 	ping: false,
 	urls: {
+		// block ads
 		"amazon.com": {
 			rule: null,
 			rules: {
@@ -28,11 +29,13 @@ preferences = {
 			},
 			urls: {}
 		},
+		// private search
 		"duckduckgo.com": {
 			rule: 0,
 			rules: {urls: {}},
 			urls: {}
 		},
+		// language learning site
 		"duolingo.com": {
 			rule: 1,
 			rules: {
@@ -50,6 +53,7 @@ preferences = {
 			},
 			urls: {}
 		},
+		// allow their tracker in their site
 		"facebook.com": {
 			rule: null,
 			rules: {
@@ -62,6 +66,7 @@ preferences = {
 			},
 			urls: {}
 		},
+		// fan wikis
 		"fandom.com": {
 			rule: null,
 			rules: {
@@ -293,11 +298,13 @@ preferences = {
 			},
 			urls: {}
 		},
+		// private search
 		"startpage.com": {
 			rule: 0,
 			rules: {urls: {}},
 			urls: {}
 		},
+		// fan wikis
 		"wikia.com": {
 			rule: null,
 			rules: {
@@ -415,6 +422,11 @@ preferences = {
 					}
 				}
 			},
+			// linkedin tracker
+			"licdn.com": {
+				rule: true,
+				urls: {}
+			},
 			// sites built with wix
 			"parastorage.com": {
 				rule: false,
@@ -439,6 +451,11 @@ preferences = {
 						urls: {}
 					}
 				}
+			},
+			// Allow Node modules CDN
+			"unpkg.com": {
+				rule: false,
+				urls: {}
 			},
 			// Allow Vimeo frames
 			"vimeo.com": {
