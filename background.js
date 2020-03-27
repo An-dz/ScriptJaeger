@@ -369,6 +369,7 @@ function isRelated(js, tab) {
  * - domain    [String] contains the host name (e.g. github.com)
  * - page      [String] contains the dir & file name (e.g. /index.htm)
  * - query     [String] contains query information (e.g. ?p=a)
+ * - fragment  [String] contains fragment information (e.g. #main)
  */
 function extractUrl(url) {
 	/*
@@ -378,8 +379,9 @@ function extractUrl(url) {
 	 * 2 contains the full domain (subdomain + domain/host)
 	 * 3 contains the directory + filename
 	 * 4 contains the query
+	 * 5 contains the fragment
 	 */
-	url = url.match(/^([^:]+:\/\/)([^/]+)([^?]+)(.*)$/);
+	url = url.match(/^([^:]+:\/\/)(\/?[^/]+)([^?#]+)([^#]*)(.*)$/);
 	const domains = url[2].split(".");
 
 	// less than three levels everything is domain
@@ -405,7 +407,8 @@ function extractUrl(url) {
 		subdomain: url[0],
 		domain:    url[2],
 		page:      url[3],
-		query:     url[4]
+		query:     url[4],
+		fragment:  url[5]
 	};
 }
 
