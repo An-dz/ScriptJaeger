@@ -123,6 +123,10 @@
 		"message": "Import",
 		"description": "Button."
 	},
+	"settingsManageMerge": {
+		"message": "Merge",
+		"description": "Button."
+	},
 	"settingsManageExportTooltip": {
 		"message": "Export your preferences for backup.",
 		"description": "Button tooltip."
@@ -158,6 +162,18 @@
 	"settingsManageImportText": {
 		"message": "Paste a preferences file in the text area below and press the $1 button to import.",
 		"description": "Import preferences confirmation dialogue. $1 is replaced by the text of `buttonOk`."
+	},
+	"settingsManageMergeTooltip": {
+		"message": "Merge new rules into your preferences.",
+		"description": "Button tooltip."
+	},
+	"settingsManageMergeTitle": {
+		"message": "Merge Preferences",
+		"description": "Title for the merge preferences confirmation dialogue."
+	},
+	"settingsManageMergeText": {
+		"message": "Paste a rules object in the text area below and press the $1 button to begin the merge process. You'll be able to see the differences and choose what to merge.",
+		"description": "Merge preferences confirmation dialogue. $1 is replaced by the text of `buttonOk`."
 	},
 	"settingsManagePlaceholder": {
 		"message": "(Paste settings here to import)",
@@ -196,8 +212,12 @@
 		"description": "Title for alert box warning user that some of the keys in the imported file were ignored. Key can also be translated as Parameter."
 	},
 	"settingsWarningText": {
-		"message": "Key '$1' is useless and was not imported",
+		"message": "Key '$1' is unknown and was not imported",
 		"description": "When a key from an imported file is found to be useless it's entirely ignored by the imported and so won't make into the final imported preferences. Key can also be translated as Parameter."
+	},
+	"settingsWarningText2": {
+		"message": "Key '$1' contains children but it's already the lowest possible level. All children were not imported.",
+		"description": "Policy rules can be 3 levels deep – main domain (o.it), sub-domain (d.o.it) and page (d.o.it/now) – and script blocking lists can be 2 levels deep, this warning is raised when there are more levels. $1 is replaced by the key name. Key can also be translated as Parameter."
 	},
 	"settingsInvalidPrefs": {
 		"message": "Invalid Preferences Object",
@@ -246,6 +266,22 @@
 	"settingsInvalidValue": {
 		"message": "'$1' key must have a value of '$2'",
 		"description": "Tells that a value can only be a specific one. Key can also be translated as Parameter."
+	},
+	"settingsMergeCurrent": {
+		"message": "Current: $1",
+		"description": "When merging preferences, tooltip when hovering left hat. $1 is replaced by rule name."
+	},
+	"settingsMergeNew": {
+		"message": "New: $1",
+		"description": "When merging preferences, tooltip when hovering right hat. $1 is replaced by rule name."
+	},
+	"settingsEnabledCheckbox": {
+		"message": "Checked: Will be merged\nUnchecked: Will not be merged",
+		"description": "When merging preferences this is the tooltip for the checkboxes."
+	},
+	"settingsDisabledCheckbox": {
+		"message": "This rule is being deleted on a top level and this is only showning what's in your current settings.",
+		"description": "When merging preferences some rules can tell to delete a level, anything below the level is shown in the UI to let the user know what's happening, but they can't choose to delete some and keep others."
 	},
 	"buttonOk": {
 		"message": "OK",

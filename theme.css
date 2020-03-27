@@ -17,6 +17,7 @@ html {
 	--colorHighlightBgDark: #dedede;
 	--colorHighlightBgLight: #ffb7b7;
 	--colorHighlightFg: #fff;
+	--colorDisabled: #8e8e8e;
 	--radius: 0;
 	--radiusRound: 100px;
 	--radiusRounded: 2px;

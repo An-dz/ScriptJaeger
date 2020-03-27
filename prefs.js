@@ -10,6 +10,14 @@
 let preferences = {};
 
 /**
+ * @var mergePreferences [Object] Rules to be merged
+ *
+ * This is used when merging new preferences so it
+ * can keep the stuff without costly operations.
+ */
+let mergingPref = {};
+
+/**
  * @var jaegerhut [Object] Badge icons, one for each policy
  */
 const jaegerhut = {
@@ -87,13 +95,21 @@ function saveAndAlertBackground() {
  *
  * Shows an alert box in the middle of the page
  *
+ * @param okaction  [String]  Action to execute when clicking the OK Button
  * @param title     [String]  Title of the alert box
  * @param msg       [String]  Message of the alert box (can be html)
+ * @param text      [String]  Textbox content, send null to hide
  * @param cancelBtn [Boolean] If the cancel button must be shown
  */
-function showAlert(title, msg, cancelBtn) {
+function showAlert(okaction, title, msg, text, cancelBtn) {
 	const alertbox = document.getElementById("alertbox");
+	const textarea = document.getElementById("textarea");
+
+	textarea.hidden = text === null;
+	textarea.value = text;
+
 	alertbox.className = "visible";
+	alertbox.dataset.okaction = okaction;
 	alertbox.querySelector("h3").textContent = title;
 	alertbox.querySelector("p").innerHTML = msg;
 	alertbox.querySelector("button:last-child").hidden = !cancelBtn;
@@ -522,146 +538,229 @@ function newPreferences() {
 /* ====================================================================== */
 
 /**
- * @brief Validates a preferences object
+ * @brief Update merge checkboxes
  *
- * Validation can be done at multiple levels as long as the level
- * contains a 'rule' key. Validation is recursive and checks the
- * entire object.
+ * If a lower level is checked, upper levels should be checked too.
+ * If an upper level is unchecked all sublevel should too.
  *
- * @note Unknown keys are deleted
- *
- * @note Full validation check if the whole object is a valid
- * preferences object, it will raise errors if any object is missing.
- * Partial only checks if the values are correct and ignores if some
- * keys are missing, this check is for validating merging operations.
- *
- * @param[in] this    [Object]  The level in the object to validate
- * @param[in] isFull  [Boolean] If validation is full or partial
- * @param[in] isRules [Boolean] If the level is a blacklist
- * @param[in] at      [String]  String identifying the level
- *
- * @param[out] warn   [Array]   Array that will contain warnings
+ * @param event [Event] raised by the checked listener
  */
-function validate(isFull, isRules, at, warn) {
-	// message containing current location in case of any error
-	at = chrome.i18n.getMessage("settingsInvalidUnder", at);
+function checkboxMerge(event) {
+	const checked = event.target.checked;
+	const li = event.target.parentNode.parentNode;
 
-	// this check is to ensure that first all necessary entries exist
-	if (isFull) {
-		if (this.rule === undefined) {
-			throw new TypeError(`${chrome.i18n.getMessage("settingsInvalidBooleanNull", "rule")}<span>${at}</span>`);
+	// if enabling a level, all parent levels must be enabled too
+	if (checked) {
+		const upperLi = li.parentNode.parentNode;
+
+		// check upper level
+		if (upperLi.tagName === "LI") {
+			upperLi.querySelector("input").checked = true;
 		}
 
-		if (this.urls === undefined) {
-			throw new TypeError(`${chrome.i18n.getMessage("settingsInvalidObject", "urls")}<span>${at}</span>`);
-		}
-
-		if (!isRules && this.rules === undefined) {
-			throw new TypeError(`${chrome.i18n.getMessage("settingsInvalidObject", "rules")}<span>${at}</span>`);
+		// rules that delete a point must check its children
+		// but others should not
+		if (!event.target.dataset.deleted) {
+			return;
 		}
 	}
 
-	// validate each entry
-	Object.entries(this).forEach((entry) => {
-		const key   = entry[0];
-		const value = entry[1];
+	// if disabling a level, all sublevels must be disabled too
+	li.querySelectorAll("ul > li > label > input").forEach(input => {
+		input.checked = checked;
+	});
+}
 
-		if (key === "rule") {
-			// if rule is null then it's correct, otherwise more checks are necessary
-			if (value === null) {
-				return;
-			}
+/**
+ * @brief Appends an item to the merge settings UI
+ *
+ * This appends a single line (LI DOM) for a single rule in the
+ * merging settings UI (UL DOM).
+ *
+ * @param[in] url     [String]  Name of the rule level
+ * @param[in] current [String]  Name of the current/old rule
+ * @param[in] change  [String]  Name of the merging/new rule
+ *
+ * @return [Element] constructed li html element
+ */
+function createMergeItem(url, current, change) {
+	const li = document.createElement("li");
 
-			// blacklist (rules key) uses boolean
-			if (isRules) {
-				if (typeof value !== "boolean") {
-					throw new TypeError(`${chrome.i18n.getMessage("settingsInvalidBooleanNull", "rule")}<span>${at}</span>`);
-				}
+	const label = document.createElement("label");
+	label.className = "flex";
 
-				return;
-			}
+	const checkbox = document.createElement("input");
+	checkbox.type = "checkbox";
+	checkbox.checked = true;
+	// add event that controls selection of parents and children
+	checkbox.addEventListener("change", checkboxMerge);
 
-			// policy uses a number
-			if (typeof value !== "number") {
-				throw new TypeError(`${chrome.i18n.getMessage("settingsInvalidNumberNull", "rule")}<span>${at}</span>`);
-			}
+	if (change === "deletes") {
+		change = "delete";
+		checkbox.dataset.deleted = true;
+		checkbox.title = chrome.i18n.getMessage("settingsEnabledCheckbox");
+	}
+	else if (change === "delete") {
+		checkbox.dataset.deleted = true;
+		checkbox.disabled = true;
+		checkbox.title = chrome.i18n.getMessage("settingsDisabledCheckbox");
+	}
 
-			if (value < 0 || value > 3) {
-				throw new RangeError(`${chrome.i18n.getMessage("settingsInvalidRangeNull", "rule")}<span>${at}</span>`);
-			}
+	const span = document.createElement("span");
+	span.innerText = url;
 
-			return;
+	const currentImg = document.createElement("img");
+	currentImg.className = "rule";
+	currentImg.src = `images/${jaegerhut[current].name}38.png`;
+	currentImg.alt = jaegerhut[current].text[0];
+	currentImg.title = chrome.i18n.getMessage(
+		"settingsMergeCurrent", jaegerhut[current].text
+	);
+
+	const changeImg = document.createElement("img");
+	changeImg.className = "rule";
+	changeImg.src = `images/${jaegerhut[change].name}38.png`;
+	changeImg.alt = jaegerhut[change].text[0];
+	changeImg.title = chrome.i18n.getMessage(
+		"settingsMergeNew", jaegerhut[change].text
+	);
+
+	label.appendChild(checkbox);
+	label.appendChild(span);
+	label.appendChild(currentImg);
+	label.appendChild(changeImg);
+	li.appendChild(label);
+
+	return li;
+}
+
+/**
+ * @brief Builds the UI for merging preferences
+ *
+ * The preferences object that will be merged into the other does not
+ * need to have all keys.
+ *
+ * @note The `this` argument is sent by the function itself when a
+ * branch of the preferences is being deleted so that all subitems
+ * are added on the UI as being deleted as well.
+ *
+ * @param[in]  this [Boolean] If this whole rule is being deleted
+ * @param[in]  node [Element] DOM Element to inject element
+ * @param[in]  from [Array]   List of preferences to be merged
+ * @param[in]  to   [Object]  Where the preferences must be merged into
+ */
+function checkMerge(node, from, to) {
+	from.forEach(site => {
+		const key   = site[0];
+		const value = site[1];
+
+		// move rule to variable to prevent reference
+		let rule = value.rule;
+		let urls = value.urls ? Object.entries(value.urls) : [];
+		let rules = value.rules && value.rules.urls ?
+			Object.entries(value.rules.urls) : [];
+
+		const oldValue = {
+			rule:  (to[key] && to[key].rule !== undefined) ?
+				to[key].rule  : "delete",
+
+			rules: (to[key] && to[key].rules) ?
+				to[key].rules : {urls:{}},
+
+			urls:  (to[key] && to[key].urls)  ?
+				to[key].urls  : {}
+		};
+
+		const toDelete = this || value.delete;
+
+		if (toDelete) {
+			rule = `delete${value.delete ? "s" : ""}`;
+			urls = Object.entries(oldValue.urls);
+			rules = Object.entries(oldValue.rules.urls);
+		}
+		else if (rule === undefined) {
+			rule = oldValue.rule;
 		}
 
-		if (key === "rules") {
-			if (isRules) {
-				// blacklist (rules key) doesn't contain rules subkeys, might be a typo
-				throw new SyntaxError(`${chrome.i18n.getMessage("settingsInvalidLevel", "rules")}<span>${at}</span>`);
+		const ulUrls = document.createElement("ul");
+		const ulRules = document.createElement("ul");
+		ulUrls.className = "subrules";
+		ulRules.className = "scripts";
+
+		checkMerge.call(toDelete, ulUrls, urls, oldValue.urls);
+		checkMerge.call(toDelete, ulRules, rules, oldValue.rules.urls);
+
+		// we only show it on the UI if the new `rule` is different
+		// or if the other keys are present
+		if (
+			rule !== oldValue.rule ||
+			ulUrls.childElementCount > 0 ||
+			ulRules.childElementCount > 0
+		) {
+			const li = createMergeItem(key, oldValue.rule, rule);
+
+			if (!this) {
+				value.checkbox = li.firstElementChild.firstElementChild;
 			}
 
-			// policy objects must contain a rules key/object
-			if (typeof value !== "object") {
-				throw new TypeError(`${chrome.i18n.getMessage("settingsInvalidObject", "rules")}<span>${at}</span>`);
+			if (ulUrls.childElementCount > 0) {
+				li.className = "show";
+				li.appendChild(ulUrls);
 			}
 
-			// rules key/object must contain a urls key/object
-			if (typeof value.urls !== "object") {
-				throw new TypeError(`${chrome.i18n.getMessage("settingsInvalidObject", "urls")}<span>${chrome.i18n.getMessage("settingsInvalidUnder", "rules")}<br>${at}</span>`);
+			if (ulRules.childElementCount > 0) {
+				li.className = "show";
+				li.appendChild(ulRules);
 			}
 
-			// validate the children rules
-			Object.entries(value.urls).forEach((object) => {
-				validate.call(
-					object[1],
-					isFull,
-					true,
-					`${object[0]}<br>${chrome.i18n.getMessage("settingsInvalidUnder", "urls")}<br>${chrome.i18n.getMessage("settingsInvalidUnder", "rules")}<br>${at}`,
-					warn
-				);
-			});
-
-			return;
-		}
-
-		if (key === "urls") {
-			// all policy and blacklist objects must contain a urls key/object
-			if (typeof value !== "object") {
-				throw new TypeError(`${chrome.i18n.getMessage("settingsInvalidObject", "urls")}<span>${at}</span>`);
-			}
-
-			// validate children
-			Object.entries(value).forEach((object) => {
-				validate.call(
-					object[1],
-					isFull,
-					isRules,
-					`${object[0]}<br>${chrome.i18n.getMessage("settingsInvalidUnder", "urls")}<br>${at}`,
-					warn
-				);
-			});
-
-			return;
-		}
-
-		if (key === "delete") {
-			if (isFull) {
-				throw new SyntaxError(`${chrome.i18n.getMessage("settingsInvalidDelete", "delete")}<span>${at}</span>`);
-			}
-
-			if (value !== true) {
-				throw new TypeError(`${chrome.i18n.getMessage("settingsInvalidValue", ["delete", "true"])}<span>${at}</span>`);
-			}
-
-			return;
-		}
-
-		// private key is only used in root, root doesn't have <br>
-		if (key !== "private" || at.indexOf("<br>") > -1) {
-			warn.push(`${chrome.i18n.getMessage("settingsWarningText", key)}<span>${at}</span>`);
-			delete this[key];
+			node.appendChild(li);
 		}
 	});
 }
+
+/**
+ * @brief Builds the UI for merging preferences
+ *
+ * The preferences object that will be merged into the other does not
+ * need to have all keys.
+ *
+ * @note The `this` argument is sent by the function itself when a
+ * branch of the preferences is being deleted so that all subitems
+ * are added on the UI as being deleted as well.
+ *
+ * @param[in]  this [Boolean] If this whole rule is being deleted
+ * @param[in]  node [Element] DOM Element to inject element
+ * @param[in]  from [Object]  Preferences to be merged
+ *
+ * @param[out] to   [Object]  Where the preferences must be merged into
+ */
+function buildMergeUI(mergingRules) {
+	const ul = document.querySelector("#alertbox ul");
+	const ulUrls  = document.createElement("ul");
+	const ulRules = document.createElement("ul");
+	const liUrls  = document.createElement("li");
+	const liRules = document.createElement("li");
+
+	ulUrls.className    = "subrules";
+	ulRules.className   = "scripts";
+	liUrls.textContent  = chrome.i18n.getMessage("settingsRules");
+	liRules.textContent = chrome.i18n.getMessage("settingsScripts");
+
+	// it's already valid so no need to check type or content
+	const urls = mergingRules.urls ? Object.entries(mergingRules.urls) : [];
+	const rules = mergingRules.rules && mergingRules.rules.urls ?
+		Object.entries(mergingRules.rules.urls) : [];
+
+	checkMerge(ulUrls,  urls,  preferences.urls);
+	checkMerge(ulRules, rules, preferences.rules.urls);
+
+	ul.appendChild(liUrls);
+	ul.appendChild(ulUrls);
+	ul.appendChild(liRules);
+	ul.appendChild(ulRules);
+}
+
+/* ====================================================================== */
 
 /**
  * @brief Merges two preferences file
@@ -674,9 +773,13 @@ function validate(isFull, isRules, at, warn) {
  * @param[out] to   [Object] Where the preferences must be merged into
  */
 function mergePreferences(from, to) {
-	Object.entries(from).forEach((site) => {
+	Object.entries(from).forEach(site => {
 		const key   = site[0];
 		const value = site[1];
+
+		if (value.checkbox.checked === false) {
+			return;
+		}
 
 		if (value.delete === true) {
 			if (to[key] !== undefined) {
@@ -709,182 +812,288 @@ function mergePreferences(from, to) {
 }
 
 /**
- * @brief Appends an item to the merge settings UI
+ * @brief Prints all levels the rule is under
  *
- * This appends a single line (LI DOM) for a single rule in the
- * merging settings UI (UL DOM).
+ * Builds an HTML with all the levels the problem is under.
  *
- * @param[in] ul      [Element] DOM Element to append the LI into
- * @param[in] url     [String]  Name of the rule level
- * @param[in] current [String]  Name of the current/old rule
- * @param[in] change  [String]  Name of the merging/new rule
+ * @param at [Array] Each level is an entry
+ *
+ * @return [String] HTML string
  */
-function appendMergeList(ul, url, current, change) {
-	const li = document.createElement("li");
-
-	const label = document.createElement("label");
-	label.className = "flex";
-
-	const checkbox = document.createElement("input");
-	checkbox.type = "checkbox";
-	checkbox.checked = true;
-
-	if (change === "delete") {
-		checkbox.dataset.deleted = true;
-		checkbox.disabled = true;
-	}
-
-	const span = document.createElement("span");
-	span.innerText = url;
-
-	const currentImg = document.createElement("img");
-	currentImg.className = "rule";
-	currentImg.src = `images/${jaegerhut[current].name}38.png`;
-	currentImg.alt = jaegerhut[current].text[0];
-	currentImg.title = jaegerhut[current].text;
-
-	const changeImg = document.createElement("img");
-	changeImg.className = "rule";
-	changeImg.src = `images/${jaegerhut[change].name}38.png`;
-	changeImg.alt = jaegerhut[change].text[0];
-	changeImg.title = jaegerhut[change].text;
-
-	label.appendChild(checkbox);
-	label.appendChild(span);
-	label.appendChild(currentImg);
-	label.appendChild(changeImg);
-	li.appendChild(label);
-	ul.appendChild(li);
-
-	// add event that controls selection of parents and children
-	checkbox.addEventListener("change", (e) => {
-		const checked = e.target.checked;
-		const parent = e.target.parentNode.parentNode;
-
-		// if enabling a level, all parent levels must be enabled too
-		if (checked) {
-			let upperLi = parent.parentNode.parentNode;
-
-			while (upperLi.tagName === "LI") {
-				upperLi.querySelector("input").checked = true;
-				upperLi = upperLi.parentNode.parentNode;
-			}
-
-			if (!checkbox.dataset.deleted) {
-				return;
-			}
-		}
-
-		// if disabling a level, all sublevels must be disabled too
-		parent.querySelectorAll("li input").forEach((input) => {
-			input.checked = checked;
-		});
-	});
+function validatePrintLevels(at) {
+	return at.map(
+		level => chrome.i18n.getMessage("settingsInvalidUnder", level)
+	).join("<br>");
 }
 
 /**
- * @brief Builds the UI for merging preferences
+ * @brief Validates a preferences object
  *
- * The preferences object that will be merged into the other does not
- * need to have all keys.
+ * Validation can be done at multiple levels as long as the level
+ * contains a 'rule' key. Validation is recursive and checks the
+ * entire object.
  *
- * @note The `this` argument is sent by the function itself when a
- * branch of the preferences is being deleted so that all subitems
- * are added on the UI as being deleted as well.
+ * @note Unknown keys are deleted
  *
- * @param[in]  this [Boolean] If this whole rule is being deleted
- * @param[in]  node [Element] DOM Element to inject element
- * @param[in]  from [Object]  Preferences to be merged
+ * @note Full validation check if the whole object is a valid
+ * preferences object, it will raise errors if any object is missing.
+ * Partial only checks if the values are correct and ignores if some
+ * keys are missing, this check is for validating merging operations.
  *
- * @param[out] to   [Object]  Where the preferences must be merged into
+ * @param[in] obj     [Object]  The level in the object to validate
+ * @param[in] isFull  [Boolean] If validation is full or partial
+ * @param[in] isRules [Boolean] If the level is a blacklist
+ * @param[in] at      [Array]   Array identifying the levels
+ *
+ * @param[out] warn   [Array]   Array that will contain warnings
  */
-function buildMergeUI(node, from, to) {
-	Object.entries(from).forEach((site) => {
-		const key   = site[0];
-		const value = site[1];
-		let oldValue = to[key];
+function validate(obj, isFull, isRules, at, warn) {
+	// this check is to ensure that first all necessary entries exist
+	if (isFull) {
+		if (obj.rule === undefined) {
+			throw new TypeError(
+				`${chrome.i18n.getMessage(
+					"settingsInvalidBooleanNull", "rule"
+				)}<span>${
+					validatePrintLevels(at)
+				}</span>`
+			);
+		}
 
-		if (this || value.delete === true) {
-			if (oldValue !== undefined) {
-				appendMergeList(node, key, oldValue.rule, "delete");
+		if (obj.urls === undefined) {
+			throw new TypeError(
+				`${chrome.i18n.getMessage(
+					"settingsInvalidObject", "urls"
+				)}<span>${
+					validatePrintLevels(at)
+				}</span>`
+			);
+		}
 
-				// the main level that will be deleted can be toggled
-				// but the sublevels can't
-				if (!this) {
-					node.lastElementChild.firstElementChild.firstElementChild.disabled = false;
+		if (!isRules && obj.rules === undefined) {
+			throw new TypeError(
+				`${chrome.i18n.getMessage(
+					"settingsInvalidObject", "rules"
+				)}<span>${
+					validatePrintLevels(at)
+				}</span>`
+			);
+		}
+	}
+
+	// validate each entry
+	Object.entries(obj).forEach(entry => {
+		const key   = entry[0];
+		const value = entry[1];
+
+		if (key === "rule") {
+			// if rule is null then it's correct
+			if (value === null) {
+				return;
+			}
+			//  otherwise more checks are necessary
+
+			// blacklist (rules key) uses boolean
+			if (isRules) {
+				if (typeof value !== "boolean") {
+					throw new TypeError(
+						`${chrome.i18n.getMessage(
+							"settingsInvalidBooleanNull", "rule"
+						)}<span>${
+							validatePrintLevels(at)
+						}</span>`
+					);
 				}
 
-				// show sub-levels so the user knows what will be deleted
-				if (oldValue.rules !== undefined) {
-					const ul = document.createElement("ul");
-					buildMergeUI.call(true, ul, oldValue.rules.urls, oldValue.rules.urls);
+				return;
+			}
 
-					// if no elements were added we don't add to the DOM
-					if (ul.childElementCount > 0) {
-						ul.className = "scripts";
-						node.lastElementChild.className = "show";
-						node.lastElementChild.appendChild(ul);
-						// ul.querySelectorAll("checkbox").forEach();
-					}
-				}
+			// policy uses a number
+			if (typeof value !== "number") {
+				throw new TypeError(
+					`${chrome.i18n.getMessage(
+						"settingsInvalidNumberNull", "rule"
+					)}<span>${
+						validatePrintLevels(at)
+					}</span>`
+				);
+			}
 
-				if (oldValue.urls !== undefined) {
-					const ul = document.createElement("ul");
-					buildMergeUI.call(true, ul, oldValue.urls, oldValue.urls);
-
-					// if no elements were added we don't add to the DOM
-					if (ul.childElementCount > 0) {
-						ul.className = "subrules";
-						node.lastElementChild.className = "show";
-						node.lastElementChild.appendChild(ul);
-					}
-				}
+			if (value < 0 || value > 3) {
+				throw new RangeError(
+					`${chrome.i18n.getMessage(
+						"settingsInvalidRangeNull", "rule"
+					)}<span>${
+						validatePrintLevels(at)
+					}</span>`
+				);
 			}
 
 			return;
 		}
 
-		if (oldValue === undefined) {
-			oldValue = {
-				rule: "delete",
-				rules: {urls:{}},
-				urls: {}
-			};
-		}
-
-		// we only show it on the UI if the new `rule` is different
-		// or if the other keys are present
-		if (value.rule !== oldValue.rule || value.rules !== undefined || value.urls !== undefined) {
-			if (value.rule === undefined) {
-				value.rule = oldValue.rule;
+		if (key === "rules") {
+			// blacklist (rules key) doesn't contain rules subkeys
+			if (isRules) {
+				throw new SyntaxError(
+					`${chrome.i18n.getMessage(
+						"settingsInvalidLevel", "rules"
+					)}<span>${
+						validatePrintLevels(at)
+					}</span>`
+				);
 			}
 
-			appendMergeList(node, key, oldValue.rule, value.rule);
-		}
-
-		if (value.rules !== undefined) {
-			const ul = document.createElement("ul");
-			buildMergeUI(ul, value.rules.urls, oldValue.rules.urls);
-
-			// if no elements were added we don't add to the DOM
-			if (ul.childElementCount > 0) {
-				ul.className = "scripts";
-				node.lastElementChild.className = "show";
-				node.lastElementChild.appendChild(ul);
+			// policy objects must contain a rules key/object
+			if (typeof value !== "object") {
+				throw new TypeError(
+					`${chrome.i18n.getMessage(
+						"settingsInvalidObject", "rules"
+					)}<span>${
+						validatePrintLevels(at)
+					}</span>`
+				);
 			}
-		}
 
-		if (value.urls !== undefined) {
-			const ul = document.createElement("ul");
-			buildMergeUI(ul, value.urls, oldValue.urls);
+			const atNew = [...at, "rules"];
 
-			// if no elements were added we don't add to the DOM
-			if (ul.childElementCount > 0) {
-				ul.className = "subrules";
-				node.lastElementChild.className = "show";
-				node.lastElementChild.appendChild(ul);
+			// rules key/object must contain a urls key/object
+			if (typeof value.urls !== "object") {
+				throw new TypeError(
+					`${chrome.i18n.getMessage(
+						"settingsInvalidObject", "urls"
+					)}<span>${
+						validatePrintLevels(atNew)
+					}</span>`
+				);
 			}
+
+			// rules key should only have urls key
+			// this is here because of the full check
+			Object.keys(value).forEach(subkey => {
+				if (subkey !== "urls") {
+					warn.push(
+						`${chrome.i18n.getMessage(
+							"settingsWarningText", subkey
+						)}<span>${
+							validatePrintLevels(atNew)
+						}</span>`
+					);
+
+					delete value[subkey];
+				}
+			});
+
+			validate(value.urls, isFull, true, [...atNew, "urls"], warn);
+
+			return;
 		}
+
+		if (key === "urls") {
+			// all policy and blacklist objects must contain a urls object
+			if (typeof value !== "object") {
+				throw new TypeError(
+					`${chrome.i18n.getMessage(
+						"settingsInvalidObject", "urls"
+					)}<span>${
+						validatePrintLevels(at)
+					}</span>`
+				);
+			}
+
+			const children = Object.entries(value);
+
+			// limit to 3 levels of policy rules or 2 of script block rules
+			if (
+				children.length > 0 && (
+					(!isRules && at.length > 7) ||
+					(isRules && at.length - at.indexOf("rules") > 5)
+				)
+			) {
+				warn.push(
+					`${chrome.i18n.getMessage(
+						"settingsWarningText2", key
+					)}<span>${
+						validatePrintLevels(at)
+					}</span>`
+				);
+
+				value.urls = {};
+				return;
+			}
+
+			// validate children
+			children.forEach(object => {
+				validate(
+					object[1],
+					isFull,
+					isRules,
+					[...at, "urls", object[0]],
+					warn
+				);
+			});
+
+			return;
+		}
+
+		if (key === "delete") {
+			if (isFull) {
+				throw new SyntaxError(
+					`${chrome.i18n.getMessage(
+						"settingsInvalidDelete", "delete"
+					)}<span>${
+						validatePrintLevels(at)
+					}</span>`
+				);
+			}
+
+			if (value !== true) {
+				throw new TypeError(
+					`${chrome.i18n.getMessage(
+						"settingsInvalidValue", ["delete", "true"]
+					)}<span>${
+						validatePrintLevels(at)
+					}</span>`
+				);
+			}
+
+			return;
+		}
+
+		// private key is only used under root
+		if (key === "private" && at.length === 1) {
+			if (typeof value !== "number") {
+				throw new TypeError(
+					`${chrome.i18n.getMessage(
+						"settingsInvalidNumber", "private"
+					)}<span>${
+						validatePrintLevels(at)
+					}</span>`
+				);
+			}
+
+			if (value < 0 || value > 3) {
+				throw new RangeError(
+					`${chrome.i18n.getMessage(
+						"settingsInvalidRange", "private"
+					)}<span>${
+						validatePrintLevels(at)
+					}</span>`
+				);
+			}
+
+			return;
+		}
+
+		warn.push(
+			`${chrome.i18n.getMessage(
+				"settingsWarningText", key
+			)}<span>${
+				validatePrintLevels(at)
+			}</span>`
+		);
+
+		delete obj[key];
 	});
 }
 
@@ -895,122 +1104,55 @@ function buildMergeUI(node, from, to) {
  * This special object allows to add, delete, modify and ignore rules.
  *
  * @param[in] importedRules [String] Preferences to be merged
+ *
+ * @warn Side effect: mergingPref receives the mergingRules object
  */
-function askMergePreferences(importedRules) {
+function askMergePreferences(mergingRules) {
 	try {
-		importedRules = JSON.parse(importedRules);
+		mergingRules = JSON.parse(mergingRules);
 
-		if (typeof importedRules !== "object") {
-			throw new SyntaxError(chrome.i18n.getMessage("settingsInvalidData"));
+		if (typeof mergingRules !== "object") {
+			throw new SyntaxError(
+				chrome.i18n.getMessage("settingsInvalidData")
+			);
 		}
 
 		const warn = [];
-		validate.call(importedRules, false, false, "root", warn);
+		validate(mergingRules, false, false, ["root"], warn);
 
 		if (warn.length > 0) {
-			showAlert(chrome.i18n.getMessage("settingsWarningTitle"), warn, false);
+			// show warning to let user know some stuff was removed
+			showAlert(
+				"askmerge",
+				chrome.i18n.getMessage("settingsWarningTitle"),
+				warn,
+				JSON.stringify(mergingRules, null, "  "),
+				false
+			);
+
+			return;
 		}
+
+		showAlert(
+			"merge",
+			chrome.i18n.getMessage("settingsMergeTitle"),
+			chrome.i18n.getMessage("settingsMergeMsg"),
+			null,
+			true
+		);
+
+		buildMergeUI(mergingRules);
+		mergingPref = mergingRules;
 	}
 	catch (error) {
-		showAlert(chrome.i18n.getMessage("settingsInvalidPrefs"), error.message, false);
-		return;
+		showAlert(
+			"none",
+			chrome.i18n.getMessage("settingsInvalidPrefs"),
+			error.message,
+			null,
+			false
+		);
 	}
-
-	const ul = document.createElement("ul");
-
-	// it's already valid so no need to check type or content
-	if (importedRules.urls) {
-		buildMergeUI(ul, importedRules.urls, preferences.urls);
-	}
-
-	if (importedRules.rules) {
-		const scripts = document.createElement("ul");
-		buildMergeUI(scripts, importedRules.rules.urls, preferences.rules.urls);
-
-		// if no elements were added we don't add to the DOM
-		if (scripts.childElementCount < 1) {
-			return;
-		}
-
-		appendMergeList(ul, chrome.i18n.getMessage("settingsScripts"), "false", "false");
-
-		const li = ul.lastElementChild;
-		li.className = "blacklist";
-		li.querySelectorAll("img").forEach((img) => {
-			img.remove();
-		});
-
-		scripts.className = "scripts";
-		li.appendChild(scripts);
-	}
-
-	// if no elements were added we don't add to the DOM
-	if (ul.childElementCount < 1) {
-		showAlert(chrome.i18n.getMessage("settingsMergeTitle"), chrome.i18n.getMessage("settingsMergeFailMsg"), false);
-		return;
-	}
-
-	ul.className = "rule-box";
-	document.querySelector("#alertbox > .grid > div").appendChild(ul);
-
-	// for `okEvent`
-	// checks what rules to ignore
-	const removeKey = (li, level) => {
-		const label = li.firstElementChild.children;
-		const checked = label[0].checked;
-		const key = label[1].textContent;
-
-		if (!checked) {
-			delete level.urls[key];
-			return;
-		}
-
-		level = level.urls[key];
-
-		if (level.delete) {
-			return;
-		}
-
-		li.querySelectorAll(":scope > ul").forEach((sub) => {
-			sub.querySelectorAll(":scope > li").forEach((child) => {
-				if (sub.className === "scripts") {
-					removeKey(child, level.rules);
-				} else if (sub.className === "subrules") {
-					removeKey(child, level);
-				}
-			});
-		});
-	};
-
-	// execute preferences merging if pressing OK
-	const okEvent = () => {
-
-		ul.querySelectorAll(":scope > li:not(.blacklist)").forEach((li) => {
-			removeKey(li, importedRules);
-		});
-		ul.querySelectorAll(":scope > li.blacklist > ul > li").forEach((li) => {
-			removeKey(li, importedRules.rules);
-		});
-
-		// don't need to validate again, it's already guaranteed
-		mergePreferences(importedRules.urls, preferences.urls);
-		mergePreferences(importedRules.rules.urls, preferences.rules.urls);
-
-		document.querySelector("#alertbox button:last-child").click();
-	};
-
-	// remove query from URL if Cancel button is pressed
-	const cancelEvent = () => {
-		ul.remove();
-		history.replaceState(null, document.title, "prefs.html");
-		document.querySelector("#alertbox button").removeEventListener("click", okEvent);
-		document.querySelector("#alertbox button:last-child").removeEventListener("click", cancelEvent);
-	};
-
-	document.querySelector("#alertbox button").addEventListener("click", okEvent);
-	document.querySelector("#alertbox button:last-child").addEventListener("click", cancelEvent);
-
-	showAlert(chrome.i18n.getMessage("settingsMergeTitle"), chrome.i18n.getMessage("settingsMergeMsg"), true);
 }
 
 /**
@@ -1023,42 +1165,169 @@ function askMergePreferences(importedRules) {
  */
 function importPreferences() {
 	try {
-		const prefs = JSON.parse(document.getElementById("text").value);
+		const prefs = JSON.parse(document.getElementById("textarea").value);
 
 		if (typeof prefs !== "object") {
-			throw new TypeError(chrome.i18n.getMessage("settingsInvalidData"));
+			throw new TypeError(
+				chrome.i18n.getMessage("settingsInvalidData")
+			);
 		}
 
-		// extra checks not made by generic validation
-		if (typeof prefs.private !== "number") {
-			throw new TypeError(`${chrome.i18n.getMessage("settingsInvalidNumber", "private")}<span>${chrome.i18n.getMessage("settingsInvalidUnder", "root")}</span>`);
-		}
-
-		if (prefs.private < 0 || prefs.private > 3) {
-			throw new RangeError(`${chrome.i18n.getMessage("settingsInvalidRange", "private")}<span>${chrome.i18n.getMessage("settingsInvalidUnder", "root")}</span>`);
-		}
-
+		// null is not allowed at root
 		if (typeof prefs.rule !== "number") {
-			throw new TypeError(`${chrome.i18n.getMessage("settingsInvalidNumber", "rule")}<span>${chrome.i18n.getMessage("settingsInvalidUnder", "root")}</span>`);
+			throw new TypeError(
+				`${chrome.i18n.getMessage(
+					"settingsInvalidNumber", "rule"
+				)}<span>${chrome.i18n.getMessage(
+					"settingsInvalidUnder", "root"
+				)}</span>`
+			);
 		}
 
 		const warn = [];
 
 		// validate preferences
-		validate.call(prefs, true, false, "root", warn);
+		validate(prefs, true, false, ["root"], warn);
 		// will only be reached if no errors occured
 		preferences = prefs;
 
 		if (warn.length > 0) {
-			showAlert(chrome.i18n.getMessage("settingsWarningTitle"), warn, false);
+			showAlert(
+				"none",
+				chrome.i18n.getMessage("settingsWarningTitle"),
+				warn,
+				null,
+				false
+			);
 		}
 	}
 	catch (error) {
-		showAlert(chrome.i18n.getMessage("settingsInvalidPrefs"), error.message, false);
+		showAlert(
+			"none",
+			chrome.i18n.getMessage("settingsInvalidPrefs"),
+			error.message,
+			null,
+			false
+		);
 		return;
 	}
 
 	newPreferences();
+}
+
+/* ====================================================================== */
+
+/**
+ * @brief Close the alert box
+ *
+ * Closes the alert box clearing all content in the textbox
+ */
+function closeAlert() {
+	const alertbox = document.getElementById("alertbox");
+	const textarea = document.getElementById("textarea");
+
+	if (alertbox.dataset.okaction === "merge") {
+		history.pushState(null, document.title, "prefs.html");
+	}
+
+	textarea.hidden = true;
+	textarea.value = null;
+
+	alertbox.className = null;
+	alertbox.dataset.okaction = "none";
+}
+
+/**
+ * @brief Alertbox OK button action
+ *
+ * Execute the correct action when clicking the OK button in the alert
+ */
+function okClick() {
+	const okaction = document.getElementById("alertbox").dataset.okaction;
+
+	if (okaction === "import") {
+		importPreferences();
+	}
+	else if (okaction === "reset") {
+		document.querySelector("#alertbox button:last-child").click();
+
+		const script = document.createElement("script");
+		script.src = "default-prefs.js";
+		script.type = "text/javascript";
+		script.id = "default";
+		document.head.appendChild(script);
+	}
+	else if (okaction === "merge") {
+		// it's been already validated
+		mergePreferences(mergingPref.urls, preferences.urls);
+		mergePreferences(mergingPref.rules.urls, preferences.rules.urls);
+	}
+	else if (okaction === "askmerge") {
+		const merge = JSON.parse(document.getElementById("textarea").value);
+		askMergePreferences(merge);
+	}
+
+	closeAlert();
+}
+
+/**
+ * @brief Reset preferences
+ *
+ * Click listener for the reset preferences button
+ */
+function resetPreferencesButton() {
+	showAlert(
+		"reset",
+		chrome.i18n.getMessage("settingsManageResetTitle"),
+		chrome.i18n.getMessage("settingsManageResetText"),
+		null,
+		true
+	);
+}
+
+/**
+ * @brief Export preferences
+ *
+ * Click listener for the export preferences button
+ */
+function exportPreferencesButton() {
+	showAlert(
+		"none",
+		chrome.i18n.getMessage("settingsManageExportTitle"),
+		chrome.i18n.getMessage("settingsManageExportText"),
+		JSON.stringify(preferences, null, "  "),
+		false
+	);
+}
+
+/**
+ * @brief Import preferences
+ *
+ * Click listener for the import preferences button
+ */
+function importPreferencesButton() {
+	showAlert(
+		"import",
+		chrome.i18n.getMessage("settingsManageImportTitle"),
+		chrome.i18n.getMessage("settingsManageImportText"),
+		"",
+		true
+	);
+}
+
+/**
+ * @brief Merge preferences
+ *
+ * Click listener for the merge preferences button
+ */
+function mergePreferencesButton() {
+	showAlert(
+		"askmerge",
+		chrome.i18n.getMessage("settingsManageMergeTitle"),
+		chrome.i18n.getMessage("settingsManageMergeText"),
+		"",
+		true
+	);
 }
 
 /* ====================================================================== */
@@ -1076,23 +1345,11 @@ chrome.storage.local.get((pref) => {
 
 	// now we can try merging preferences
 	if (document.location.search.length > 0) {
-		askMergePreferences(decodeURIComponent(document.location.search.substring(1)));
+		askMergePreferences(
+			decodeURIComponent(document.location.search.substring(1))
+		);
 	}
 });
-
-/**
- * @brief Hide/close the rule selector
- *
- * Hides the rule selector when you click anywhere on the page
- */
-document.addEventListener("click", () => {
-	const dropdown = document.getElementById("dropdown");
-	dropdown.className = "";
-
-	for (const key in dropdown.dataset) {
-		delete dropdown.dataset[key];
-	}
-}, true);
 
 /**
  * @brief Translate and attach events
@@ -1105,92 +1362,56 @@ document.addEventListener("DOMContentLoaded", () => {
 
 	const template = document.body.innerHTML;
 
-	document.body.innerHTML = template.replace(/__MSG_(\w+)__/g, (a, b) => {
-		return chrome.i18n.getMessage(b);
-	});
+	document.body.innerHTML = template.replace(
+		/__MSG_(\w+)__/g,
+		(a, b) => chrome.i18n.getMessage(b)
+	);
 
-	// add event listeners into the first two preferences
-	document.querySelectorAll("input[type='radio']").forEach((input) => {
-		if (input.id) {
-			input.addEventListener("change", changeRule);
+	// Hides the rule selector when you click anywhere on the page
+	document.addEventListener("click", () => {
+		const dropdown = document.getElementById("dropdown");
+		dropdown.className = "";
+
+		for (const key in dropdown.dataset) {
+			delete dropdown.dataset[key];
 		}
-		else {
-			input.addEventListener("change", changePolicy);
+	}, true);
+
+	// first two preferences
+	document.querySelectorAll("input[name='rule']").forEach(input => {
+		input.addEventListener("change", changeRule);
+	});
+
+	document.querySelectorAll("input[name='private']").forEach(input => {
+		input.addEventListener("change", changePolicy);
+	});
+
+	// ping preferences
+	document.querySelector("input[name='ping']").addEventListener(
+		"change", e => {
+			preferences.ping = !e.target.checked;
+			saveAndAlertBackground();
 		}
-	});
+	);
 
-	document.querySelector("input[type='checkbox']").addEventListener("change", (e) => {
-		preferences.ping = !e.target.checked;
-		saveAndAlertBackground();
-	});
+	// preferences management buttons
+	document.getElementById("r").addEventListener(
+		"click", resetPreferencesButton
+	);
+	document.getElementById("e").addEventListener(
+		"click", exportPreferencesButton
+	);
+	document.getElementById("i").addEventListener(
+		"click", importPreferencesButton
+	);
+	document.getElementById("m").addEventListener(
+		"click", mergePreferencesButton
+	);
 
-	/*
-	 * Events for preferences management buttons
-	 */
-	document.querySelectorAll("button").forEach((button) => {
-		switch (button.name) {
-			case "r":
-				button.addEventListener("click", () => {
-					const handle = () => {
-						document.querySelector("#alertbox button:last-child").click();
-
-						const script = document.createElement("script");
-						script.src = "default-prefs.js";
-						script.type = "text/javascript";
-						script.id = "default";
-						document.head.appendChild(script);
-					};
-
-					const removeHandles = () => {
-						document.querySelector("#alertbox button").removeEventListener("click", handle);
-						document.querySelector("#alertbox button:last-child").removeEventListener("click", removeHandles);
-					};
-
-					document.querySelector("#alertbox button").addEventListener("click", handle);
-					document.querySelector("#alertbox button:last-child").addEventListener("click", removeHandles);
-
-					showAlert(chrome.i18n.getMessage("settingsManageResetTitle"), chrome.i18n.getMessage("settingsManageResetText"), true);
-				});
-				break;
-			case "e":
-				button.addEventListener("click", () => {
-					const text = document.getElementById("text");
-					text.value = JSON.stringify(preferences, null, "  ");
-					text.hidden = false;
-
-					showAlert(chrome.i18n.getMessage("settingsManageExportTitle"), chrome.i18n.getMessage("settingsManageExportText"), false);
-				});
-				break;
-			case "i":
-				button.addEventListener("click", () => {
-					const handle = () => {
-						importPreferences();
-						document.querySelector("#alertbox button:last-child").click();
-					};
-
-					const removeHandles = () => {
-						document.querySelector("#alertbox button").removeEventListener("click", handle);
-						document.querySelector("#alertbox button:last-child").removeEventListener("click", removeHandles);
-					};
-
-					document.getElementById("text").hidden = false;
-
-					document.querySelector("#alertbox button").addEventListener("click", handle);
-					document.querySelector("#alertbox button:last-child").addEventListener("click", removeHandles);
-
-					showAlert(chrome.i18n.getMessage("settingsManageImportTitle"), chrome.i18n.getMessage("settingsManageImportText"), true);
-				});
-				break;
-			default:
-				button.addEventListener("click", () => {
-					const text = document.getElementById("text");
-					text.hidden = true;
-					text.value = "";
-					document.getElementById("alertbox").className = "";
-				});
-				break;
-		}
-	});
+	// alert buttons
+	const buttons = document.querySelectorAll("#alertbox button");
+	buttons[0].addEventListener("click", okClick);
+	buttons[1].addEventListener("click", closeAlert);
 });
 
 /**

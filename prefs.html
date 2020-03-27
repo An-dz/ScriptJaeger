@@ -42,7 +42,7 @@
 	<label><input type="checkbox" name="ping">__MSG_settingsPing__</label><br>
 	<p class="description">__MSG_settingsPingDesc__</p>
 	<h2>__MSG_settingsManage__</h2>
-	<button name="r" title="__MSG_settingsManageResetTooltip__">__MSG_settingsManageReset__</button><button name="e" class="middle" title="__MSG_settingsManageExportTooltip__">__MSG_settingsManageExport__</button><button name="i" title="__MSG_settingsManageImportTooltip__">__MSG_settingsManageImport__</button>
+	<button id="r" title="__MSG_settingsManageResetTooltip__">__MSG_settingsManageReset__</button><button id="e" class="middle" title="__MSG_settingsManageExportTooltip__">__MSG_settingsManageExport__</button><button id="i" title="__MSG_settingsManageImportTooltip__">__MSG_settingsManageImport__</button><button id="m" title="__MSG_settingsManageMergeTooltip__">__MSG_settingsManageMerge__</button>
 	<div id="dropdown">
 		<input type="radio" name="custom" id="undefined" value="-1">
 		<label for="undefined">
@@ -73,12 +73,13 @@
 			<img class="rule" src="images/blockall38.png" alt="">__MSG_policyBlockAll__
 		</label>
 	</div>
-	<div id="alertbox">
+	<div id="alertbox" data-okaction="none">
 		<div class="grid">
 			<div>
 				<h3></h3>
 				<p></p>
-				<textarea id="text" placeholder="__MSG_settingsManagePlaceholder__" hidden></textarea>
+				<ul class="rule-box"></ul>
+				<textarea id="textarea" placeholder="__MSG_settingsManagePlaceholder__" hidden></textarea>
 			</div>
 			<div>
 				<button>__MSG_buttonOk__</button><button>__MSG_buttonCancel__</button>
