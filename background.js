@@ -319,7 +319,9 @@ function isCommonHelpers(site) {
 			site.domain.indexOf("cdn")      > -1 ||
 			site.domain.indexOf("img")      > -1 ||
 			site.domain.indexOf("static")   > -1 ||
+			site.domain.indexOf("auth")     > -1 ||
 			site.subdomain.indexOf("login") > -1 ||
+			site.subdomain.indexOf("auth")  > -1 ||
 			site.subdomain.indexOf("code") === 0 ||
 			site.domain === "google.com"
 		)
