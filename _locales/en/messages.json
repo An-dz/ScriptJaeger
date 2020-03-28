@@ -212,11 +212,11 @@
 		"description": "Title for alert box warning user that some of the keys in the imported file were ignored. Key can also be translated as Parameter."
 	},
 	"settingsWarningText": {
-		"message": "Key '$1' is unknown and was not imported",
+		"message": "Key '$1' is unknown and was ignored",
 		"description": "When a key from an imported file is found to be useless it's entirely ignored by the imported and so won't make into the final imported preferences. Key can also be translated as Parameter."
 	},
 	"settingsWarningText2": {
-		"message": "Key '$1' contains children but it's already the lowest possible level. All children were not imported.",
+		"message": "Key '$1' contains children but it's already the lowest possible level. All children were ignored.",
 		"description": "Policy rules can be 3 levels deep – main domain (o.it), sub-domain (d.o.it) and page (d.o.it/now) – and script blocking lists can be 2 levels deep, this warning is raised when there are more levels. $1 is replaced by the key name. Key can also be translated as Parameter."
 	},
 	"settingsInvalidPrefs": {
