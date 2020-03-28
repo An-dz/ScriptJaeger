@@ -10,7 +10,7 @@ ScriptJäger only checks for scripts, frames and websocket connections on the ht
 
 ScriptJäger was created to be lightweigth, fast, powerful & easy-to-use. Anything is only loaded when really required.
 
-ScriptJäger is tested only under the [Vivaldi browser](https://vivaldi.com/) and very sporadically on bare Chromium, though it should work on any browser built on Chromium. No matter which browser you are using remember to include this info when reporting a bug.
+ScriptJäger is tested only under the [Vivaldi browser](https://vivaldi.com/), sometimes on Firefox and very sporadically on bare Chromium, though it should work on any browser built on Chromium, and very likely to work on any Gecko-based browser. No matter which browser you are using remember to include this info when reporting a bug.
 
 Check the [wiki](https://github.com/An-dz/ScriptJaeger/wiki) for info on how to use it.
 
