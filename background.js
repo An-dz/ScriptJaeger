@@ -628,10 +628,7 @@ chrome.windows.onRemoved.addListener((windowid) => {
  * @param tab [Object] Holds information about the tab
  */
 function addTab(tab) {
-	// console.log("@addTab, Tab info", tab);
-
 	if (tab.id === -1) {
-		// console.warn("@addTab, Abort! tabid is -1");
 		return;
 	}
 
@@ -698,7 +695,6 @@ function addTab(tab) {
  * @param allowonce [Boolean] if Allow Once policy is set
  */
 function removeTab(tabid, allowonce) {
-	// console.log("@removeTab, Stopped monitoring tab", tabid, "with", tabStorage[tabid]);
 	if (allowonce === true) {
 		tabStorage[tabid] = {
 			allowonce: true,
@@ -864,8 +860,6 @@ chrome.storage.local.get((pref) => {
  * Based on https://github.com/Christoph142/Pin-Sites/
  */
 chrome.tabs.onReplaced.addListener((newId, oldId) => {
-	// console.log("@tabs.onReplaced,", oldId, "replaced by", newId);
-
 	if (newId === oldId || tabStorage[oldId] === undefined) {
 		return;
 	}
@@ -888,13 +882,11 @@ chrome.tabs.onReplaced.addListener((newId, oldId) => {
  * @param details [Object] of the navigation
  */
 chrome.webNavigation.onBeforeNavigate.addListener((details) => {
-	// console.log("############### onBeforeNavigate ###############\n", details);
 	const tabid = details.tabId;
 	const frameid = details.frameId;
 
 	// we should not continue if we don't know from which tab the frame is coming
 	if (tabid === -1) {
-		// console.warn("@onBeforeNavigate: Abort! tabid is -1");
 		return;
 	}
 
@@ -914,8 +906,6 @@ chrome.webNavigation.onBeforeNavigate.addListener((details) => {
 				pframeid = use;
 			}
 		}
-
-		// console.log("@onBeforeNavigate, tabid:", tabid, "frameid:", frameid, "tabStorage:", tabStorage[tabid]);
 
 		// save frame information
 		if (typeof(tabStorage[tabid]) !== "string") {
@@ -940,8 +930,6 @@ chrome.webNavigation.onBeforeNavigate.addListener((details) => {
  */
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 	if (changeInfo.status === "loading") {
-		// console.log("@tabs.onUpdated, Loading status fired", tabId, changeInfo, tab);
-
 		// set info
 		addTab(tab);
 
@@ -1157,9 +1145,6 @@ function updateUI(block, tabsite, scriptsite, tabid, frameid, subframe) {
  * @return [Object] If resource must be blocked
  */
 function scriptweeder(details) {
-	// console.log("============== ", details.type, " intercepted ==============");
-	// console.log(details);
-
 	const tabid = details.tabId;
 
 	if (tabStorage[tabid] === undefined) {
@@ -1186,22 +1171,17 @@ function scriptweeder(details) {
 			}
 		}
 
-		// console.log("@scriptweeder, Is sub_frame?", subframe, "\nParent frame ID", pframeid);
 		// if request comes from a sub_frame we apply the rules from the frame site
 		if (!subframe) {
 			tabsite = getLoadingFrame(frameid, tabsite);
 		}
 	}
 
-	// console.log("@scriptweeder, Script website", scriptsite);
-	// console.log("@scriptweeder, Website loading script", tabsite);
-
 	// get if resource must be blocked or not
 	const block = isScriptAllowed(tabsite, scriptsite, tabsite.policy);
 
 	updateUI(block, tabsite, scriptsite, tabid, frameid, subframe);
 
-	// console.log("@scriptweeder, Script blocked:", block);
 	// cancel: true - blocks loading, false - allows loading
 	return {cancel: block};
 }
@@ -1301,8 +1281,6 @@ chrome.webRequest.onBeforeRequest.addListener(
  *   - prefs [Object] New preferences
  */
 function processMessage(msg) {
-	console.log("@@@@@@@@@@@@@@@ Message Received @@@@@@@@@@@@@@@\n", msg);
-
 	switch (msg.type) {
 		// save a rule
 		case 0: {
