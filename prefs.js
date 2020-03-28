@@ -984,7 +984,16 @@ function validate(obj, isFull, isRules, at, warn) {
 				}
 			});
 
-			validate(value.urls, isFull, true, [...atNew, "urls"], warn);
+			// validate children
+			Object.entries(value.urls).forEach(object => {
+				validate(
+					object[1],
+					isFull,
+					true,
+					[...at, "urls", object[0]],
+					warn
+				);
+			});
 
 			return;
 		}
