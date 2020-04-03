@@ -879,7 +879,7 @@ chrome.webNavigation.onBeforeNavigate.addListener((details) => {
 		removeTab(tabid, (tabStorage[tabid] ? tabStorage[tabid].allowonce : false));
 	}
 	// if frameId > 0 & url is about:blank
-	else if (details.url.charCodeAt(0) === 97) {
+	else if (details.url === "about:blank") {
 		let pframeid = details.parentFrameId;
 
 		// if not loaded from main frame, check where it was
@@ -892,11 +892,9 @@ chrome.webNavigation.onBeforeNavigate.addListener((details) => {
 		}
 
 		// save frame information
-		if (typeof(tabStorage[tabid]) !== "string") {
-			tabStorage[tabid].frames[frameid] = {
-				use: pframeid
-			};
-		}
+		tabStorage[tabid].frames[frameid] = {
+			use: pframeid
+		};
 	}
 });
 
