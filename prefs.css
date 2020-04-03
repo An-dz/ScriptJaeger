@@ -9,7 +9,7 @@ h1,
 h2,
 h3,
 p,
-span {
+span:not(.site) {
 	cursor: default;
 }
 h1 {
@@ -178,6 +178,9 @@ li ul {
 .show > ul {
 	display: block;
 }
+.show > ul:empty {
+	display: none;
+}
 .rule {
 	cursor: pointer;
 	margin-right: 10px;
@@ -219,13 +222,13 @@ textarea:focus,
 	display: block;
 	padding: 5px 10px;
 }
-#dropdown input[checked] + label {
+#dropdown input:checked + label {
 	background: var(--colorHighlightBgLight);
 }
 #dropdown label:hover {
 	background: var(--colorHighlightBgDark) !important;
 }
-#dropdown input[checked] + label:hover{
+#dropdown input:checked + label:hover{
 	background: var(--colorHighlightBg) !important;
 	color: var(--colorHighlightFg);
 }
@@ -307,9 +310,8 @@ button {
 	box-shadow: 0 1px var(--colorBg);
 	padding: 6px 12px;
 }
-button.middle {
+body > button + button {
 	border-left: 0;
-	border-right: 0;
 }
 button:hover {
 	background: var(--colorBg);

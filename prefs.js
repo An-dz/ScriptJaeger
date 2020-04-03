@@ -75,7 +75,6 @@ const jaegerhut = {
 function saveAndAlertBackground() {
 	clearTimeout(window.saveDelay);
 
-	// enable if received true, keep true if received false
 	window.saveDelay = setTimeout(() => {
 		// send message to background
 		chrome.runtime.sendMessage({
@@ -85,7 +84,7 @@ function saveAndAlertBackground() {
 
 		// save preferences
 		chrome.storage.local.set({preferences: preferences});
-	}, 500);
+	}, 1000);
 }
 
 /* ====================================================================== */
@@ -124,40 +123,38 @@ function showAlert(okaction, title, msg, text, cancelBtn) {
  * @param e [Event] Event interface on the clicked DIV
  */
 function openRuleSelector(e) {
+	const ruleNode = e.target;
+
 	const dropdown = document.getElementById("dropdown");
-	const rule     = jaegerhut[e.target.dataset.rule];
-	const div      = e.target.parentNode;
+	const rule     = jaegerhut[ruleNode.dataset.rule];
+	const div      = ruleNode.parentNode;
 	const li       = div.parentNode;
 	const pos      = div.getBoundingClientRect();
 
-	pos.y = pos.y + window.scrollY - (rule.offset * document.querySelector("li").offsetHeight);
+	// position is relative to visible portion, need to add scrolled distance
+	pos.y = pos.y + window.scrollY -
+		// open at the position of the current rule
+		(rule.offset * document.querySelector("li").offsetHeight);
 
-	// console.log("Moving dropdown to position! X:", e.target.offsetLeft, "Y:", pos.y);
+	dropdown.style.top = `${pos.y}px`;
+	dropdown.style.left = `${ruleNode.offsetLeft}px`;
 
-	dropdown.style = `top:${pos.y}px;left:${e.target.offsetLeft}px`;
-
-	// info for updating rule
-	// rule levels
-	for (const key in li.dataset) {
-		dropdown.dataset[key] = li.dataset[key];
-	}
+	// copy domains and scripts url parts to dropdown element
+	dropdown.dataset.domains = li.dataset.domains;
+	dropdown.dataset.scripts = li.dataset.scripts;
 
 	// highlight selected
-	dropdown.querySelectorAll("input").forEach((n) => {
-		n.removeAttribute("checked");
-	});
-
-	document.getElementById(rule.name).setAttribute("checked", true);
+	document.getElementById(rule.name).checked = true;
 
 	// hide options that are not possible
-	if (li.dataset.scriptdomain) {
-		dropdown.className = "bwl";
-	}
-	else {
+	if (li.dataset.scripts === "[]") {
 		dropdown.className = "policy";
 	}
+	else {
+		dropdown.className = "bwl";
+	}
 
-	e.target.id = "active";
+	ruleNode.id = "active";
 }
 
 /**
@@ -173,13 +170,13 @@ function toggleSubLevel(e) {
 
 	if (!li.hasAttribute("class")) {
 		li.className = "show";
+		return;
 	}
-	else {
-		li.removeAttribute("class");
-		li.querySelectorAll("li.show").forEach((node) => {
-			node.removeAttribute("class");
-		});
-	}
+
+	li.removeAttribute("class");
+	li.querySelectorAll("li.show").forEach(node => {
+		node.removeAttribute("class");
+	});
 }
 
 /**
@@ -196,70 +193,58 @@ function deleteRule(e) {
 	const ul  = li.parentNode;
 	const liP = ul.parentNode;
 
-	// rule levels
-	const site = [
-		li.dataset.domain,
-		li.dataset.subdomain,
-		li.dataset.page
-	];
-
-	// script levels
-	const script = [
-		li.dataset.scriptdomain,
-		li.dataset.scriptsubdomain
-	];
+	const subUrls = JSON.parse(li.dataset.domains);
+	const scriptUrls = JSON.parse(li.dataset.scripts);
 
 	let level = preferences;
-	let i = 0;
+	const isRules = scriptUrls.length > 0;
 
-	// walk through the levels
-	while ((script[0] && site[i] !== undefined) || site[i + 1] !== undefined) {
-		level = level.urls[site[i++]];
-	}
+	subUrls.forEach((url, index) => {
+		if (!isRules && subUrls.length - 1 === index) {
+			delete level.urls[url];
+			return;
+		}
 
-	// if it's a script rule (rules object)
-	if (script[0]) {
+		level = level.urls[url];
+	});
+
+	if (isRules) {
 		level = level.rules;
+	}
 
-		// if script rule has a sublevel
-		if (script[1] !== undefined) {
-			delete level.urls[script[0]].urls[script[1]];
+	scriptUrls.forEach((url, index) => {
+		if (scriptUrls.length - 1 === index) {
+			delete level.urls[url];
+			return;
 		}
-		else {
-			delete level.urls[script[0]];
-		}
-	}
-	else {
-		delete level.urls[site[i]];
-	}
+
+		level = level.urls[url];
+	});
 
 	// now that the rule has been deleted time to deal with the DOM
-	const isRules = (script[0] && script[1] === undefined);
-	const number = liP.querySelector(`.number${(isRules ? ".scripts" : ":not(.scripts)")}`);
+	const subNumber = liP.querySelector(".number:not(.scripts)");
+	const scriptNumber = liP.querySelector(".number.scripts");
+
+	const number = isRules ? scriptNumber : subNumber;
 
 	// update numbers
 	if (number) {
 		--number.textContent;
 
 		if (number.textContent === "0") {
-			number.remove();
+			number.textContent = "";
 		}
 	}
 
 	// remove elements
 	li.remove();
 
-	// if no more li nodes exist the ul can be removed
-	if (!ul.querySelector("li")) {
-		ul.remove();
-
-		// if no more ul nodes exist we can remove the clicking event
-		if (!liP.querySelector("ul")) {
-			liP.removeAttribute("class");
-			const divP = liP.firstElementChild;
-			divP.removeAttribute("class");
-			divP.removeEventListener("click", toggleSubLevel);
-		}
+	// if no more children exists remove clicking event
+	if (subNumber.textContent === 0 && scriptNumber.textContent === 0) {
+		liP.removeAttribute("class");
+		const divP = liP.firstElementChild;
+		divP.removeAttribute("class");
+		divP.removeEventListener("click", toggleSubLevel);
 	}
 
 	// save preferences and alert the background page
@@ -274,46 +259,34 @@ function deleteRule(e) {
  * @param e [Event] Event interface on the clicked rule
  */
 function changeRule(e) {
-	let rule = parseInt(e.target.value, 10);
 	const dropdown = e.target.parentNode;
 
-	// rule levels
-	const site = [
-		dropdown.dataset.domain,
-		dropdown.dataset.subdomain,
-		dropdown.dataset.page
-	];
-
-	// script levels
-	const script = [
-		dropdown.dataset.scriptdomain,
-		dropdown.dataset.scriptsubdomain
-	];
+	const subUrls = JSON.parse(dropdown.dataset.domains);
+	const scriptUrls = JSON.parse(dropdown.dataset.scripts);
 
 	let level = preferences;
-	let i = 0;
+	const isRules = scriptUrls.length > 0;
 
-	// walk through the levels
-	while (site[i] !== undefined) {
-		level = level.urls[site[i++]];
+	subUrls.forEach(url => {
+		level = level.urls[url];
+	});
+
+	if (isRules) {
+		level = level.rules;
 	}
 
-	// if it's a script rule (rules object)
-	if (script[0]) {
-		level = level.rules.urls[script[0]];
+	scriptUrls.forEach(url => {
+		level = level.urls[url];
+	});
 
-		// if script rule has a sublevel
-		if (script[1] !== undefined) {
-			level = level.urls[script[1]];
-		}
-	}
+	let rule = parseInt(e.target.value, 10);
 
 	// -1 is for null
 	if (rule < 0) {
 		rule = null;
 	}
-	// if it has script url it's saving a blocking rule
-	else if (script[0]) {
+	// rules is boolean
+	else if (isRules) {
 		rule = Boolean(rule);
 	}
 
@@ -345,160 +318,163 @@ function changePolicy(e) {
 
 /* ====================================================================== */
 
-// base elements to be reused
-const numberNode  = document.createElement("span");
-const sNumberNode = document.createElement("span");
-const ruleNode    = document.createElement("img");
-const delNode     = document.createElement("button");
+const ruleNodes = Object.freeze({
+	rule:          document.createElement("img"),
+	url:           document.createElement("span"),
+	subRules:      document.createElement("span"),
+	scriptRules:   document.createElement("span"),
+	delete:        document.createElement("button"),
+	subRulesUl:    document.createElement("ul"),
+	scriptRulesUl: document.createElement("ul"),
+});
 
-numberNode.className  = "number scripts";
-sNumberNode.className = "number";
-ruleNode.className    = "rule";
-delNode.className     = "delete";
+ruleNodes.rule.className          = "rule";
+ruleNodes.url.className           = "site";
+ruleNodes.subRules.className      = "number";
+ruleNodes.scriptRules.className   = "number scripts";
+ruleNodes.delete.className        = "delete";
+ruleNodes.subRulesUl.className    = "subrules";
+ruleNodes.scriptRulesUl.className = "scripts";
 
-numberNode.title  = chrome.i18n.getMessage("settingsNumScripts");
-sNumberNode.title = chrome.i18n.getMessage("settingsNumLevels");
-delNode.title     = chrome.i18n.getMessage("settingsDelete");
+ruleNodes.subRules.title    = chrome.i18n.getMessage("settingsNumLevels");
+ruleNodes.scriptRules.title = chrome.i18n.getMessage("settingsNumScripts");
+ruleNodes.delete.title      = chrome.i18n.getMessage("settingsDelete");
 
-ruleNode.tabIndex = 0;
-
-const htmldata = [
-	"domain",
-	"subdomain",
-	"page",
-	"scriptdomain",
-	"scriptsubdomain"
-];
+ruleNodes.rule.tabIndex = 0;
 
 /* ====================================================================== */
+
+/**
+ * @brief Build an LI DOM Element for the rule
+ *
+ * Creates the LI for the preferences list for a single rule.
+ *
+ * @param url         [String] The URL of the rule
+ * @param rule        [Number/Boolean] Rule index for Jaegerhut index
+ * @param subRules    [Number] number of sub rules
+ * @param scriptRules [Number] number of script rules
+ * @param subUrls     [Array]  List of url parts of the rule level
+ * @param scriptUrls  [Array]  List of url parts of the script rule
+ *
+ * @return [Element] An LI DOM Element for the rule
+ */
+function createRuleLi(url, rule, subRules, scriptRules, subUrls, scriptUrls) {
+	const ruleLi  = document.createElement("li");
+	const ruleDiv = document.createElement("div");
+
+	ruleLi.dataset.domains = JSON.stringify(subUrls);
+	ruleLi.dataset.scripts = JSON.stringify(scriptUrls);
+
+	const nodes = Object.freeze({
+		rule:        ruleNodes.rule.cloneNode(false),
+		url:         ruleNodes.url.cloneNode(false),
+		subRules:    ruleNodes.subRules.cloneNode(false),
+		scriptRules: ruleNodes.scriptRules.cloneNode(false),
+		delete:      ruleNodes.delete.cloneNode(false),
+	});
+
+	// the URL
+	nodes.url.textContent = url;
+
+	// Jaegerhut: Rule applied
+	nodes.rule.src          = `images/${jaegerhut[rule].name}38.png`;
+	nodes.rule.alt          = jaegerhut[rule].text[0];
+	nodes.rule.title        = jaegerhut[rule].text;
+	nodes.rule.dataset.rule = rule;
+	nodes.rule.addEventListener("click", openRuleSelector);
+
+	// add icons with the number of sub and script rules
+	if (subRules > 0) {
+		nodes.subRules.textContent = subRules;
+	}
+
+	if (scriptRules > 0) {
+		nodes.scriptRules.textContent = scriptRules;
+	}
+
+	// add listener for toggling subrules view
+	if (subRules > 0 || scriptRules > 0) {
+		ruleDiv.className = "pointer";
+		ruleDiv.tabIndex = 0;
+		ruleDiv.addEventListener("click", toggleSubLevel);
+	}
+
+	// delete button listener
+	nodes.delete.addEventListener("click", deleteRule);
+
+	// append nodes
+	ruleDiv.appendChild(nodes.rule);
+	ruleDiv.appendChild(nodes.url);
+	ruleDiv.appendChild(nodes.subRules);
+	ruleDiv.appendChild(nodes.scriptRules);
+	ruleDiv.appendChild(nodes.delete);
+
+	ruleLi.appendChild(ruleDiv);
+
+	return ruleLi;
+}
 
 /**
  * @brief Fill the list with the rules
  *
  * Creates and injects the DOM elements to represent the rules
  *
- * @param rules [Array]   Rules objects to be printed
- * @param node  [Element] Node where to inject the generated DOM
- * @param urls  [Array]   Parts of the URL:
- * (domain, subdomain, page, script domain, script subdomain)
+ * @param rulesList [Array]   Rules objects to be printed
+ * @param node      [Element] Node where to inject the generated DOMs
  *
  * @note Sorting must be done beforehand
  */
-function fillList(rules, node, urls) {
-	rules.forEach((item) => {
-		// main container node to add item info
-		const li  = document.createElement("li");
-		const div = document.createElement("div");
-		li.appendChild(div);
+function fillList(rulesList, node) {
+	rulesList.forEach(item => {
+		// get url parts, these are useful for knowing the rule we must change
+		const subUrls = JSON.parse(node.parentNode.dataset.domains);
+		const scriptUrls = JSON.parse(node.parentNode.dataset.scripts);
 
-		// name to be printed
-		let siteName = "";
-		urls.push(item[0]);
-		urls.forEach((url, index) => {
-			if (url === null) {
-				return;
-			}
+		// we need to append the new url part in the correct part
+		const useScript = scriptUrls.length > 0 || node.className === "scripts";
+		const urlParts = useScript ? scriptUrls : subUrls;
 
-			// data to be used by actions/events
-			li.dataset[htmldata[index]] = url;
+		urlParts.push(item[0]);
 
-			// build name to be printed
-			switch (index) {
-				case 1: // fallthrough
-				case 4:
-					siteName = `${(url === "" ? "*://" : `${url}.`)}${siteName}`;
-					break;
-				case 3:
-					siteName = url;
-					break;
-				default:
-					siteName = `${siteName}${url}`;
-			}
-		});
+		// print the url as a whole to make it easier for the user
+		const url = `${
+			urlParts[1] === undefined ? "" : (
+				urlParts[1].length > 0 ? `${urlParts[1]}.` : "*://"
+			)
+		}${
+			urlParts[0] || ""
+		}${
+			urlParts[2] || ""
+		}`;
 
-		// add info about rule applied to level (Jaegerhut)
-		const ruleImg = ruleNode.cloneNode(false);
-		ruleImg.src = `images/${jaegerhut[item[1].rule].name}38.png`;
-		ruleImg.alt = jaegerhut[item[1].rule].text[0];
-		ruleImg.title = jaegerhut[item[1].rule].text;
-		ruleImg.dataset.rule = item[1].rule;
-		ruleImg.addEventListener("click", openRuleSelector);
-		div.appendChild(ruleImg);
+		const data = item[1];
 
-		// add url to main node
-		const siteUrl = document.createElement("span");
-		siteUrl.className = "site";
-		siteUrl.innerHTML = `<span>${siteName}</span>`;
-		div.appendChild(siteUrl);
+		// get the sub-levels
+		const subRules = Object.entries(data.urls);
+		const scriptRules = data.rules ? Object.entries(data.rules.urls) : [];
 
-		// add info about allowed and blocked scripts
-		if (item[1].rules) {
-			const subrules = Object.entries(item[1].rules.urls).sort();
+		// build the DOM Element for the item
+		const ruleLi = createRuleLi(
+			url,
+			data.rule,
+			subRules.length,
+			scriptRules.length,
+			subUrls,
+			scriptUrls
+		);
 
-			if (subrules.length > 0) {
-				// indexes 1 and 2 are for subdomain and page sublevels
-				// while script rule domain and subdomains are at 3 and 4
-				// this adds nulls in indexes 1 and 2 if necessary to skip
-				// them and the correct data is written
-				while (urls[2] === undefined) {
-					urls.push(null);
-				}
+		const subRulesUl = ruleNodes.subRulesUl.cloneNode(false);
+		const scriptRulesUl = ruleNodes.scriptRulesUl.cloneNode(false);
 
-				// add icon with the number of script rules
-				const scriptRules = numberNode.cloneNode(false);
-				scriptRules.innerText = subrules.length;
-				div.appendChild(scriptRules);
+		// append everything together
+		ruleLi.appendChild(subRulesUl);
+		ruleLi.appendChild(scriptRulesUl);
 
-				// node to hold the list
-				const ul = document.createElement("ul");
-				ul.className = "scripts";
-				// sort the list and call this same function to fill the list
-				fillList(subrules, ul, urls);
+		// call recursively
+		fillList(subRules.sort(), subRulesUl);
+		fillList(scriptRules.sort(), scriptRulesUl);
 
-				// add the sub-list into the main container
-				li.appendChild(ul);
-				div.className = "pointer";
-				div.tabIndex = 0;
-				div.addEventListener("click", toggleSubLevel);
-
-				// remove the null urls added before
-				while (urls[2] === null || urls[1] === null) {
-					urls.pop();
-				}
-			}
-		}
-
-		// add sub-level rules
-		const sublevel = Object.entries(item[1].urls).sort();
-
-		if (sublevel.length > 0) {
-			// add icon with the number of sub-domains that exist
-			const subRules = sNumberNode.cloneNode(false);
-			subRules.innerText = sublevel.length;
-			div.appendChild(subRules);
-
-			// node to hold the list
-			const ul = document.createElement("ul");
-			ul.className = "subrules";
-			// sort the list and call this same function to fill the list
-			fillList(sublevel, ul, urls);
-
-			// add the sub-list into the main container
-			li.appendChild(ul);
-			div.className = "pointer";
-			div.tabIndex = 0;
-			div.addEventListener("click", toggleSubLevel);
-		}
-
-		// button to delete the rule
-		const deleteBtn = delNode.cloneNode(false);
-		deleteBtn.addEventListener("click", deleteRule);
-		div.appendChild(deleteBtn);
-
-		// add to page
-		node.appendChild(li);
-
-		urls.pop();
+		node.appendChild(ruleLi);
 	});
 }
 
@@ -509,15 +485,30 @@ function fillList(rules, node, urls) {
  */
 function showPreferences() {
 	// fill policy preferences
-	document.querySelector(`input[name='rule'][value='${preferences.rule}']`).checked = true;
-	document.querySelector(`input[name='private'][value='${preferences.private}']`).checked = true;
-	document.querySelector("input[type='checkbox']").checked = !preferences.ping;
+	document.querySelector(
+		`input[name='rule'][value='${preferences.rule}']`
+	).checked = true;
+
+	document.querySelector(
+		`input[name='private'][value='${preferences.private}']`
+	).checked = true;
+
+	// ping pref
+	document.querySelector(
+		"input[type='checkbox']"
+	).checked = !preferences.ping;
 
 	// fill global blackwhitelist
-	fillList(Object.entries(preferences.rules.urls).sort(), document.getElementById("bwl"), [null, null, null]);
+	fillList(
+		Object.entries(preferences.rules.urls).sort(),
+		document.getElementById("bwl")
+	);
 
 	// fill site specific settings
-	fillList(Object.entries(preferences.urls).sort(), document.getElementById("rules"), []);
+	fillList(
+		Object.entries(preferences.urls).sort(),
+		document.getElementById("rules")
+	);
 }
 
 /**
@@ -684,7 +675,7 @@ function checkMerge(node, from, to) {
 
 		const ulUrls = document.createElement("ul");
 		const ulRules = document.createElement("ul");
-		ulUrls.className = "subrules";
+		ulUrls.className = node.className;
 		ulRules.className = "scripts";
 
 		checkMerge.call(toDelete, ulUrls, urls, oldValue.urls);
