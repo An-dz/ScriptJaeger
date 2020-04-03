@@ -632,43 +632,32 @@ function addTab(tab) {
 		return;
 	}
 
-	// if first char not 'h' from http or https, just monitor for changes
-	if (tab.url.charCodeAt(0) !== 104) {
-		tabStorage[tab.id] = tab.url;
-		return;
-	}
+	const tabData = tabStorage[tab.id];
+	const site    = extractUrl(tab.url);
+	site.private  = tab.incognito;
+	site.window   = tab.windowId;
+	site.tabid    = tab.id;
 
-	const tabStore = tabStorage[tab.id];
-	const site     = extractUrl(tab.url);
-	site.private   = tab.incognito;
-	site.window    = tab.windowId;
-	site.tabid     = tab.id;
+	const block   = getRules(site);
+	site.policy   = block.policy;
+	site.rules    = block.rules;
 
-	const block    = getRules(site);
-	site.policy    = block.policy;
-	site.rules     = block.rules;
-
-	if (tabStore === undefined || tabStore.page === undefined) {
+	// pages without history.pushState fall here
+	// allowonce does not remove the whole thing so check page url
+	if (tabData === undefined || tabData.page === undefined) {
 		site.blocked = 0;
 		site.scripts = {};
 		site.frames  = {};
-
-		tabStorage[tab.id] = site;
-		return;
 	}
-
-	if (!tabStore.allowonce) {
-		// if page uses history.pushState the old scripts are still loaded
-		site.blocked = tabStore.blocked;
-		site.scripts = tabStore.scripts;
-		site.frames  = tabStore.frames;
-
-		tabStorage[tab.id] = site;
-		return;
+	// if page uses history.pushState the old scripts are still loaded
+	else {
+		site.blocked = tabData.blocked;
+		site.scripts = tabData.scripts;
+		site.frames  = tabData.frames;
 	}
 
 	// allow all once
-	if (tabStore.subdomain === site.subdomain && tabStore.domain === site.domain) {
+	if (tabData !== undefined && tabData.allowonce === true && tabData.subdomain === site.subdomain && tabData.domain === site.domain) {
 		site.policy = 0;
 		site.allowonce = true;
 
@@ -676,14 +665,9 @@ function addTab(tab) {
 			text: "T",
 			tabId: tab.id
 		});
-
-		chrome.browserAction.setBadgeBackgroundColor({
-			color: jaegerhut[0].colour,
-			tabId: tab.id
-		});
-
-		tabStorage[tab.id] = site;
 	}
+
+	tabStorage[tab.id] = site;
 }
 
 /**
