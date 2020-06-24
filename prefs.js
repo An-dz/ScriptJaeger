@@ -1261,10 +1261,12 @@ function okClick() {
 		// it's been already validated
 		mergePreferences(mergingPref.urls, preferences.urls);
 		mergePreferences(mergingPref.rules.urls, preferences.rules.urls);
+		newPreferences();
 	}
 	else if (okaction === "askmerge") {
-		const merge = JSON.parse(document.getElementById("textarea").value);
+		const merge = document.getElementById("textarea").value;
 		askMergePreferences(merge);
+		return;
 	}
 
 	closeAlert();
